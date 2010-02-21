@@ -33,11 +33,11 @@ randexprGrow <- function(funcset, inset,
                          constfactory = function() runif(1, -1, 1),
                          curdepth = 1) {
   if (curdepth >= maxdepth) {
-    if (runif(1) <= constprob) constfactory() else randelt(inset)
+    if (runif(1) <= constprob) constfactory() else randelt(inset$all)
   } else {
   	if (runif(1) <= subtreeprob) {
   	  # create subtree
-      funcname <- randelt(funcset)
+      funcname <- randelt(funcset$all)
       funcarity <- arity(funcname)
       as.call(append(funcname,
                      tabulateList(function(i) randexprGrow(funcset, inset, maxdepth,
@@ -45,7 +45,7 @@ randexprGrow <- function(funcset, inset,
                                   funcarity)))
     } else {
       # create terminal
-  	  if (runif(1) <= constprob) constfactory() else randelt(inset)
+  	  if (runif(1) <= constprob) constfactory() else randelt(inset$all)
     }
   }
 }
@@ -82,7 +82,7 @@ randexprFull <- function(funcset, inset,
 ##' @export
 randfunc <- function(funcset, inset, maxdepth = 16, exprfactory = randexprGrow) {
   newf <- new.function()
-  formals(newf) <- new.alist(inset)
+  formals(newf) <- new.alist(inset$all)
   body(newf) <- exprfactory(funcset, inset, maxdepth)
   newf
 }

@@ -32,7 +32,7 @@ mutateFunc <- function(func, funcset, mutatefuncprob = 0.1) {
   mutatefuncexpr <- function(expr, funcset, mutatefuncprob) {
     if (is.call(expr)) {
       oldfunc <- expr[[1]]
-      newfunccandidate <- if (runif(1) <= mutatefuncprob) randelt(funcset) else oldfunc
+      newfunccandidate <- if (runif(1) <= mutatefuncprob) randelt(funcset$all) else oldfunc
       newfunc <- if(arity(newfunccandidate) == arity(oldfunc)) newfunccandidate else oldfunc
       as.call(append(newfunc, Map(function(e) mutatefuncexpr(e, funcset, mutatefuncprob), rest(expr))))
     } else expr

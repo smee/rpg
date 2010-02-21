@@ -15,11 +15,14 @@
 ##' functions in the global environment. Input variables are also given as strings.
 ##' Combination rules are implemented by assigning sTypes to functions and input
 ##' variables.
+##' TODO
 ##' 
 ##' Multiple function sets or multiple input variable sets can be combined using
 ##' the \code{\link{c}} function.
 ##' \code{functionSet} creates a function set.
 ##' \code{inputVariableSet} creates an input variable set.
+##' \code{functionSetFromList} and \code{inputVariableSetFromList} are variants
+##' that take a list as their only parameter.
 ##'
 ##' @param ... Names of functions or input variables given as strings.
 ##' @return A function set or input variable set.
@@ -30,44 +33,44 @@
 ##' }
 ##' @rdname searchSpaceDefinition
 ##' @export
-functionSet <- function(...) {
-  funcset <- Map(as.name, list(...))
+functionSet <- function(...) functionSetFromList(list(...))
+
+##' @rdname searchSpaceDefinition
+##' @export
+inputVariableSet <- function(...) inputVariableSetFromList(list(...))
+
+##' @rdname searchSpaceDefinition
+##' @export
+functionSetFromList <- function(l) {
+  funcset <- list()
+  funcset$all <- Map(as.name, l)
   class(funcset) <- c("functionSet", "list")
   funcset
 }
 
 ##' @rdname searchSpaceDefinition
 ##' @export
-inputVariableSet <- function(...) {
-  inset <- Map(as.name, list(...))
+inputVariableSetFromList <- function(l) {
+  inset <- list()
+  inset$all <- Map(as.name, l)
   class(inset) <- c("inputVariableSet", "list")
   inset
-}
-
-##' @rdname searchSpaceDefinition
-##' @export
-typedFunctionSet <- function(...) {
-  NA
-}
-
-##' @rdname searchSpaceDefinition
-##' @export
-typedInputVariableSet <- function(...) {
-  NA
 }
 
 ##' @rdname searchSpaceDefinition
 ##' @export
 c.functionSet <- function(..., recursive = FALSE) {
-  funcset <- unlist(list(...))
-  class(funcset) <- c("functionSet", "list")
-  funcset
+  fSets <- list(...)
+  combinedFsets <- list()
+  for (fSet in fSets) combinedFsets <- append(fSet$all, combinedFsets)
+  functionSetFromList(combinedFsets)
 }
 
 ##' @rdname searchSpaceDefinition
 ##' @export
 c.inputVariableSet <- function(..., recursive = FALSE) {
-  inset <- unlist(list(...))
-  class(inset) <- c("inputVariableSet", "list")
-  inset
+  iSets <- list(...)
+  combinedIsets <- list()
+  for (iSet in iSets) combinedIsets <- append(iSet$all, combinedIsets)
+  inputVariableSetFromList(combinedIsets)
 }
