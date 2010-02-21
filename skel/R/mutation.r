@@ -13,12 +13,13 @@
 ##'   \eqn{f} with probability \code{mutatefuncprob}.
 ##' \code{mutateSubtree} mutates a function by recursively replacing inner nodes with
 ##'   newly grown subtrees of maximum depth \code{maxsubtreedepth}.
-##' \code{mutateConst} mutates a function by perturbing each constant \eqn{c} with probability
-##'   \code{mutateconstprob} by setting \eqn{c := c + rnorm(1)}.
+##' \code{mutateNumericConst} mutates a function by perturbing each numeric constant \eqn{c}
+##'   with probability \code{mutateconstprob} by setting \eqn{c := c + rnorm(1)}.
 ##'
 ##' @param func The function to mutate randomly.
 ##' @param funcset The function set.
 ##' @param inset The set of input variables.
+##' @param conset The set of constant factories.
 ##' @param mutatefuncprob The probability of trying to replace an inner function at each node.
 ##' @param mutatesubtreeprob The probability of replacing a subtree with a newly grown subtree
 ##'   at each node.
@@ -45,25 +46,26 @@ mutateFunc <- function(func, funcset, mutatefuncprob = 0.1) {
 
 ##' @rdname expressionMutation
 ##' @export
-mutateSubtree <- function(func, funcset, inset, mutatesubtreeprob = 0.1, maxsubtreedepth = 5) {
-  mutatesubtreeexpr <- function(expr, funcset, inset, mutatesubtreeprob, maxsubtreedepth) {
+mutateSubtree <- function(func, funcset, inset, conset, mutatesubtreeprob = 0.1, maxsubtreedepth = 5) {
+  mutatesubtreeexpr <- function(expr, funcset, inset, conset, mutatesubtreeprob, maxsubtreedepth) {
     if (runif(1) <= mutatesubtreeprob) { # replace current node with new random subtree
-      randexprGrow(funcset, inset, maxdepth = maxsubtreedepth)
+      randexprGrow(funcset, inset, conset, maxdepth = maxsubtreedepth)
     } else if (is.call(expr)) {
       as.call(append(expr[[1]],
-                     Map(function(e) mutatesubtreeexpr(e, funcset, inset, mutatesubtreeprob, maxsubtreedepth),
+                     Map(function(e) mutatesubtreeexpr(e, funcset, inset, conset,
+                                                       mutatesubtreeprob, maxsubtreedepth),
                          rest(expr))))
     } else expr
   }
   mutant <- new.function()
   formals(mutant) <- formals(func)
-  body(mutant) <- mutatesubtreeexpr(body(func), funcset, inset, mutatesubtreeprob, maxsubtreedepth)
+  body(mutant) <- mutatesubtreeexpr(body(func), funcset, inset, conset, mutatesubtreeprob, maxsubtreedepth)
   mutant
 }
 
 ##' @rdname expressionMutation
 ##' @export
-mutateConst <- function(func, mutateconstprob = 0.1) {
+mutateNumericConst <- function(func, mutateconstprob = 0.1) {
   mutateconstexpr <- function(expr, mutateconstprob) {
     if (is.call(expr)) {
       as.call(append(expr[[1]], Map(function(e) mutateconstexpr(e, mutateconstprob), rest(expr))))

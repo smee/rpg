@@ -17,14 +17,15 @@
 ##' @param fitfunc The fitness function.
 ##' @param funcset The function set.
 ##' @param inset The set of input variables.
+##' @param conset The set of constant factories.
 ##' @param crossoverfunc The crossover function.
 ##' @param mutatefunc The mutation function.
 ##' @return The population after performing a tournament.
 ##' @export
-tournamentselectionstep <- function(pop, fitfunc, funcset, inset,
+tournamentselectionstep <- function(pop, fitfunc, funcset, inset, conset,
                                     crossoverfunc = crossover,
-                                    mutatefunc = function(ind) mutateSubtree(mutateConst(ind),
-                                      funcset, inset, mutatesubtreeprob = 0.01)) {
+                                    mutatefunc = function(ind) mutateSubtree(mutateNumericConst(ind),
+                                      funcset, inset, conset, mutatesubtreeprob = 0.01)) {
   # perform two tournaments...
   idxs <- sample(length(pop), 4)
   if (fitfunc(pop[[idxs[1]]]) < fitfunc(pop[[idxs[2]]])) {

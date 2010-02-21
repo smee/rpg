@@ -12,12 +12,14 @@
 ##' @param size The population size in number of individuals.
 ##' @param funcset The function set.
 ##' @param inset The set of input variables.
+##' @param conset The set of constant factories.
 ##' @param maxfuncdepth The maximum depth of the functions of the new population.
 ##' @param funcfactory A factory for creating the functions of the new population.
 ##' @return A new population of functions.
 ##' @export
-new.population <- function(size, funcset, inset, maxfuncdepth = 8,
-                           funcfactory = function() randfunc(funcset, inset, maxfuncdepth))
+new.population <- function(size, funcset, inset, conset,
+                           maxfuncdepth = 8,
+                           funcfactory = function() randfunc(funcset, inset, conset, maxfuncdepth))
   tabulateList(function(i) funcfactory(), size)
 
 ##' Calculate the fitness value of each individual in a population

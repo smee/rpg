@@ -56,21 +56,28 @@ typedLogicalFuncset <- functionSet("<" %::% (list(st("numeric"), st("numeric")) 
 
 typedMathLogicalFuncset <- c(typedMathFuncset, typedLogicalFuncset)
 
-## utyped and typed input variable sets...
+## untyped and typed input variable sets...
 onedimInset <- inputVariableSet("x")
 
 typedOnedimInset <- inputVariableSet("x" %::% st("numeric"))
 
+## untyped and typed constant factory sets...
+numericConset <- constantFactorySet(function() runif(1, -1, 1))
+
+typedNumericLogicalConset <- constantFactorySet((function() runif(1, -1, 1)) %::% (list() %->% st("numeric")),
+                                                (function() runif(1) > .5) %::% (list() %->% st("logical")))
+
 ## simple evolution main loop...
-simpleevostep <- function(pop, fitnessfunc, funcset, inset)
-  tournamentselectionstep(pop, fitnessfunc, funcset, inset)
+simpleevostep <- function(pop, fitnessfunc, funcset, inset, conset)
+  tournamentselectionstep(pop, fitnessfunc, funcset, inset, conset)
 
 simpleevo <- function(pop, fitnessfunc, steps = 1,
-                      funcset = mathFuncset, inset = onedimInset, printfreq = NA) {
+                      funcset = mathFuncset, inset = onedimInset, conset = numericConset,
+                      printfreq = NA) {
   for (step in 1:steps) {
     if (!is.na(printfreq) && (step %% printfreq) == 0)
       cat(sprintf("step %i of %i (%g %%)\n", step, steps, (step / steps) * 100))
-    pop <- simpleevostep(pop, fitnessfunc, funcset, inset)
+    pop <- simpleevostep(pop, fitnessfunc, funcset, inset, conset)
   }
   pop
 }
@@ -88,15 +95,15 @@ do1fitness <- fitfuncfromfunc(do1, 0, 10, steps = 512, indsizelimit = 16)
 
 
 ## simple evolution of the sinus function in interval [-pi,pi]...
-#pop1 <- new.population(500, arithmeticFuncset, onedimInset)
-#pop1 <- simpleevo(pop1, sinusfitness, funcset = arithmeticFuncset, inset = onedimInset, steps = 10000, printfreq = 100); summary(popfitness(pop1, sinusfitness))
-#system.time(pop1 <- simpleevo(pop1, sinusfitness, funcset = arithmeticFuncset, inset = onedimInset, steps = 10000, printfreq = 100)); summary(popfitness(pop1, sinusfitness))
+#pop1 <- new.population(500, arithmeticFuncset, onedimInset, numericConset)
+#pop1 <- simpleevo(pop1, sinusfitness, funcset = arithmeticFuncset, inset = onedimInset, conset = numericConset, steps = 10000, printfreq = 100); summary(popfitness(pop1, sinusfitness))
+#system.time(pop1 <- simpleevo(pop1, sinusfitness, funcset = arithmeticFuncset, inset = onedimInset, conset = numericConset, steps = 10000, printfreq = 100)); summary(popfitness(pop1, sinusfitness))
 #pop1sorted <- sortBy(pop1, sinusfitness)
 #plotFunctions(list(sortBy(pop1, sinusfitness)[[1]], sin), -pi, pi, 1024)
 #plot.new(); text(0.5, 0.5, indToPlotmathExpr(sortBy(pop1, sinusfitness)[[1]]))
 
 ## evolution of a simple damped oscillator (e.g. a pendulum)
-#pop2 <- new.population(500, c(arithmeticFuncset, trigonometricFuncset), onedimInset)
-#pop2 <- simpleevo(pop2, do1fitness, funcset = c(arithmeticFuncset, trigonometricFuncset), inset = onedimInset, steps = 100000, printfreq = 100); summary(popfitness(pop2, do1fitness))
+#pop2 <- new.population(500, c(arithmeticFuncset, trigonometricFuncset), onedimInset, numericConset)
+#pop2 <- simpleevo(pop2, do1fitness, funcset = c(arithmeticFuncset, trigonometricFuncset), inset = onedimInset, conset = numericConset, steps = 100000, printfreq = 100); summary(popfitness(pop2, do1fitness))
 #plotFunctions(list(sortBy(pop2, do1fitness)[[1]], do1), 0, 10, 1024)
 #plot.new(); text(0.5, 0.5, indToPlotmathExpr(sortBy(pop2, do1fitness)[[1]]))
