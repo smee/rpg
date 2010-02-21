@@ -93,7 +93,6 @@ new.dampedOscillator <- function(m = 1, R = 1, x0 = 1, omega = pi, phi0 = pi) {
 do1 <- new.dampedOscillator()
 do1fitness <- fitfuncfromfunc(do1, 0, 10, steps = 512, indsizelimit = 16)
 
-
 ## simple evolution of the sinus function in interval [-pi,pi]...
 #pop1 <- new.population(500, arithmeticFuncset, onedimInset, numericConset)
 #pop1 <- simpleevo(pop1, sinusfitness, funcset = arithmeticFuncset, inset = onedimInset, conset = numericConset, steps = 10000, printfreq = 100); summary(popfitness(pop1, sinusfitness))
