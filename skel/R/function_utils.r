@@ -76,7 +76,18 @@ arity.primitive <- function(f) {
       identical(f, `/`) ||
       identical(f, `^`) ||
       identical(f, `%%`) ||
-      identical(f, `%/%`))
+      identical(f, `%/%`) ||
+      identical(f, `<`) ||
+      identical(f, `<=`) ||
+      identical(f, `==`) ||
+      identical(f, `!=`) ||
+      identical(f, `>=`) ||
+      identical(f, `>`) ||
+      identical(f, `&`) ||
+      identical(f, `|`) ||
+      identical(f, `&&`) ||
+      identical(f, `||`) ||
+      identical(f, xor))
     2
   else if (identical(f, log) ||
            identical(f, logb) ||
@@ -94,7 +105,8 @@ arity.primitive <- function(f) {
            identical(f, acos) ||
            identical(f, atan) ||
            identical(f, abs) ||
-           identical(f, sqrt))
+           identical(f, sqrt) ||
+           identical(f, `!`))
     1
   else
     stop("could not determine arity of primitive")

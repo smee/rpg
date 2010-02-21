@@ -27,6 +27,7 @@ safeLn <- function(a) log(ifelse(a < 0, 0, a))
 ln <- function(a) log(a)
 positive <- function(x) x > 0
 ifPositive <- function(x, thenbranch, elsebranch) ifelse(x > 0, thenbranch, elsebranch)
+ifThenElse <- function(x, thenbranch, elsebranch) ifelse(x, thenbranch, elsebranch)
 
 ## untyped and typed function sets...
 arithmeticFuncset <- functionSet("+", "-", "*", "/")
@@ -49,7 +50,7 @@ typedMathFuncset <- c(typedArithmeticFuncset, typedExpLogFuncset, typedTrigonome
 typedLogicalFuncset <- functionSet("<" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
                                    ">" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
                                    "==" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
-                                   "ifPositive" %::% (list(st("logical"), st("numeric"), st("numeric")) %->% st("numeric")),
+                                   "ifThenElse" %::% (list(st("logical"), st("numeric"), st("numeric")) %->% st("numeric")),
                                    "&" %::% (list(st("logical"), st("logical")) %->% st("logical")),
                                    "|" %::% (list(st("logical"), st("logical")) %->% st("logical")),
                                    "!" %::% (list(st("logical")) %->% st("logical")))
