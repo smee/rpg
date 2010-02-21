@@ -15,6 +15,7 @@
 ##' functions in the global environment. Input variables are also given as strings.
 ##' Combination rules are implemented by assigning sTypes to functions and input
 ##' variables.
+##'
 ##' TODO
 ##' 
 ##' Multiple function sets or multiple input variable sets can be combined using
@@ -43,7 +44,8 @@ inputVariableSet <- function(...) inputVariableSetFromList(list(...))
 ##' @export
 functionSetFromList <- function(l) {
   funcset <- list()
-  funcset$all <- Map(as.name, l)
+  funcset$all <- Map(function(o) as.name(o) %::% sType(o), l) # convert to names, keeping sTypes
+  funcset$byRange <- sortByRange(funcset$all)
   class(funcset) <- c("functionSet", "list")
   funcset
 }
@@ -52,7 +54,8 @@ functionSetFromList <- function(l) {
 ##' @export
 inputVariableSetFromList <- function(l) {
   inset <- list()
-  inset$all <- Map(as.name, l)
+  inset$all <- Map(function(o) as.name(o) %::% sType(o), l) # convert to names, keeping sTypes
+  inset$byRange <- sortByRange(inset$all)
   class(inset) <- c("inputVariableSet", "list")
   inset
 }
@@ -73,4 +76,21 @@ c.inputVariableSet <- function(..., recursive = FALSE) {
   combinedIsets <- list()
   for (iSet in iSets) combinedIsets <- append(iSet$all, combinedIsets)
   inputVariableSetFromList(combinedIsets)
+}
+
+##' Tabulate a list of functions or input variables by their range sTypes
+##'
+##' @param x A list of functions or input variables to sort by range sType.
+##' @return A table of the objects keyed by their range types.
+sortByRange <- function(x) {
+  byRangeTable <- list()
+  for (o in x) {
+    if (hasStype(o)) {
+      oStype <- sType(o)
+      oStypeRange <- if (is(oStype, "sFunctionType")) oStype$range else oStype
+      if (is.null(byRangeTable[[oStypeRange$string]])) byRangeTable[[oStypeRange$string]] <- list()
+      byRangeTable[[oStypeRange$string]] <- append(byRangeTable[[oStypeRange$string]], list(o))
+    }
+  }
+  byRangeTable
 }

@@ -20,19 +20,48 @@ source("../skel/R/recombination.r")
 # testing...
 # ---
 
+## some simple functions for GP use...
 safeDivide <- function(a, b) ifelse(b == 0, b, a / b) # TODO
 safeSqroot <- function(a) sqrt(ifelse(a < 0, 0, a))
 safeLn <- function(a) log(ifelse(a < 0, 0, a))
 ln <- function(a) log(a)
+positive <- function(x) x > 0
 ifPositive <- function(x, thenbranch, elsebranch) ifelse(x > 0, thenbranch, elsebranch)
 
+## untyped and typed function sets...
 arithmeticFuncset <- functionSet("+", "-", "*", "/")
 expLogFuncset <- functionSet("sqrt", "exp", "ln")
 trigonometricFuncset <- functionSet("sin", "cos", "tan")
 mathFuncset <- c(arithmeticFuncset, expLogFuncset, trigonometricFuncset)
 
+typedArithmeticFuncset <- functionSet("+" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")),
+                                      "-" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")),
+                                      "*" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")),
+                                      "/" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")))
+typedExpLogFuncset <- functionSet("sqrt" %::% (list(st("numeric")) %->% st("numeric")),
+                                  "exp" %::% (list(st("numeric")) %->% st("numeric")),
+                                  "ln" %::% (list(st("numeric")) %->% st("numeric")))
+typedTrigonometricFuncset <- functionSet("sin" %::% (list(st("numeric")) %->% st("numeric")),
+                                         "cos" %::% (list(st("numeric")) %->% st("numeric")),
+                                         "tan" %::% (list(st("numeric")) %->% st("numeric")))
+typedMathFuncset <- c(typedArithmeticFuncset, typedExpLogFuncset, typedTrigonometricFuncset)
+
+typedLogicalFuncset <- functionSet("<" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
+                                   ">" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
+                                   "==" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
+                                   "ifPositive" %::% (list(st("logical"), st("numeric"), st("numeric")) %->% st("numeric")),
+                                   "&" %::% (list(st("logical"), st("logical")) %->% st("logical")),
+                                   "|" %::% (list(st("logical"), st("logical")) %->% st("logical")),
+                                   "!" %::% (list(st("logical")) %->% st("logical")))
+
+typedMathLogicalFuncset <- c(typedMathFuncset, typedLogicalFuncset)
+
+## utyped and typed input variable sets...
 onedimInset <- inputVariableSet("x")
 
+typedOnedimInset <- inputVariableSet("x" %::% st("numeric"))
+
+## simple evolution main loop...
 simpleevostep <- function(pop, fitnessfunc, funcset, inset)
   tournamentselectionstep(pop, fitnessfunc, funcset, inset)
 
