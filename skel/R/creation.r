@@ -139,6 +139,23 @@ randexprTypedFull <- function(type, funcset, inset, conset,
   randexprTypedGrow(type, funcset, inset, conset, maxdepth, constprob, 1.0)
 }
 
+##' Creates a well-typed R function with a random expression as its body
+##'
+##' @param type The range type of the random function to create.
+##' @param funcset The function set.
+##' @param inset The set of input variables.
+##' @param conset The set of constant factories.
+##' @param maxdepth The maximum expression tree depth.
+##' @param exprfactory The function to use for randomly creating the function's body.
+##' @return A randomly generated well-typed R function.
+##' @export
+randfuncTyped <- function(type, funcset, inset, conset, maxdepth = 16, exprfactory = randexprTypedGrow) {
+  newf <- new.function()
+  formals(newf) <- new.alist(inset$all)
+  body(newf) <- exprfactory(type, funcset, inset, conset, maxdepth)
+  newf
+}
+
 ##' Create a random terminal node
 ##'
 ##' @param typeString The string label of the type of the random terminal node to create.
