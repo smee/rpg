@@ -16,7 +16,12 @@
 ##' Combination rules are implemented by assigning sTypes to functions and input
 ##' variables.
 ##'
-##' TODO
+##' Function sets and input variable sets are S3 classes containing the fields:
+##' \code{$all} contains a list of all functions or input variables.
+##' \code{$byRange} contains a table of all functions or input variables, indexed
+##' by the string label of their sTypes for input variables, or by the string
+##' label of their range sTypes for functions. This field exists mainly for
+##' quickly finding a function of input variable that matches a given type.
 ##' 
 ##' Multiple function sets or multiple input variable sets can be combined using
 ##' the \code{\link{c}} function.
