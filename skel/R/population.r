@@ -7,20 +7,33 @@
 ## released under the GPL v2
 ##
 
-##' Creates a new population of individuals represented as functions
-##' 
+##' Creates new populations of individuals represented as functions
+##'
+##' \code{makePopulation} creates a population of untyped individuals, whereas
+##' \code{makeTypedPopulation} creates a population of typed individuals.
+##'
 ##' @param size The population size in number of individuals.
+##' @param type The (range) type of the individual functions to create.
 ##' @param funcset The function set.
 ##' @param inset The set of input variables.
 ##' @param conset The set of constant factories.
 ##' @param maxfuncdepth The maximum depth of the functions of the new population.
 ##' @param funcfactory A factory for creating the functions of the new population.
 ##' @return A new population of functions.
+##'
+##' @rdname populationCreation
 ##' @export
-new.population <- function(size, funcset, inset, conset,
+makePopulation <- function(size, funcset, inset, conset,
                            maxfuncdepth = 8,
                            funcfactory = function() randfunc(funcset, inset, conset, maxfuncdepth))
   tabulateList(function(i) funcfactory(), size)
+
+##' @rdname populationCreation
+##' @export
+makeTypedPopulation <- function(size, type, funcset, inset, conset,
+                                maxfuncdepth = 8,
+                                funcfactory = function() randfuncTyped(type, funcset, inset, conset, maxfuncdepth))
+  makePopulation(size, funcset, inset, conset, maxfuncdepth, funcfactory)
 
 ##' Calculate the fitness value of each individual in a population
 ##'

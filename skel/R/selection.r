@@ -39,8 +39,8 @@ tournamentselectionstep <- function(pop, fitfunc, funcset, inset, conset,
   	winneridx2 <- idxs[4]; loseridx2 <- idxs[3]
   }
   # do crossover...
-  winnerchild1 <- crossover(pop[[winneridx1]], pop[[winneridx2]])
-  winnerchild2 <- crossover(pop[[winneridx2]], pop[[winneridx1]])
+  winnerchild1 <- crossoverfunc(pop[[winneridx1]], pop[[winneridx2]])
+  winnerchild2 <- crossoverfunc(pop[[winneridx2]], pop[[winneridx1]])
   # replace losers with mutated winner children...
   pop[[loseridx1]] <- mutatefunc(winnerchild1)
   pop[[loseridx2]] <- mutatefunc(winnerchild2)

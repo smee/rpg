@@ -96,6 +96,7 @@ randfunc <- function(funcset, inset, conset, maxdepth = 16, exprfactory = randex
 ##' variables, and constant factories. Only well-typed expressions are created.
 ##' \code{randexprTypedFull} creates a random full expression tree of depth \code{maxdepth},
 ##' respecting type constraints.
+##' All nodes in the created expressions will be tagged with their sTypes.
 ##'
 ##' @param type The (range) type the created expression should have.
 ##' @param funcset The function set.
@@ -113,20 +114,25 @@ randexprTypedGrow <- function(type, funcset, inset, conset,
                               constprob = 0.5, subtreeprob = 0.5,
                               curdepth = 1) {
   typeString <- type$string
-  if (curdepth >= maxdepth) { # maximum depth reached, create terminal
-    randtermTyped(typeString, inset, conset, constprob)
+  insetTypes <- Map(sType, inset$all)
+  if (curdepth >= maxdepth) { # maximum depth reached, create terminal of correct type
+    randterminalTyped(typeString, inset, conset, constprob) %::% type
   } else { # maximum depth not reached, create subtree or terminal
   	if (runif(1) <= subtreeprob) { # create subtree of correct type
       funcname <- randelt(funcset$byRange[[typeString]])
       if (is.null(funcname)) stop("Could not find a function of range type ", typeString, ".")
       functype <- sType(funcname)
       funcdomaintypes <- functype$domain
-      as.call(append(funcname,
-                     Map(function(domaintype) randexprTypedGrow(domaintype, funcset, inset, conset, maxdepth,
-                                                                constprob, subtreeprob, curdepth + 1),
-                         funcdomaintypes)))
+      newSubtree <-
+        as.call(append(funcname,
+                       Map(function(domaintype) randexprTypedGrow(domaintype, funcset, inset, conset, maxdepth,
+                                                                  constprob, subtreeprob, curdepth + 1),
+                           funcdomaintypes)))
+      ## the type of the generated subtree is a function type with the input variable types as domain types...
+      newSubtreeType <- insetTypes %->% type
+      newSubtree %::% newSubtreeType
     } else { # create terminal of correct type
-  	  randtermTyped(typeString, inset, conset, constprob)
+  	  randterminalTyped(typeString, inset, conset, constprob) %::% type
     }
   }
 }
@@ -163,7 +169,7 @@ randfuncTyped <- function(type, funcset, inset, conset, maxdepth = 16, exprfacto
 ##' @param conset The set of constant factories.
 ##' @param constprob The probability of creating a constant versus an input variable.
 ##' @return A random terminal node, i.e. an input variable or a constant.
-randtermTyped <- function(typeString, inset, conset, constprob) {
+randterminalTyped <- function(typeString, inset, conset, constprob) {
   if (runif(1) <= constprob) { # create constant of correct type
     constfactory <- randelt(conset$byRange[[typeString]])
     if (is.null(constfactory)) stop("Could not find a constant factory for type ", typeString, ".")

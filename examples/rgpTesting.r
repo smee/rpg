@@ -69,19 +69,32 @@ typedNumericLogicalConset <- constantFactorySet((function() runif(1, -1, 1)) %::
                                                 (function() runif(1) > .5) %::% (list() %->% st("logical")))
 
 ## simple evolution main loop...
-simpleevostep <- function(pop, fitnessfunc, funcset, inset, conset)
-  tournamentselectionstep(pop, fitnessfunc, funcset, inset, conset)
-
 simpleevo <- function(pop, fitnessfunc, steps = 1,
                       funcset = mathFuncset, inset = onedimInset, conset = numericConset,
+                      crossoverfunc = crossover,
+                      mutatefunc = function(ind) mutateSubtree(mutateNumericConst(ind),
+                        funcset, inset, conset, mutatesubtreeprob = 0.01),
                       printfreq = NA) {
   for (step in 1:steps) {
     if (!is.na(printfreq) && (step %% printfreq) == 0)
       cat(sprintf("step %i of %i (%g %%)\n", step, steps, (step / steps) * 100))
-    pop <- simpleevostep(pop, fitnessfunc, funcset, inset, conset)
+    pop <- tournamentselectionstep(pop, fitnessfunc, funcset, inset, conset,
+                                   crossoverfunc = crossoverfunc,
+                                   mutatefunc = mutatefunc)
   }
   pop
 }
+
+simpleevoTyped <- function(pop, fitnessfunc, steps = 1,
+                      funcset = typedMathLogicalFuncset, inset = typedOnedimInset, conset = typedNumericLogicalConset,
+                      crossoverfunc = crossoverTyped,
+                      mutatefunc = function(ind)
+                           mutateSubtreeTyped(mutateFuncTyped(mutateNumericConstTyped(ind),
+                                                              funcset, mutatefuncprob = 0.01),
+                                              funcset, inset, conset, mutatesubtreeprob = 0.01),
+                                              
+                      printfreq = NA)
+  simpleevo(pop, fitnessfunc, steps, funcset, inset, conset, crossoverfunc, mutatefunc, printfreq)
 
 ## some simple fitness functions for testing...
 sinusfitness <- fitfuncfromfunc(sin, -pi, pi, steps = 256, indsizelimit = 32)
@@ -94,16 +107,20 @@ new.dampedOscillator <- function(m = 1, R = 1, x0 = 1, omega = pi, phi0 = pi) {
 do1 <- new.dampedOscillator()
 do1fitness <- fitfuncfromfunc(do1, 0, 10, steps = 512, indsizelimit = 16)
 
-## simple evolution of the sinus function in interval [-pi,pi]...
-#pop1 <- new.population(500, arithmeticFuncset, onedimInset, numericConset)
+## simple evolution of the sinus function in the interval [-pi,pi]...
+#pop1 <- makePopulation(500, arithmeticFuncset, onedimInset, numericConset)
 #pop1 <- simpleevo(pop1, sinusfitness, funcset = arithmeticFuncset, inset = onedimInset, conset = numericConset, steps = 10000, printfreq = 100); summary(popfitness(pop1, sinusfitness))
 #system.time(pop1 <- simpleevo(pop1, sinusfitness, funcset = arithmeticFuncset, inset = onedimInset, conset = numericConset, steps = 10000, printfreq = 100)); summary(popfitness(pop1, sinusfitness))
-#pop1sorted <- sortBy(pop1, sinusfitness)
 #plotFunctions(list(sortBy(pop1, sinusfitness)[[1]], sin), -pi, pi, 1024)
 #plot.new(); text(0.5, 0.5, indToPlotmathExpr(sortBy(pop1, sinusfitness)[[1]]))
 
 ## evolution of a simple damped oscillator (e.g. a pendulum)
-#pop2 <- new.population(500, c(arithmeticFuncset, trigonometricFuncset), onedimInset, numericConset)
+#pop2 <- makePopulation(500, c(arithmeticFuncset, trigonometricFuncset), onedimInset, numericConset)
 #pop2 <- simpleevo(pop2, do1fitness, funcset = c(arithmeticFuncset, trigonometricFuncset), inset = onedimInset, conset = numericConset, steps = 100000, printfreq = 100); summary(popfitness(pop2, do1fitness))
 #plotFunctions(list(sortBy(pop2, do1fitness)[[1]], do1), 0, 10, 1024)
 #plot.new(); text(0.5, 0.5, indToPlotmathExpr(sortBy(pop2, do1fitness)[[1]]))
+
+## evolution of the sinus function in the interval [-pi,pi] with typed GP using arithmetic and logic operators...
+#pop3 <- makeTypedPopulation(500, st("numeric"), c(typedArithmeticFuncset, typedLogicalFuncset), typedOnedimInset, typedNumericLogicalConset)
+#pop3 <- simpleevoTyped(pop3, sinusfitness, funcset = c(typedArithmeticFuncset, typedLogicalFuncset), inset = typedOnedimInset, conset = typedNumericLogicalConset, steps = 5000, printfreq = 100); summary(popfitness(pop3, sinusfitness))
+#plotFunctions(list(sortBy(pop3, sinusfitness)[[1]], sin), -pi, pi, 1024)

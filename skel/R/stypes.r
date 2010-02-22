@@ -102,3 +102,11 @@ hasStype <- function(x) !is.null(sType(x))
   attr(x, "sType") <- value
   x
 }
+
+##' Return the range type if t is a function type, otherwise just return t
+##'
+##' @param t The type to extract the range type from.
+##' @return The range type.
+##' @export
+rangeTypeOfType <- function(t)
+  if (is(t, "sFunctionType")) t$range else t
