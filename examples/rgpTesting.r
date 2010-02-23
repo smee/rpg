@@ -98,14 +98,19 @@ simpleevoTyped <- function(pop, fitnessfunc, steps = 1,
 
 ## some simple fitness functions for testing...
 sinusfitness <- fitfuncfromfunc(sin, -pi, pi, steps = 256, indsizelimit = 32)
+
 f1 <- function(x) sin(x*0.2*cos(x))
 f1fitness <- fitfuncfromfunc(f1, -2*pi, 2*pi, steps = 1024, indsizelimit = 32)
+
 new.dampedOscillator <- function(m = 1, R = 1, x0 = 1, omega = pi, phi0 = pi) {
   delta <- R / 2 * m
   function(t) x0 * exp(-delta * t) * sin(omega * t + phi0)
 }
 do1 <- new.dampedOscillator()
 do1fitness <- fitfuncfromfunc(do1, 0, 10, steps = 512, indsizelimit = 16)
+
+squarewave <- function(x) ifelse(x %% 1 >= 0.5, 1, -1)
+squarewavefitness <- fitfuncfromfunc(squarewave, 0, 3, steps = 512, indsizelimit = 16)
 
 ## simple evolution of the sinus function in the interval [-pi,pi]...
 #pop1 <- makePopulation(500, arithmeticFuncset, onedimInset, numericConset)
@@ -124,3 +129,8 @@ do1fitness <- fitfuncfromfunc(do1, 0, 10, steps = 512, indsizelimit = 16)
 #pop3 <- makeTypedPopulation(500, st("numeric"), c(typedArithmeticFuncset, typedLogicalFuncset), typedOnedimInset, typedNumericLogicalConset)
 #pop3 <- simpleevoTyped(pop3, sinusfitness, funcset = c(typedArithmeticFuncset, typedLogicalFuncset), inset = typedOnedimInset, conset = typedNumericLogicalConset, steps = 5000, printfreq = 100); summary(popfitness(pop3, sinusfitness))
 #plotFunctions(list(sortBy(pop3, sinusfitness)[[1]], sin), -pi, pi, 1024)
+
+## evolution of a fourier series approximation of a square wave function
+#pop4 <- makePopulation(500, c(arithmeticFuncset, functionSet("sin")), onedimInset, numericConset)
+#pop4 <- simpleevo(pop4, squarewavefitness, funcset = c(arithmeticFuncset, functionSet("sin")), inset = onedimInset, conset = numericConset, steps = 10000, printfreq = 100); summary(popfitness(pop4, squarewavefitness))
+#plotFunctions(list(sortBy(pop4, squarewavefitness)[[1]], squarewave), 0, 3, 1024)

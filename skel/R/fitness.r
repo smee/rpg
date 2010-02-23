@@ -9,19 +9,35 @@
 
 ##' Mean squared error (MSE)
 ##'
-##' @param xs A numeric vector or list.
-##' @param ys A numeric vector or list.
-##' @return The MSE between \code{xs} and \code{ys}.
+##' @param x A numeric vector or list.
+##' @param y A numeric vector or list.
+##' @return The MSE between \code{x} and \code{y}.
 ##' @export
-mse <- function(xs, ys) crossprod(xs - ys)
+mse <- function(x, y) mean((x - y)^2)
 
 ##' Root mean squared error (RMSE)
 ##'
-##' @param xs A numeric vector or list.
-##' @param ys A numeric vector or list.
-##' @return The RMSE between \code{xs} and \code{ys}.
+##' @param x A numeric vector or list.
+##' @param y A numeric vector or list.
+##' @return The RMSE between \code{x} and \code{y}.
 ##' @export
-rmse <- function(xs, ys) sqrt(mse(xs, ys))
+rmse <- function(x, y) sqrt(mse(x, y))
+
+##' Normalize a vector into the interval [0, 1]
+##'
+##' @param x The vector to normalize, so that each element lies in the interval [0, 1].
+##' @return The normalized vector.
+##' @export
+normalize <- function(x) (x - min(x)) / (max(x) - min(x))
+
+##' Scaled mean squared error (SMSE)
+##'
+##' Calculates the MSE between vectors after normalizing them into the interval [0, 1].
+##'
+##' @param x A numeric vector or list.
+##' @param y A numeric vector or list.
+##' @return The SMSE between \code{x} and \code{y}.
+smse <- function(x, y) mse(normalize(x), normalize(y))
 
 ##' Create a fitness function from a function of one variable
 ##'
