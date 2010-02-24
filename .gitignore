@@ -5,5 +5,8 @@
 # Ignore Max OS X Finder Desktop Services Store files
 .DS_Store
 
+# Ignore R history files
+.Rhistory
+
 # Ignore Emacs backup files
 *~
