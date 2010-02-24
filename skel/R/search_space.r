@@ -48,7 +48,17 @@
 ##' }
 ##' @rdname searchSpaceDefinition
 ##' @export
-functionSet <- function(...) functionSetFromList(list(...))
+
+functionSet <- function(..., list=NULL) {
+  ll <- if (missing(list)) list(...) else c(list, ...)
+  
+  funcset <- list()
+  class(funcset) <- c("functionSet", "list")
+  ## funcset$all <- Map(function(o) as.name(o) %::% sType(o), list) # convert to names, keeping sTypes
+  funcset$all <- lapply(ll, function(o) as.name(o) %::% sType(o))
+  funcset$byRange <- sortByRange(funcset$all)
+  funcset
+}
 
 ##' @rdname searchSpaceDefinition
 ##' @export
@@ -57,16 +67,6 @@ inputVariableSet <- function(...) inputVariableSetFromList(list(...))
 ##' @rdname searchSpaceDefinition
 ##' @export
 constantFactorySet <- function(...) constantFactorySetFromList(list(...))
-
-##' @rdname searchSpaceDefinition
-##' @export
-functionSetFromList <- function(l) {
-  funcset <- list()
-  funcset$all <- Map(function(o) as.name(o) %::% sType(o), l) # convert to names, keeping sTypes
-  funcset$byRange <- sortByRange(funcset$all)
-  class(funcset) <- c("functionSet", "list")
-  funcset
-}
 
 ##' @rdname searchSpaceDefinition
 ##' @export
