@@ -33,9 +33,6 @@
 ##' \code{functionSet} creates a function set.
 ##' \code{inputVariableSet} creates an input variable set.
 ##' \code{constantFactorySet} creates a constant factory set.
-##' \code{functionSetFromList}, code{inputVariableSetFromList}, and
-##' \code{constantConstructorSetFromList } are variants of the above functions
-##' that take a list as their only parameter instead of arbitrary many parameters.
 ##'
 ##' @param ... Names of functions or input variables given as strings.
 ##' @return A function set or input variable set.
@@ -49,42 +46,34 @@
 ##' @rdname searchSpaceDefinition
 ##' @export
 
-functionSet <- function(..., list=NULL) {
+functionSet <- function(..., list = NULL) {
   ll <- if (missing(list)) list(...) else c(list, ...)
-  
   funcset <- list()
   class(funcset) <- c("functionSet", "list")
-  ## funcset$all <- Map(function(o) as.name(o) %::% sType(o), list) # convert to names, keeping sTypes
-  funcset$all <- lapply(ll, function(o) as.name(o) %::% sType(o))
+  funcset$all <- lapply(ll, function(o) as.name(o) %::% sType(o)) # convert to names, keeping sTypes
   funcset$byRange <- sortByRange(funcset$all)
   funcset
 }
 
 ##' @rdname searchSpaceDefinition
 ##' @export
-inputVariableSet <- function(...) inputVariableSetFromList(list(...))
-
-##' @rdname searchSpaceDefinition
-##' @export
-constantFactorySet <- function(...) constantFactorySetFromList(list(...))
-
-##' @rdname searchSpaceDefinition
-##' @export
-inputVariableSetFromList <- function(l) {
+inputVariableSet <- function(..., list = NULL) {
+  ll <- if (missing(list)) list(...) else c(list, ...)
   inset <- list()
-  inset$all <- Map(function(o) as.name(o) %::% sType(o), l) # convert to names, keeping sTypes
-  inset$byRange <- sortByRange(inset$all)
   class(inset) <- c("inputVariableSet", "list")
+  inset$all <- lapply(ll, function(o) as.name(o) %::% sType(o)) # convert to names, keeping sTypes
+  inset$byRange <- sortByRange(inset$all)
   inset
 }
 
 ##' @rdname searchSpaceDefinition
 ##' @export
-constantFactorySetFromList <- function(l) {
+constantFactorySet <- function(..., list = NULL) {
+  ll <- if (missing(list)) list(...) else c(list, ...)
   constfacset <- list()
-  constfacset$all <- l
-  constfacset$byRange <- sortByRange(constfacset$all)
   class(constfacset) <- c("constantFactorySet", "list")
+  constfacset$all <- ll
+  constfacset$byRange <- sortByRange(constfacset$all)
   constfacset
 }
 
@@ -94,7 +83,7 @@ c.functionSet <- function(..., recursive = FALSE) {
   fSets <- list(...)
   combinedFsets <- list()
   for (fSet in fSets) combinedFsets <- append(fSet$all, combinedFsets)
-  functionSetFromList(combinedFsets)
+  functionSet(list = combinedFsets)
 }
 
 ##' @rdname searchSpaceDefinition
@@ -103,7 +92,7 @@ c.inputVariableSet <- function(..., recursive = FALSE) {
   iSets <- list(...)
   combinedIsets <- list()
   for (iSet in iSets) combinedIsets <- append(iSet$all, combinedIsets)
-  inputVariableSetFromList(combinedIsets)
+  inputVariableSet(list = combinedIsets)
 }
 
 ##' @rdname searchSpaceDefinition
@@ -112,7 +101,7 @@ c.constantFactorySet <- function(..., recursive = FALSE) {
   cSets <- list(...)
   combinedCsets <- list()
   for (cSet in cSets) combinedCsets <- append(cSet$all, combinedCsets)
-  constantFactorySetFromList(combinedCsets)
+  constantFactorySet(list = combinedCsets)
 }
 
 ##' Tabulate a list of functions or input variables by their range sTypes
