@@ -14,6 +14,7 @@
 ##' \code{exprSize} returns the number of nodes in the tree of an R expression.
 ##' \code{funcSize} returns the number of nodes in the body expression tree of an R function.
 ##' \code{exprVisitationLength} returns the visitation length of the tree of an R expression.
+##' The visitation length is the total number of nodes in all possible subtrees of a tree.
 ##' \code{funcVisitationLength} returns the visitation length of the body expression tree of an R function.
 ##' The visitation length can be interpreted as the size of the expression obtained by substituting all
 ##' inner functions by their function bodies (see "Crossover Bias in Genetic Programming", Maarten Keijzer
@@ -43,10 +44,21 @@ funcSize <- function(func) exprSize(body(func))
 
 ##' @rdname expressionComplexityMeasures
 ##' @export
-exprVisitationLength <- function(expr) # TODO this implementation is simple but inefficient
+exprVisitationLength <- function(expr)
+  exprVisitationLengthRecursive(expr)[[2]]
+
+##' @rdname expressionComplexityMeasures
+exprVisitationLengthRecursive <- function(expr)
+  ## The visitaion length of a tree T is the sum of the number of nodes of all subtrees of T...
   if (is.call(expr)) {
-    sum(as.vector(Map(exprVisitationLength, rest(as.list(expr))), mode = "integer")) + exprSize(expr)
-  } else 1
+    childrenResults <- lapply(rest(expr), exprVisitationLengthRecursive)
+    childrenSums <- Reduce(function(a,b) c(a[1] + b[1], a[2] + b[2]), childrenResults, c(0,0))
+    childrenSizesSum <- childrenSums[1]
+    childrenVisitationLengthsSum <- childrenSums[2]
+    thisTreeSize <- 1 + childrenSizesSum
+    thisTreeVisitationLength <- thisTreeSize + childrenVisitationLengthsSum
+    c(thisTreeSize, thisTreeVisitationLength)
+  } else c(1, 1)
 
 ##' @rdname expressionComplexityMeasures
 ##' @export
