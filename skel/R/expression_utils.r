@@ -67,3 +67,17 @@ AnyExpressionNode <- function(p, expr) {
     p(expr)
   }
 }
+
+##' Functions for decomposing and recombining R expressions
+##'
+##' \code{subExpressions} returns a list of all subexpressions (subtrees) of an
+##' expression \code{expr}.
+##'
+##' @param expr An R expression.
+##'
+##' @rdname expressionComposing
+##' @export
+subexpressions <- function(expr)
+  if (is.call(expr)) {
+    c(expr, Map(subexpressions, expr[-1]), recursive = TRUE)
+  } else expr
