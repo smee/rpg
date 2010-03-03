@@ -7,6 +7,7 @@
 source("../skel/R/list_utils.r")
 source("../skel/R/function_utils.r")
 source("../skel/R/plot_utils.r")
+source("../skel/R/data_utils.r")
 source("../skel/R/stypes.r")
 source("../skel/R/search_space.r")
 source("../skel/R/creation.r")
