@@ -53,12 +53,44 @@ smse <- function(x, y) mse(normalize(x), normalize(y))
 ##' @param indsizelimit Individuals exceeding this size limit will get a fitness of \code{Inf}.
 ##' @return A fitness function based on the reference function \code{func}.
 ##' @export
-fitfuncfromfunc <- function(func, from = -1, to = 1, steps = 128, errormeasure = rmse, indsizelimit = NA) {
+makeFunctionFitnessFunction <- function(func, from = -1, to = 1, steps = 128, errormeasure = rmse, indsizelimit = NA) {
   xs <- seq(from, to, length = steps)
   ystarget <- func(xs)
   function(ind) {
     ysind <- ind(xs) # vectorized fitness-case evaluation
   	errorind <- errormeasure(ystarget, ysind)
+  	if (!is.na(indsizelimit) && funcSize(ind) > indsizelimit)
+  	  Inf # ind size limit exceeded
+  	else if (is.na(errorind) || is.nan(errorind))
+  	  Inf # error value is NA or NaN
+  	else errorind
+  }
+}
+
+##' Create a fitness function for symbolic regression
+##'
+##' Creates a fitness function that calculates an error measure with respect to a given set of
+##' data variables. A simplified version of the formula syntax is used to describe the regression
+##' task. When an \code{indsizelimit} is given, individuals exceeding this limit will receive a
+##' fitness of \code{Inf}.
+##'
+##' @param formula A formula object describing the regression task.
+##' @param data An optional data frame containing the variables in the model.
+##' @param errormeasure A function to use as an error measure.
+##' @param indsizelimit Individuals exceeding this size limit will get a fitness of \code{Inf}.
+##' @return A fitness function to be used in symbolic regression.
+##' @export
+makeRegressionFitnessFunction <- function(formula, data, errormeasure = rmse, indsizelimit = NA) {
+  if (!missing(data)) attach(data)
+  formulaVars <- as.list(attr(terms(formula), "variables")[-1])
+  responseVariable <- formulaVars[[1]]
+  explanatoryVariables <- formulaVars[-1]
+  trueResponse <- eval(responseVariable)
+  explanatories <- lapply(explanatoryVariables, eval)
+  if (!missing(data)) detach(data)
+  function(ind) {
+    ysind <- do.call(ind, explanatories) # vectorized fitness-case evaluation
+  	errorind <- errormeasure(trueResponse, ysind)
   	if (!is.na(indsizelimit) && funcSize(ind) > indsizelimit)
   	  Inf # ind size limit exceeded
   	else if (is.na(errorind) || is.nan(errorind))

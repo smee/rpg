@@ -17,6 +17,7 @@ source("../skel/R/complexity.r")
 source("../skel/R/selection.r")
 source("../skel/R/mutation.r")
 source("../skel/R/recombination.r")
+source("../skel/R/evolution.r")
 
 # testing...
 # ---
@@ -98,20 +99,20 @@ simpleevoTyped <- function(pop, fitnessfunc, steps = 1,
   simpleevo(pop, fitnessfunc, steps, funcset, inset, conset, crossoverfunc, mutatefunc, printfreq)
 
 ## some simple fitness functions for testing...
-sinusfitness <- fitfuncfromfunc(sin, -pi, pi, steps = 256, indsizelimit = 32)
+sinusfitness <- makeFunctionFitnessFunction(sin, -pi, pi, steps = 256, indsizelimit = 32)
 
 f1 <- function(x) sin(x*0.2*cos(x))
-f1fitness <- fitfuncfromfunc(f1, -2*pi, 2*pi, steps = 1024, indsizelimit = 32)
+f1fitness <- makeFunctionFitnessFunction(f1, -2*pi, 2*pi, steps = 1024, indsizelimit = 32)
 
 new.dampedOscillator <- function(m = 1, R = 1, x0 = 1, omega = pi, phi0 = pi) {
   delta <- R / 2 * m
   function(t) x0 * exp(-delta * t) * sin(omega * t + phi0)
 }
 do1 <- new.dampedOscillator()
-do1fitness <- fitfuncfromfunc(do1, 0, 10, steps = 512, indsizelimit = 16)
+do1fitness <- makeFunctionFitnessFunction(do1, 0, 10, steps = 512, indsizelimit = 16)
 
 squarewave <- function(x) ifelse(x %% 1 >= 0.5, 1, -1)
-squarewavefitness <- fitfuncfromfunc(squarewave, 0, 3, steps = 512, indsizelimit = 16)
+squarewavefitness <- makeFunctionFitnessFunction(squarewave, 0, 3, steps = 512, indsizelimit = 16)
 
 ## simple evolution of the sinus function in the interval [-pi,pi]...
 #pop1 <- makePopulation(500, arithmeticFuncset, onedimInset, numericConset)
@@ -135,3 +136,9 @@ squarewavefitness <- fitfuncfromfunc(squarewave, 0, 3, steps = 512, indsizelimit
 #pop4 <- makePopulation(500, c(arithmeticFuncset, functionSet("sin")), onedimInset, numericConset)
 #pop4 <- simpleevo(pop4, squarewavefitness, funcset = c(arithmeticFuncset, functionSet("sin")), inset = onedimInset, conset = numericConset, steps = 10000, printfreq = 100); summary(popfitness(pop4, squarewavefitness))
 #plotFunctions(list(sortBy(pop4, squarewavefitness)[[1]], squarewave), 0, 3, 1024)
+
+## a simple test of  symbolic regression using genetic programming
+#df1 <- data.frame(list(y = 1:100, x1 = 1:100, x2 = 101:200, x3 = 201:300, x4 = 301:400)); df1$y <- df1$x1 * df1$x2 + df1$x3
+#rff1 <- makeRegressionFitnessFunction(y ~ x1 + x2 + x3 + x4, df1)
+#pop5 <- symbolicRegression(y ~ x1 + x2 + x3 + x4, df1, stopCondition = makeTimeStopCondition(120), functionSet = arithmeticFunctionSet); summary(popfitness(pop5, rff1))
+#sortBy(pop5, rff1)[[1]]
