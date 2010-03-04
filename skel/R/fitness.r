@@ -81,13 +81,18 @@ makeFunctionFitnessFunction <- function(func, from = -1, to = 1, steps = 128, er
 ##' @return A fitness function to be used in symbolic regression.
 ##' @export
 makeRegressionFitnessFunction <- function(formula, data, errormeasure = rmse, indsizelimit = NA) {
-  if (!missing(data)) attach(data)
+  data <- if (any(is.na(data))) {
+    dataWithoutNAs <- na.omit(data)
+    warning(sprintf("removed %i data rows containing NA values", length(attr(dataWithoutNAs, "na.action"))))
+    dataWithoutNAs
+  } else data
   formulaVars <- as.list(attr(terms(formula), "variables")[-1])
   responseVariable <- formulaVars[[1]]
   explanatoryVariables <- formulaVars[-1]
+  attach(data)
   trueResponse <- eval(responseVariable)
   explanatories <- lapply(explanatoryVariables, eval)
-  if (!missing(data)) detach(data)
+  detach(data)
   function(ind) {
     ysind <- do.call(ind, explanatories) # vectorized fitness-case evaluation
   	errorind <- errormeasure(trueResponse, ysind)
