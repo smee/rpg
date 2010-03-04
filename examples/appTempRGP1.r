@@ -8,9 +8,9 @@ load("~/data/appTemperatureStreet1Pool5_clean.rda")
 trainingData <- subDataFrame(appTemperatureStreet1Pool5, size = 1/6, pos = "START")
 testData <- subDataFrame(appTemperatureStreet1Pool5, size = 5/6, pos = "END")
 
-## Evolution (time budget: 8 hrs)
+## Evolution (time budget: 4 hrs)
 population <- symbolicRegression(NH4N ~ Temperature + pH + Conductivity, trainingData,
-                                 stopCondition = makeTimeStopCondition(8 * 60 * 60))
+                                 stopCondition = makeTimeStopCondition(4 * 60 * 60))
 
 ## Result analysis...
 trainingFitnessFunction <- makeRegressionFitnessFunction(NH4N ~ Temperature + pH + Conductivity, trainingData)
