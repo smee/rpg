@@ -14,9 +14,9 @@ testDataE3 <- embedDataFrame(testData, c("Temperature", "pH", "Conductivity"), 3
 population <- symbolicRegression(NH4N ~ Temperature + Temperature.P1 + Temperature.P2 + Temperature.P3 + pH + pH.P1 + pH.P2 + pH.P3 + Conductivity + Conductivity.P1 + Conductivity.P2 + Conductivity.P3, trainingDataE3, stopCondition = makeTimeStopCondition(4 * 60 * 60))
 
 ## Result analysis...
-trainingFitnessFunction <- makeRegressionFitnessFunction(H4N ~ Temperature + Temperature.P1 + Temperature.P2 + Temperature.P3 + pH + pH.P1 + pH.P2 + pH.P3 + Conductivity + Conductivity.P1 + Conductivity.P2 + Conductivity.P3, trainingDataE3)
+trainingFitnessFunction <- makeRegressionFitnessFunction(NH4N ~ Temperature + Temperature.P1 + Temperature.P2 + Temperature.P3 + pH + pH.P1 + pH.P2 + pH.P3 + Conductivity + Conductivity.P1 + Conductivity.P2 + Conductivity.P3, trainingDataE3)
 summary(popfitness(population, trainingFitnessFunction)) # RMSE on training data
 
-testFitnessFunction <- makeRegressionFitnessFunction(H4N ~ Temperature + Temperature.P1 + Temperature.P2 + Temperature.P3 + pH + pH.P1 + pH.P2 + pH.P3 + Conductivity + Conductivity.P1 + Conductivity.P2 + Conductivity.P3, testDataE3)
+testFitnessFunction <- makeRegressionFitnessFunction(NH4N ~ Temperature + Temperature.P1 + Temperature.P2 + Temperature.P3 + pH + pH.P1 + pH.P2 + pH.P3 + Conductivity + Conductivity.P1 + Conductivity.P2 + Conductivity.P3, testDataE3)
 summary(popfitness(population, testFitnessFunction)) # RMSE on testing data
 sortBy(population, testFitnessFunction)[[1]] # best individual on training data
