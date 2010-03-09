@@ -78,9 +78,12 @@ makeFunctionFitnessFunction <- function(func, from = -1, to = 1, steps = 128, er
 ##' @param data An optional data frame containing the variables in the model.
 ##' @param errormeasure A function to use as an error measure.
 ##' @param indsizelimit Individuals exceeding this size limit will get a fitness of \code{Inf}.
+##' @param penalizeGenotypeConstantIndividuals Individuals that do not contain
+##'   any input variables will get a fitness of \code{Inf}.
 ##' @return A fitness function to be used in symbolic regression.
 ##' @export
-makeRegressionFitnessFunction <- function(formula, data, errormeasure = rmse, indsizelimit = NA) {
+makeRegressionFitnessFunction <- function(formula, data, errormeasure = rmse,
+                                          indsizelimit = NA, penalizeGenotypeConstantIndividuals = FALSE) {
   data <- if (any(is.na(data))) {
     dataWithoutNAs <- na.omit(data)
     warning(sprintf("removed %i data rows containing NA values", length(attr(dataWithoutNAs, "na.action"))))
@@ -95,11 +98,14 @@ makeRegressionFitnessFunction <- function(formula, data, errormeasure = rmse, in
   detach(data)
   function(ind) {
     ysind <- do.call(ind, explanatories) # vectorized fitness-case evaluation
-  	errorind <- errormeasure(trueResponse, ysind)
+  	errorind <- errormeasure(trueResponse, ysind)    
   	if (!is.na(indsizelimit) && funcSize(ind) > indsizelimit)
-  	  Inf # ind size limit exceeded
+  	  Inf # individual size limit exceeded
   	else if (is.na(errorind) || is.nan(errorind))
   	  Inf # error value is NA or NaN
+    else if (penalizeGenotypeConstantIndividuals
+             && is.empty(inputVariablesOfIndividual(ind, explanatoryVariables)))
+      Inf # individual does not contain any input variables
   	else errorind
   }
 }

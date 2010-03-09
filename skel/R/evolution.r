@@ -32,6 +32,8 @@
 ##'   created.
 ##' @param individualSizeLimit Individuals with a number of tree nodes that
 ##'   exceeds this size limit will get a fitness of \code{Inf}.
+##' @param penalizeGenotypeConstantIndividuals Individuals that do not contain
+##'   any input variables will get a fitness of \code{Inf}.
 ##' @param functionSet The function set.
 ##' @param constantSet The set of constant factory functions.
 ##' @param crossoverFunction The crossover function.
@@ -49,6 +51,7 @@ symbolicRegression <- function(formula, data,
                                population = NULL,
                                populationSize = 500,
                                individualSizeLimit = 64,
+                               penalizeGenotypeConstantIndividuals = FALSE,
                                functionSet = mathFunctionSet,
                                constantSet = numericConstantSet,
                                crossoverFunction = crossover,
@@ -70,7 +73,9 @@ symbolicRegression <- function(formula, data,
                                   functionSet, inputVariables, constantSet, mutatesubtreeprob = 0.01)
     else
       mutationFunction
-  fitnessFunction <- makeRegressionFitnessFunction(formula, data, errormeasure = rmse, indsizelimit = individualSizeLimit)
+  fitnessFunction <- makeRegressionFitnessFunction(formula, data, errormeasure = rmse,
+                                                   penalizeGenotypeConstantIndividuals = penalizeGenotypeConstantIndividuals,
+                                                   indsizelimit = individualSizeLimit)
   pop <-
     if (is.null(population))
       makePopulation(populationSize, functionSet, inputVariables, constantSet)

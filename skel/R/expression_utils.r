@@ -12,6 +12,8 @@
 ##' \code{MapExpressionNodes} transforms an expression \code{expr} by
 ##' replacing every node in the tree with the result of applying a function
 ##' \code{f}. It is a variant of \code{\link{Map}} for expression trees.
+##  \code{FlattenExpression} returns a list of all nodes in an expression
+##' \code{expr}.
 ##' \code{AllExpressionNodes} checks if all nodes in the tree of \code{expr}
 ##' satisfy the predicate \code{p} (\code{p} returns \code{TRUE} for every node).
 ##' This function short-cuts returning \code{FALSE} as soon as a node that
@@ -33,6 +35,17 @@ MapExpressionNodes <- function(f, expr) {
     as.call(append(newfunc, Map(function(e) MapExpressionNodes(f, e), expr[-1])))
   } else {
     f(expr)
+  }
+}
+
+##' @rdname expressionTransformation
+##' @export
+FlattenExpression <- function(expr) {
+  if (is.call(expr)) {
+    func <- expr[[1]]
+    c(list(func), Map(FlattenExpression, expr[-1]), recursive = TRUE)
+  } else {
+    list(expr)
   }
 }
 
