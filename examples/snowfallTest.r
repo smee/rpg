@@ -16,10 +16,13 @@ testDataE3 <- embedDataFrame(testDataE0, cols = "Rainfall", dimension = 3)
 ## Define the worker function to disribute on the cluster...
 sfWorker <- function(seed) {
   set.seed(seed)
-  symbolicRegression(FillLevel ~ Rainfall + Rainfall.P1 + Rainfall.P2 + Rainfall.P3, trainingData,
+  symbolicRegression(FillLevel ~ Rainfall + Rainfall.P1 + Rainfall.P2 + Rainfall.P3, trainingDataE3,
                      stopCondition = makeTimeStopCondition(4 * 60 * 60)) # 4 hours
 }
 
-## Start runs on the cluster, collect and save results...
+## Initialize the cluster, start the runs on the cluster, collect and save results...
+sfInit(parallel = TRUE, socketHosts = c(rep("maanbs02", 16), rep("maanbs03", 16)))
+sfExportAll() # export all variables in the local global environment to the remote cluster nodes
 srModels <- sfLapply(1:64, sfWorker) # 64 runs
-save(srModels, file="~/appStormRGP2.rda")
+save(srModels, file = "~/appStormRGP2.rda")
+sfStop()
