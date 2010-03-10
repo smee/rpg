@@ -122,6 +122,7 @@ symbolicRegression <- function(formula, data,
 ##' 
 ##' @return A vector of predicted values or, if \code{detailed} is \code{TRUE}, a
 ##'   list of the following elements:
+##'   \code{model} the model used in this prediction
 ##'   \code{response} a matrix of predicted versus respone values
 ##'   \code{RMSE} the RMSE between the real and predicted response
 ##'
@@ -150,7 +151,7 @@ predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", det
   if (detailed) {
     predictedVersusReal <- cbind(ysind, trueResponse)
     colnames(predictedVersusReal) <- c("predicted", "real")
-    list(response = predictedVersusReal, RMSE = errorind)
+    list(model = ind, response = predictedVersusReal, RMSE = errorind)
   } else ysind
 }
 
