@@ -204,6 +204,46 @@ c.stopCondition <- function(..., recursive = FALSE) {
   stopCondition
 }
 
+##' Some simple arithmetic and logic functions for use in GP expressions
+##'
+##' \code{safeDivide} a division operator that returns 0 if the divisor is 0.
+##' \code{safeLn} a natural logarithm operator that return 0 if its argument is less
+##'   then 0.
+##' \code{ln} is the natural logarithm.
+##' \code{positive} returns true if its argument is greater then 0.
+##' \code{ifPositive} returns its second argument if its first argument is positive,
+##'   otherwise its third argument.
+##' \code{ifThenElse} returns its second argument if its first argument is true,
+##'   otherwise its third argument.
+##'
+##' @rdname safeGPfunctions
+##' @export
+safeDivide <- function(a, b) ifelse(b == 0, b, a / b)
+
+##' @rdname safeGPfunctions
+##' @export
+safeSqroot <- function(a) sqrt(ifelse(a < 0, 0, a))
+
+##' @rdname safeGPfunctions
+##' @export
+safeLn <- function(a) log(ifelse(a < 0, 0, a))
+
+##' @rdname safeGPfunctions
+##' @export
+ln <- function(a) log(a)
+
+##' @rdname safeGPfunctions
+##' @export
+positive <- function(x) x > 0
+
+##' @rdname safeGPfunctions
+##' @export
+ifPositive <- function(x, thenbranch, elsebranch) ifelse(x > 0, thenbranch, elsebranch)
+
+##' @rdname safeGPfunctions
+##' @export
+ifThenElse <- function(x, thenbranch, elsebranch) ifelse(x, thenbranch, elsebranch)
+
 ##' Default function- and constant factory sets for Genetic Programming
 ##'
 ##' \code{arithmeticFunctionSet} is an untyped function set containing the functions
