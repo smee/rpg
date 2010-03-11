@@ -1,5 +1,18 @@
 .SILENT:
-.PHONEY: clean test check build install pkg data roxygen
+.PHONEY: usage help install test check clean package
+
+usage:
+	echo "Available targets:"
+	echo ""
+	echo " install  - install the package, writing the output into install.log"
+	echo " test     - install package and run unit tests"
+	echo " check    - run R CMD check on the package"
+	echo " help     - shows all available targets"
+
+help: usage
+	echo " clean    - clean up package cruft"
+	echo " package  - build source package of last commit"
+	echo " pkg      - roxygenize skel/ into pkg/"
 
 install: clean pkg
 	echo "Installing package..."
