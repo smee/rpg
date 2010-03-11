@@ -9,7 +9,7 @@ test: install
 	echo "Running unit tests..."
 	Rscript pkg/inst/unittests/runner.r
 
-check: clean
+check: clean pkg
 	echo "Running R CMD check..."
 	R CMD check pkg && rm -fR pkg.Rcheck
 
