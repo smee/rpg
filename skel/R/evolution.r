@@ -268,7 +268,7 @@ makeTimeStopCondition <- function(timeLimit) {
 }
 
 ##' @rdname evolutionStopConditions
-##' @export
+##' @export `&.stopCondition`
 `&.stopCondition` <- function(e1, e2) {
   stopCondition <- function(pop, stepNumber, timeElapsed)
     e1(pop, stepNumber, timeElapsed) && e2(pop, stepNumber, timeElapsed)
@@ -277,7 +277,7 @@ makeTimeStopCondition <- function(timeLimit) {
 }
 
 ##' @rdname evolutionStopConditions
-##' @export
+##' @export `|.stopCondition`
 `|.stopCondition` <- function(e1, e2) {
   stopCondition <- function(pop, stepNumber, timeElapsed)
     e1(pop, stepNumber, timeElapsed) || e2(pop, stepNumber, timeElapsed)
@@ -286,7 +286,7 @@ makeTimeStopCondition <- function(timeLimit) {
 }
 
 ##' @rdname evolutionStopConditions
-##' @export
+##' @export `!.stopCondition`
 `!.stopCondition` <- function(x) {
   stopCondition <- function(pop, stepNumber, timeElapsed)
     !x(pop, stepNumber, timeElapsed)
