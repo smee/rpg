@@ -7,6 +7,9 @@
 ## released under the GPL v2
 ##
 
+##' @include stypes.r
+NA
+
 ##' Random mutation of functions and expressions
 ##'
 ##' \code{mutateFunc} mutates a function \eqn{f} by recursively replacing inner functions in

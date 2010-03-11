@@ -7,6 +7,9 @@
 ## released under the GPL v2
 ##
 
+##' @include stypes.r
+NA
+
 ##' Creates an R expression by random growth
 ##'
 ##' Creates a random R expression by randomly growing its tree. In each step of growth,

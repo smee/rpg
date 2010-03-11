@@ -8,6 +8,8 @@
 ## released under the GPL v2
 ##
 
+##' @include search_space.r
+NA
 
 ##' Symbolic regression via untyped Genetic Programming
 ##'
