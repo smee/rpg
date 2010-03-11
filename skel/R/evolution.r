@@ -9,9 +9,118 @@
 ##
 
 
-##' Symbolic regression via untyped Genetic Programming
+##' Genetic programming run
 ##'
-##' Perform symbolic regression via untyped Genetic Programming. The regression
+##' Perform a genetic programming run. The required argument \code{fitnessFunction}
+##' must be supplied with an objective function that assigns a numerical fitness
+##' value to an R function. Fitness values are minimized, i.e. smaller values mean
+##' higher/better fitness. If a multi-objective \code{selectionFunction} is
+##' used, \code{fitnessFunction} must be a list of objective functions.
+##' The result of the genetic programming run is a genetic programming model
+##' containing a GP population of R functions.
+##'
+##' @param fitnessFunction In case of a single-objective selection function,
+##'   \code{fitnessFunction} must be a single function that assigns a
+##'   numerical fitness value to a GP individual represented as a R function.
+##'   Smaller fitness values mean higher/better fitness. If a multi-objective
+##'   selection function is used, \code{fitnessFunction} must be a list of
+##'   of objective functions.
+##' @param stopCondition The stop condition for the evolution main loop. See
+##'   \link{evolutionStopConditions} for details.
+##' @param population The GP population to start the run with. If this parameter
+##'   is missing, a new GP population of size \code{populationSize} is created
+##'   through random growth.
+##' @param populationSize The number of individuals if a population is to be
+##'   created.
+##' @param individualSizeLimit Individuals with a number of tree nodes that
+##'   exceeds this size limit will get a fitness of \code{Inf}.
+##' @param penalizeGenotypeConstantIndividuals Individuals that do not contain
+##'   any input variables will get a fitness of \code{Inf}.
+##' @param functionSet The function set.
+##' @param inputVariables The input variable set.
+##' @param constantSet The set of constant factory functions.
+##' @param selectionFunction The selection function to use. Defaults to
+##'   \code{tournamentSelection}. See \link{selectionFunctions} for details.
+##' @param crossoverFunction The crossover function.
+##' @param mutationFunction The mutation function.
+##' @param progressMonitor A function of signature
+##'   \code{function(population, stepNumber, timeElapsed)} to be called
+##'   with each evolution step.
+##' @param verbose Whether to print progress messages.
+##' @return A genetic programming model that contains a GP population in the
+##'   field \code{population}, as well as metadata describing the run parameters.
+##'
+##' @export
+geneticProgramming <- function(fitnessFunction,
+                               stopCondition = makeTimeStopCondition(5),
+                               population = NULL,
+                               populationSize = 500,
+                               individualSizeLimit = 64,
+                               penalizeGenotypeConstantIndividuals = FALSE,
+                               functionSet = mathFunctionSet,
+                               inputVariables = c("x"),
+                               constantSet = numericConstantSet,
+                               selectionFunction = tournamentSelection,
+                               crossoverFunction = crossover,
+                               mutationFunction = NULL,
+                               progressMonitor = NULL,
+                               verbose = TRUE) {
+  progmon <-
+    if (is.null(progressMonitor) && verbose)
+      function(pop, stepNumber, timeElapsed)
+        if (stepNumber %% 100 == 0) message(sprintf("evolution step %i, time elapsed: %f seconds", stepNumber, timeElapsed))
+    else if (is.null(progressMonitor))
+      function(pop, stepNumber, timeElapsed) NULL # verbose == FALSE, do not show progress
+    else
+      progressMonitor
+  mutatefunc <-
+    if (is.null(mutationFunction))
+      function(ind) mutateSubtree(mutateNumericConst(ind),
+                                  functionSet, inputVariables, constantSet, mutatesubtreeprob = 0.01)
+    else
+      mutationFunction
+  
+  pop <-
+    if (is.null(population))
+      makePopulation(populationSize, functionSet, inputVariables, constantSet)
+    else
+      population
+  stepNumber <- 1
+  startTime <- proc.time()["elapsed"]
+  timeElapsed <- 0
+
+  if (verbose) message("STARTING genetic programming evolution run...")
+  while (!stopCondition(pop = pop, stepNumber = stepNumber, timeElapsed = timeElapsed)) {
+    selA <- selectionFunction(pop, fitnessFunction)
+    selB <- selectionFunction(pop, fitnessFunction)
+    winnerA <- selA$selectedIndex
+    winnerB <- selB$selectedIndex
+    losersA <- selA$fitnessValues[!(selA$fitnessValues[, 1] == selA$selectedIndex), 1]
+    losersB <- selA$fitnessValues[!(selA$fitnessValues[, 1] == selA$selectedIndex), 1]
+    losers <- c(losersA, losersB)
+    pop[losers] <-
+      replicate(length(losers), mutatefunc(crossoverFunction(pop[[winnerA]], pop[[winnerB]])))
+    
+    timeElapsed <- proc.time()["elapsed"] - startTime
+    stepNumber <- 1 + stepNumber
+    progmon(pop = pop, stepNumber = stepNumber, timeElapsed = timeElapsed)
+  }
+  if (verbose) message(sprintf("Genetic programming evolution run FINISHED after %i evolution steps and %g seconds.",
+                               stepNumber, timeElapsed))
+
+  structure(list(fitnessFunction = fitnessFunction,
+                 stopCondition = stopCondition,
+                 population = pop,
+                 individualSizeLimit = individualSizeLimit,
+                 functionSet = functionSet,
+                 constantSet = constantSet,
+                 crossoverFunction = crossoverFunction,
+                 mutationFunction = mutatefunc), class = "geneticProgrammingModel")
+}
+
+##' Symbolic regression via untyped genetic programming
+##'
+##' Perform symbolic regression via untyped genetic programming. The regression
 ##' task is specified as a \code{\link{formula}}. Only the simple formulas
 ##' without interactions are supported at this time. The result of the symbolic
 ##' regression run is a symbolic regression model containing an untyped GP
@@ -36,6 +145,8 @@
 ##'   any input variables will get a fitness of \code{Inf}.
 ##' @param functionSet The function set.
 ##' @param constantSet The set of constant factory functions.
+##' @param selectionFunction The selection function to use. Defaults to
+##'   \code{tournamentSelection}. See \link{selectionFunctions} for details.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param progressMonitor A function of signature
@@ -45,6 +156,7 @@
 ##' @return An symbolic regression model that contains an untyped GP population.
 ##'
 ##' @seealso \code{\link{predict.symbolicRegressionModel}}
+##' @seealso \code{\link{geneticProgramming}}
 ##' @export
 symbolicRegression <- function(formula, data,
                                stopCondition = makeStepsStopCondition(1000),
@@ -54,57 +166,23 @@ symbolicRegression <- function(formula, data,
                                penalizeGenotypeConstantIndividuals = FALSE,
                                functionSet = mathFunctionSet,
                                constantSet = numericConstantSet,
+                               selectionFunction = tournamentSelection,
                                crossoverFunction = crossover,
                                mutationFunction = NULL,
                                progressMonitor = NULL,
                                verbose = TRUE) {
-  progmon <-
-    if (is.null(progressMonitor) && verbose)
-      function(pop, stepNumber, timeElapsed)
-        if (stepNumber %% 100 == 0) message(sprintf("evolution step %i, time elapsed: %f seconds", stepNumber, timeElapsed))
-    else if (is.null(progressMonitor))
-      function(pop, stepNumber, timeElapsed) NULL # verbose == FALSE, do not show progress
-    else
-      progressMonitor
-  inputVariables <- do.call(inputVariableSet, as.list(as.character(attr(terms(formula), "variables")[-2])[-1]))
-  mutatefunc <-
-    if (is.null(mutationFunction))
-      function(ind) mutateSubtree(mutateNumericConst(ind),
-                                  functionSet, inputVariables, constantSet, mutatesubtreeprob = 0.01)
-    else
-      mutationFunction
-  fitnessFunction <- makeRegressionFitnessFunction(formula, data, errormeasure = rmse,
-                                                   penalizeGenotypeConstantIndividuals = penalizeGenotypeConstantIndividuals,
-                                                   indsizelimit = individualSizeLimit)
-  pop <-
-    if (is.null(population))
-      makePopulation(populationSize, functionSet, inputVariables, constantSet)
-    else
-      population
-  stepNumber <- 1
-  startTime <- proc.time()["elapsed"]
-  timeElapsed <- 0
-
-  if (verbose) message("STARTING symbolic regression evolution run...")
-  while (!stopCondition(pop = pop, stepNumber = stepNumber, timeElapsed = timeElapsed)) {
-    pop <- tournamentselectionstep(pop, fitnessFunction, functionSet, inputVariables, constantSet,
-                                   crossoverfunc = crossoverFunction, mutatefunc = mutatefunc)
-    timeElapsed <- proc.time()["elapsed"] - startTime
-    stepNumber <- 1 + stepNumber
-    progmon(pop = pop, stepNumber = stepNumber, timeElapsed = timeElapsed)
-  }
-  if (verbose) message(sprintf("Symbolic regression evolution run FINISHED after %i evolution steps and %g seconds.",
-                               stepNumber, timeElapsed))
-
-  structure(list(formula = formula,
-                 fitnessFunction = fitnessFunction,
-                 stopCondition = stopCondition,
-                 population = pop,
-                 individualSizeLimit = individualSizeLimit,
-                 functionSet = functionSet,
-                 constantSet = constantSet,
-                 crossoverFunction = crossoverFunction,
-                 mutationFunction = mutatefunc), class = "symbolicRegressionModel")
+  inVarSet <- do.call(inputVariableSet, as.list(as.character(attr(terms(formula), "variables")[-2])[-1]))
+  fitFunc <- makeRegressionFitnessFunction(formula, data, errormeasure = rmse,
+                                           penalizeGenotypeConstantIndividuals = penalizeGenotypeConstantIndividuals,
+                                           indsizelimit = individualSizeLimit)
+  gpModel <- geneticProgramming(fitFunc, stopCondition, population, populationSize,
+                                individualSizeLimit, penalizeGenotypeConstantIndividuals,
+                                functionSet, inVarSet, constantSet, selectionFunction,
+                                crossoverFunction, mutationFunction,
+                                progressMonitor, verbose)
+  
+  structure(append(gpModel, list(formula = formula)),
+            class = c("symbolicRegressionModel", "geneticProgrammingModel"))
 }
 
 ##' Predict method for symbolic regression models
@@ -161,8 +239,7 @@ predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", det
 ##' of the signature \code{function(population, stepNumber, timeElapsed)}. They are used
 ##' to decide when to finish a GP evolution run. Stop conditions must be members of the
 ##' S3 class \code{c("stopCondition", "function")}. They can be combined using the generic
-##' concatenate function \code{\link{c}}, whereas a combined stop condition is fulfilled
-##' if any of the constituent stop conditions is fulfilled.
+##' \emph{and} (\code{|}), \emph{or} (\code{|}) and \emph{not} (\code{!}) functions.
 ##'
 ##' \code{makeStepsStopCondition} creates a stop condition that is fulfilled if the number
 ##' of evolution steps exceeds a given limit.
@@ -190,17 +267,27 @@ makeTimeStopCondition <- function(timeLimit) {
 
 ##' @rdname evolutionStopConditions
 ##' @export
-c.stopCondition <- function(..., recursive = FALSE) {
-  stopConditions <- list(...)
-  stopCondition <- function(pop, stepNumber, timeElapsed) {
-    results <- rep(FALSE, length(stopConditions))
-    idx <- 1
-    for (cond in stopConditions) {
-      results[idx] <- cond(pop, stepNumber, timeElapsed)
-      idx <- 1 + idx
-    }
-    any(results)
-  }
+`&.stopCondition` <- function(e1, e2) {
+  stopCondition <- function(pop, stepNumber, timeElapsed)
+    e1(pop, stepNumber, timeElapsed) && e2(pop, stepNumber, timeElapsed)
+  class(stopCondition) <- c("stopCondition", "function")
+  stopCondition
+}
+
+##' @rdname evolutionStopConditions
+##' @export
+`|.stopCondition` <- function(e1, e2) {
+  stopCondition <- function(pop, stepNumber, timeElapsed)
+    e1(pop, stepNumber, timeElapsed) || e2(pop, stepNumber, timeElapsed)
+  class(stopCondition) <- c("stopCondition", "function")
+  stopCondition
+}
+
+##' @rdname evolutionStopConditions
+##' @export
+`!.stopCondition` <- function(x) {
+  stopCondition <- function(pop, stepNumber, timeElapsed)
+    !x(pop, stepNumber, timeElapsed)
   class(stopCondition) <- c("stopCondition", "function")
   stopCondition
 }

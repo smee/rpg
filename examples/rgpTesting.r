@@ -127,5 +127,5 @@ squarewavefitness <- makeFunctionFitnessFunction(squarewave, 0, 3, steps = 512, 
 ## a simple test of  symbolic regression using genetic programming
 #df1 <- data.frame(list(y = 1:100, x1 = 1:100, x2 = 101:200, x3 = 201:300, x4 = 301:400)); df1$y <- df1$x1 * df1$x2 + df1$x3
 #rff1 <- makeRegressionFitnessFunction(y ~ x1 + x2 + x3 + x4, df1)
-#pop5 <- symbolicRegression(y ~ x1 + x2 + x3 + x4, df1, stopCondition = makeTimeStopCondition(120), functionSet = arithmeticFunctionSet); summary(popfitness(pop5, rff1))
+#pop5 <- symbolicRegression(y ~ x1 + x2 + x3 + x4, df1, stopCondition = makeTimeStopCondition(120), functionSet = arithmeticFunctionSet); summary(popfitness(pop5$population, rff1))
 #sortBy(pop5, rff1)[[1]]
