@@ -40,7 +40,7 @@ st <- function(baseTypeName) {
 }
 
 ##' @rdname sTypeConstructors
-##' @export
+##' @export `%->%`
 `%->%` <- function(domainTypes, rangeType) {
   domainTypeStrings <- Map(function(x) x$string, domainTypes)
   sFunctionTypeString <-
@@ -68,25 +68,25 @@ print.sType <- function(sType, ...) {
 ##' Objects may be tagged with sTypes. Type tags are stored in the "sType" attribute.
 ##' \code{sType} returns the sType tag for an object. Assign to the result of this function
 ##' to set the sType tag for an object (e.g. \code{sType(foo) <- st("integer")}).
-##' The \code{`%::%`} operator returns its first argument tagged with the sType given as its
+##' The \code{%::%} operator returns its first argument tagged with the sType given as its
 ##' second argument, without modifying the sType of its first argument.
 ##' \code{hasStype} returns true if \code{x} is tagged with an sType.
 ##' 
 ##' @param x The object to retreive, check, or set the sType tag for.
 ##'
-##' @examples{
+##' @examples
 ##' foo <- "foo"
 ##' sType(foo) <- st("string")
 ##' sType(foo)
 ##' foo %::% st("string")
-##' }
+##' 
 ##' @seealso sTypeConstructors, attr
 ##' @rdname sTypeTags
 ##' @export
 sType <- function(x) attr(x, "sType")
 
 ##' @rdname sTypeTags
-##' @export
+##' @export `sType<-`
 `sType<-` <- function(x, value) {
   attr(x, "sType") <- value
   x
@@ -97,7 +97,7 @@ sType <- function(x) attr(x, "sType")
 hasStype <- function(x) !is.null(sType(x))
 
 ##' @rdname sTypeTags
-##' @export
+##' @export `%::%`
 `%::%` <- function(x, value) {
   attr(x, "sType") <- value
   x

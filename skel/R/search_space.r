@@ -7,6 +7,9 @@
 ## released under the GPL v2
 ##
 
+##' @include stypes.r
+NA
+
 ##' Functions for defining the search space for symbolic regression
 ##'
 ##' The GP search space is defined by a set of functions, a set of input variables,
