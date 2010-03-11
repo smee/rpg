@@ -6,7 +6,9 @@
 ## Tools...
 preprocessStorm <- function(df, lambda = 0.1) {
   dfPreprocessed <- df
-  kern <- rev(exp(-lambda * 0:20))
+  cutoff <- 0.1
+  kernLen <- -log(cutoff) / lambda
+  kern <- rev(exp(-lambda * 0:(kernLen + 1)))
   dfPreprocessed$LeakyRain <-
     convolve(dfPreprocessed$Rainfall, kern, type="o")[1:nrow(dfPreprocessed)]
   dfPreprocessed
