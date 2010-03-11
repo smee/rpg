@@ -4,10 +4,23 @@
 ##
 
 ## Tools...
+preprocessStorm <- function(df, lambda = 0.1) {
+  dfPreprocessed <- df
+  kern <- rev(exp(-lambda * 0:20))
+  dfPreprocessed$LeakyRain <-
+    convolve(dfPreprocessed$Rainfall, kern, type="o")[1:nrow(dfPreprocessed)]
+  dfPreprocessed
+}
+
 plotStorm <- function(df) {
-  par(mfrow=c(2,1));
+  oldpar <- par(mfrow=c(2,1))
   plot(df$Rainfall, type="l", col="blue", ylab="Rainfall", xlab="")
+  if ("LeakyRain" %in% names(df))
+    lines(df$LeakyRain, col="dodgerblue")
+  legend("topright", legend = c("Pluvio", "Leaky Rain"),
+         lt = 1, col = c("blue", "dodgerblue"), bty = "n")
   plot(df$FillLevel, type="l", col="darkblue", ylab="Fill Level", xlab="")
+  par(oldpar)
 }
 
 ## Data loading and partitioning...
