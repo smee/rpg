@@ -7,6 +7,8 @@
 ## released under the GPL v2
 ##
 
+require(emoa)
+
 ##' GP selection functions
 ##'
 ##' A GP selection function determines which individuals in a population should
@@ -54,31 +56,4 @@ tournamentSelection <- function(population, fitnessFunction,
   sortedIdxFitTableIdx <- which(rnds <= tournamentDeterminism)[1]
   selectedIdx <- sortedIdxFitTable[sortedIdxFitTableIdx, 1]
   list(selectedIndex = selectedIdx, fitnessValues = sortedIdxFitTable)
-}
-
-## TODO remove this
-tournamentSelectionStep <- function(pop, fitfunc, funcset, inset, conset,
-                                    crossoverfunc = crossover,
-                                    mutatefunc = function(ind) mutateSubtree(mutateNumericConst(ind),
-                                      funcset, inset, conset, mutatesubtreeprob = 0.01),
-                                    tournamentSize = 2) {  
-  # perform two tournaments...
-  idxs <- sample(length(pop), 4)
-  if (fitfunc(pop[[idxs[1]]]) < fitfunc(pop[[idxs[2]]])) {
-  	winneridx1 <- idxs[1]; loseridx1 <- idxs[2]
-  } else {
-  	winneridx1 <- idxs[2]; loseridx1 <- idxs[1]
-  }
-  if (fitfunc(pop[[idxs[3]]]) < fitfunc(pop[[idxs[4]]])) {
-  	winneridx2 <- idxs[3]; loseridx2 <- idxs[4]
-  } else {
-  	winneridx2 <- idxs[4]; loseridx2 <- idxs[3]
-  }
-  # do crossover...
-  winnerchild1 <- crossoverfunc(pop[[winneridx1]], pop[[winneridx2]])
-  winnerchild2 <- crossoverfunc(pop[[winneridx2]], pop[[winneridx1]])
-  # replace losers with mutated winner children...
-  pop[[loseridx1]] <- mutatefunc(winnerchild1)
-  pop[[loseridx2]] <- mutatefunc(winnerchild2)
-  pop
 }

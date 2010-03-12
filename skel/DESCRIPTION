@@ -2,7 +2,7 @@ Package: rgp
 Version: 0.1
 Title: R genetic programming framework
 Description: ...
-Author: Oliver Flasch <oliver.flasch@fh-koeln.de>
+Author: Oliver Flasch, Olaf Mersmann, Thomas Bartz-Beielstein, Joerg Stork
 Maintainer: Oliver Flasch <oliver.flasch@fh-koeln.de>
 License: GPL-2
 URL: https://rsymbolic.org/projects/show/rgp

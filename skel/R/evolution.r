@@ -34,10 +34,6 @@ NA
 ##'   through random growth.
 ##' @param populationSize The number of individuals if a population is to be
 ##'   created.
-##' @param individualSizeLimit Individuals with a number of tree nodes that
-##'   exceeds this size limit will get a fitness of \code{Inf}.
-##' @param penalizeGenotypeConstantIndividuals Individuals that do not contain
-##'   any input variables will get a fitness of \code{Inf}.
 ##' @param functionSet The function set.
 ##' @param inputVariables The input variable set.
 ##' @param constantSet The set of constant factory functions.
@@ -57,8 +53,6 @@ geneticProgramming <- function(fitnessFunction,
                                stopCondition = makeTimeStopCondition(5),
                                population = NULL,
                                populationSize = 500,
-                               individualSizeLimit = 64,
-                               penalizeGenotypeConstantIndividuals = FALSE,
                                functionSet = mathFunctionSet,
                                inputVariables = c("x"),
                                constantSet = numericConstantSet,
@@ -113,7 +107,6 @@ geneticProgramming <- function(fitnessFunction,
   structure(list(fitnessFunction = fitnessFunction,
                  stopCondition = stopCondition,
                  population = pop,
-                 individualSizeLimit = individualSizeLimit,
                  functionSet = functionSet,
                  constantSet = constantSet,
                  crossoverFunction = crossoverFunction,
@@ -178,7 +171,6 @@ symbolicRegression <- function(formula, data,
                                            penalizeGenotypeConstantIndividuals = penalizeGenotypeConstantIndividuals,
                                            indsizelimit = individualSizeLimit)
   gpModel <- geneticProgramming(fitFunc, stopCondition, population, populationSize,
-                                individualSizeLimit, penalizeGenotypeConstantIndividuals,
                                 functionSet, inVarSet, constantSet, selectionFunction,
                                 crossoverFunction, mutationFunction,
                                 progressMonitor, verbose)

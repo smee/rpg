@@ -7,6 +7,8 @@
 ## released under the GPL v2
 ##
 
+require(emoa)
+
 ##' Classes for populations of individuals represented as functions
 ##'
 ##' \code{makePopulation} creates a population of untyped individuals, whereas
@@ -68,13 +70,36 @@ summary.population <- function(object, ...) {
 ##' @param pop A population to plot.
 ##' @param fitnessFunction The function to calculate an individual's fitness with.
 ##' @param complexityFunction The function to calculate an individual's complexity with.
+##' @param showIndices Whether to show the population index of each individual.
+##' @param showParetoFront Whether to highlight the pareto front in the plot.
+##' @param hideOutliers If \code{N = hideOutliers > 0}, hide outliers from the plot using
+##'   a "N * IQR" criterion.
 ##' @param ... Additional parameters for the underlying call to \code{\link{plot}}.
-plotPopulationFitnessComplexity <- function(pop, fitnessFunction, complexityFunction = funcVisitationLength, ...) {
+##'
+##' @export
+plotPopulationFitnessComplexity <- function(pop, fitnessFunction,
+                                            complexityFunction = funcVisitationLength,
+                                            showIndices = TRUE,
+                                            showParetoFront = TRUE,
+                                            hideOutliers = 0, ...) {
   popFit <- as.vector(lapply(pop, fitnessFunction), mode = "numeric")
   popCpx <- as.vector(lapply(pop, complexityFunction), mode = "numeric")
+  popFitLim <-
+    if (hideOutliers)
+      c(0, min(max(popFit), quantile(popFit, 0.75) + hideOutliers * IQR(popFit)))
+    else NULL
+  popCpxLim <-
+    if (hideOutliers)
+      c(0, min(max(popCpx), quantile(popCpx, 0.75) + hideOutliers * IQR(popCpx)))
+    else NULL
+  popNds <- nds_rank(rbind(popFit, popCpx))
   points <- cbind(popFit, popCpx)
   colnames(points) <- c("Fitness", "Complexity")
-  plot(points, ...)
+  popPch <- rep(1, length(pop))
+  if (showParetoFront) popPch <- replace(popPch, which(popNds == 1), 16)
+  plot(points, pch = popPch, xlim = popFitLim, ylim = popCpxLim, ...)
+  if (showIndices) text(x = popFit, y = popCpx, pos = 1, cex = 0.6,
+                        xlim = popFitLim, ylim = popCpxLim, ...)
 }
 
 ##' Calculate the fitness value of each individual in a population
@@ -82,5 +107,6 @@ plotPopulationFitnessComplexity <- function(pop, fitnessFunction, complexityFunc
 ##' @param pop A population of functions.
 ##' @param fitnessfunc The fitness function.
 ##' @return A list of fitness function values in the same order as \code{pop}.
+##'
 ##' @export
 popfitness <- function(pop, fitnessfunc) sapply(pop, fitnessfunc)

@@ -57,32 +57,34 @@ numericConset <- constantFactorySet(function() runif(1, -1, 1))
 typedNumericLogicalConset <- constantFactorySet((function() runif(1, -1, 1)) %::% (list() %->% st("numeric")),
                                                 (function() runif(1) > .5) %::% (list() %->% st("logical")))
 
-## simple evolution main loop...
+## some simple evolution main loops...
 simpleevo <- function(pop, fitnessfunc, steps = 1,
                       funcset = mathFuncset, inset = onedimInset, conset = numericConset,
                       crossoverfunc = crossover,
                       mutatefunc = function(ind) mutateSubtree(mutateNumericConst(ind),
                         funcset, inset, conset, mutatesubtreeprob = 0.01),
-                      printfreq = NA) {
-  for (step in 1:steps) {
-    if (!is.na(printfreq) && (step %% printfreq) == 0)
-      cat(sprintf("step %i of %i (%g %%)\n", step, steps, (step / steps) * 100))
-    pop <- tournamentselectionstep(pop, fitnessfunc, funcset, inset, conset,
-                                   crossoverfunc = crossoverfunc,
-                                   mutatefunc = mutatefunc)
-  }
-  pop
-}
+                      printfreq = NA)
+  geneticProgramming(fitnessfunc, 
+                     stopCondition = makeStepsStopCondition(steps),
+                     population = pop,
+                     functionSet = funcset,
+                     inputVariables = inset,
+                     constantSet = conset,
+                     selectionFunction = tournamentSelection,
+                     crossoverFunction = crossoverfunc,
+                     mutationFunction = mutatefunc,
+                     progressMonitor = NULL,
+                     verbose = TRUE)$population
 
 simpleevoTyped <- function(pop, fitnessfunc, steps = 1,
-                      funcset = typedMathLogicalFuncset, inset = typedOnedimInset, conset = typedNumericLogicalConset,
-                      crossoverfunc = crossoverTyped,
-                      mutatefunc = function(ind)
+                           funcset = typedMathLogicalFuncset, inset = typedOnedimInset, conset = typedNumericLogicalConset,
+                           crossoverfunc = crossoverTyped,
+                           mutatefunc = function(ind)
                            mutateSubtreeTyped(mutateFuncTyped(mutateNumericConstTyped(ind),
                                                               funcset, mutatefuncprob = 0.01),
                                               funcset, inset, conset, mutatesubtreeprob = 0.01),
                                               
-                      printfreq = NA)
+                           printfreq = NA)
   simpleevo(pop, fitnessfunc, steps, funcset, inset, conset, crossoverfunc, mutatefunc, printfreq)
 
 ## some simple fitness functions for testing...
@@ -125,7 +127,14 @@ squarewavefitness <- makeFunctionFitnessFunction(squarewave, 0, 3, steps = 512, 
 #plotFunctions(list(sortBy(pop4, squarewavefitness)[[1]], squarewave), 0, 3, 1024)
 
 ## a simple test of  symbolic regression using genetic programming
-#df1 <- data.frame(list(y = 1:100, x1 = 1:100, x2 = 101:200, x3 = 201:300, x4 = 301:400)); df1$y <- df1$x1 * df1$x2 + df1$x3
-#rff1 <- makeRegressionFitnessFunction(y ~ x1 + x2 + x3 + x4, df1)
+df1 <- data.frame(list(y = 1:100, x1 = 1:100, x2 = 101:200, x3 = 201:300, x4 = 301:400)); df1$y <- df1$x1 * df1$x2 + df1$x3
+rff1 <- makeRegressionFitnessFunction(y ~ x1 + x2 + x3 + x4, df1)
 #pop5 <- symbolicRegression(y ~ x1 + x2 + x3 + x4, df1, stopCondition = makeTimeStopCondition(120), functionSet = arithmeticFunctionSet); summary(popfitness(pop5$population, rff1))
 #sortBy(pop5, rff1)[[1]]
+
+## a test of symbolic regression using genetic programming on a harder problem
+df2 <- data.frame(x1 = 1:100, x2 = 101:200, x3 = 201:300, x4 = 301:400); df2$y <- sin(0.01 * df2$x1) * cos(0.1 * df2$x2) + 0.1 * sin(0.5 * df2$x3) + df2$x4/200
+rff2 <- makeRegressionFitnessFunction(y ~ x1 + x2 + x3 + x4, df2)
+#plot(df2$y, type = "l")
+#pop6 <- symbolicRegression(y ~ x1 + x2 + x3 + x4, df2, stopCondition = makeTimeStopCondition(120), functionSet = arithmeticFunctionSet); summary(popfitness(pop6$population, rff2))
+#sortBy(pop6, rff2)[[1]]
