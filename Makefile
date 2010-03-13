@@ -36,7 +36,7 @@ clean:
 	rm -fR pkg
 	rm -fR .RData .Rhistory build.log install.log roxygen.log
 
-package: clean data
+package: clean pkg
 	echo "Building package..."
 	-git stash save -q
 	echo "Date: $(date +%Y-%m-%d)" >> pkg/DESCRIPTION
