@@ -18,5 +18,3 @@ trainingFitnessFunction <- makeRegressionFitnessFunction(NH4N ~ Temperature + Te
 summary(popfitness(population, trainingFitnessFunction)) # RMSE on training data
 
 testFitnessFunction <- makeRegressionFitnessFunction(NH4N ~ Temperature + Temperature.P1 + Temperature.P2 + Temperature.P3 + pH + pH.P1 + pH.P2 + pH.P3 + Conductivity + Conductivity.P1 + Conductivity.P2 + Conductivity.P3, testDataE3)
-summary(popfitness(population, testFitnessFunction)) # RMSE on testing data
-sortBy(population, testFitnessFunction)[[1]] # best individual on training data
