@@ -48,7 +48,6 @@ NA
 ##' }
 ##' @rdname searchSpaceDefinition
 ##' @export
-
 functionSet <- function(..., list = NULL) {
   ll <- if (missing(list)) list(...) else c(list, ...)
   funcset <- list()
