@@ -92,20 +92,18 @@ makeRegressionFitnessFunction <- function(formula, data, errormeasure = rmse,
   formulaVars <- as.list(attr(terms(formula), "variables")[-1])
   responseVariable <- formulaVars[[1]]
   explanatoryVariables <- formulaVars[-1]
-  attach(data)
-  trueResponse <- eval(responseVariable)
-  explanatories <- lapply(explanatoryVariables, eval)
-  detach(data)
+  trueResponse <- eval(responseVariable, envir=data)
+  explanatories <- lapply(explanatoryVariables, eval, envir=data)
   function(ind) {
     ysind <- do.call(ind, explanatories) # vectorized fitness-case evaluation
-  	errorind <- errormeasure(trueResponse, ysind)    
-  	if (!is.na(indsizelimit) && funcSize(ind) > indsizelimit)
-  	  Inf # individual size limit exceeded
-  	else if (is.na(errorind) || is.nan(errorind))
-  	  Inf # error value is NA or NaN
+    errorind <- errormeasure(trueResponse, ysind)    
+    if (!is.na(indsizelimit) && funcSize(ind) > indsizelimit)
+      Inf # individual size limit exceeded
+    else if (is.na(errorind) || is.nan(errorind))
+      Inf # error value is NA or NaN
     else if (penalizeGenotypeConstantIndividuals
              && is.empty(inputVariablesOfIndividual(ind, explanatoryVariables)))
       Inf # individual does not contain any input variables
-  	else errorind
+    else errorind
   }
 }
