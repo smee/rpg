@@ -166,8 +166,15 @@ symbolicRegression <- function(formula, data,
                                mutationFunction = NULL,
                                progressMonitor = NULL,
                                verbose = TRUE) {
-  inVarSet <- do.call(inputVariableSet, as.list(as.character(attr(terms(formula), "variables")[-2])[-1]))
-  fitFunc <- makeRegressionFitnessFunction(formula, data, errormeasure = rmse,
+  ## Match variables in formula to those in data or parent.frame() and
+  ## return them in a new data frame. This also expands any '.'
+  ## arguments in the formula.  
+  mf <- model.frame(formula, data)
+  ## Extract list of terms (rhs of ~) in expanded formula
+  variableNames <- attr(terms(formula(mf)), "term.labels")
+  ## Create inputVariableSet
+  inVarSet <- inputVariableSet(list=as.list(variableNames))
+  fitFunc <- makeRegressionFitnessFunction(formula(mf), mf, errormeasure = rmse,
                                            penalizeGenotypeConstantIndividuals = penalizeGenotypeConstantIndividuals,
                                            indsizelimit = individualSizeLimit)
   gpModel <- geneticProgramming(fitFunc, stopCondition, population, populationSize,
@@ -175,8 +182,8 @@ symbolicRegression <- function(formula, data,
                                 crossoverFunction, mutationFunction,
                                 progressMonitor, verbose)
   
-  structure(append(gpModel, list(formula = formula)),
-            class = c("symbolicRegressionModel", "geneticProgrammingModel"))
+  structure(append(gpModel, list(formula = formula(mf))),
+                   class = c("symbolicRegressionModel", "geneticProgrammingModel"))
 }
 
 ##' Predict method for symbolic regression models
