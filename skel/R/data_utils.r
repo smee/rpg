@@ -19,8 +19,10 @@
 ##'
 ##' @export
 embedDataFrame <- function(x, cols = NULL, dimension = 1) {
+  if (dimension == 0)
+    return(x)
   d <- dimension + 1
-  if(d <= 1 || d >= nrow(x))
+  if (d <= 1 || d >= nrow(x))
     stop("dimension must be greater than 1 and smaller than nrow(x)")
   columns <- if (missing(cols)) names(x) else cols
 

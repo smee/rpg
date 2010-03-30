@@ -62,18 +62,18 @@ geneticProgramming <- function(fitnessFunction,
                                progressMonitor = NULL,
                                verbose = TRUE) {
   progmon <-
-    if (is.null(progressMonitor) && verbose)
+    if (is.null(progressMonitor) && verbose) {
       function(pop, stepNumber, timeElapsed)
         if (stepNumber %% 100 == 0) message(sprintf("evolution step %i, time elapsed: %f seconds", stepNumber, timeElapsed))
-    else if (is.null(progressMonitor))
+    } else if (is.null(progressMonitor)) {
       function(pop, stepNumber, timeElapsed) NULL # verbose == FALSE, do not show progress
-    else
+    } else
       progressMonitor
   mutatefunc <-
-    if (is.null(mutationFunction))
+    if (is.null(mutationFunction)) {
       function(ind) mutateSubtree(mutateNumericConst(ind),
                                   functionSet, inputVariables, constantSet, mutatesubtreeprob = 0.01)
-    else
+    } else
       mutationFunction
   
   pop <-
