@@ -32,7 +32,7 @@ pkg: skel
 
 clean:
 	echo "Cleaning up..."
-	rm -fR skel/src/*.o skel/src/*.so skel.Rcheck
+	rm -fR skel/src/*.o skel/src/*.so skel/R/*~ skel.Rcheck
 	rm -fR pkg
 	rm -fR .RData .Rhistory build.log install.log roxygen.log
 
