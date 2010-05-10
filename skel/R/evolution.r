@@ -61,10 +61,16 @@ geneticProgramming <- function(fitnessFunction,
                                mutationFunction = NULL,
                                progressMonitor = NULL,
                                verbose = TRUE) {
+  logmsg <- function(msg, ...) {
+    if (verbose)
+      message(sprintf(msg, ...))
+  }
+  
   progmon <-
     if (is.null(progressMonitor) && verbose) {
       function(pop, stepNumber, timeElapsed)
-        if (stepNumber %% 100 == 0) message(sprintf("evolution step %i, time elapsed: %f seconds", stepNumber, timeElapsed))
+        if (stepNumber %% 100 == 0)
+          logmsg("evolution step %i, time elapsed: %f seconds", stepNumber, timeElapsed)
     } else if (is.null(progressMonitor)) {
       function(pop, stepNumber, timeElapsed) NULL # verbose == FALSE, do not show progress
     } else
@@ -85,7 +91,7 @@ geneticProgramming <- function(fitnessFunction,
   startTime <- proc.time()["elapsed"]
   timeElapsed <- 0
 
-  if (verbose) message("STARTING genetic programming evolution run...")
+  logmsg("STARTING genetic programming evolution run...")
   while (!stopCondition(pop = pop, stepNumber = stepNumber, timeElapsed = timeElapsed)) {
     selA <- selectionFunction(pop, fitnessFunction)
     selB <- selectionFunction(pop, fitnessFunction)
@@ -101,9 +107,9 @@ geneticProgramming <- function(fitnessFunction,
     stepNumber <- 1 + stepNumber
     progmon(pop = pop, stepNumber = stepNumber, timeElapsed = timeElapsed)
   }
-  if (verbose) message(sprintf("Genetic programming evolution run FINISHED after %i evolution steps and %g seconds.",
-                               stepNumber, timeElapsed))
-
+  logmsg("Genetic programming evolution run FINISHED after %i evolution steps and %g seconds.",
+         stepNumber, timeElapsed)
+  
   structure(list(fitnessFunction = fitnessFunction,
                  stopCondition = stopCondition,
                  population = pop,
