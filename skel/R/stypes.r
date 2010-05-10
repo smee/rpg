@@ -109,4 +109,4 @@ hasStype <- function(x) !is.null(sType(x))
 ##' @return The range type.
 ##' @export
 rangeTypeOfType <- function(t)
-  if (is(t, "sFunctionType")) t$range else t
+  if (inherits(t, "sFunctionType")) t$range else t

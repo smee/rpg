@@ -115,7 +115,7 @@ sortByRange <- function(x) {
   for (o in x) {
     if (hasStype(o)) {
       oStype <- sType(o)
-      oStypeRange <- if (is(oStype, "sFunctionType")) oStype$range else oStype
+      oStypeRange <- if (inherits(oStype, "sFunctionType")) oStype$range else oStype
       if (is.null(byRangeTable[[oStypeRange$string]])) byRangeTable[[oStypeRange$string]] <- list()
       byRangeTable[[oStypeRange$string]] <- append(byRangeTable[[oStypeRange$string]], list(o))
     }
