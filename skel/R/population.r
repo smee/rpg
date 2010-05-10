@@ -7,8 +7,6 @@
 ## released under the GPL v2
 ##
 
-require(emoa)
-
 ##' Classes for populations of individuals represented as functions
 ##'
 ##' \code{makePopulation} creates a population of untyped individuals, whereas

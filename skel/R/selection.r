@@ -7,8 +7,6 @@
 ## released under the GPL v2
 ##
 
-require(emoa)
-
 ##' GP selection functions
 ##'
 ##' A GP selection function determines which individuals in a population should
