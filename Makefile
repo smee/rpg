@@ -29,6 +29,7 @@ check: clean pkg
 pkg: skel
 	echo "Roxygenizing package..."
 	./roxygenize > roxygen.log 2>&1
+	./roxygen-fixup >> roxygen.log 2>&1
 
 clean:
 	echo "Cleaning up..."
