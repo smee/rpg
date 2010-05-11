@@ -1,0 +1,88 @@
+% main.tex
+
+\documentclass[a4paper, twoside]{tufte-book}
+
+\usepackage{amsmath,amssymb}
+\usepackage[pdftex]{graphicx}
+  \graphicspath{{figures/}}
+\usepackage{xcolor}
+\usepackage[intoc]{nomencl}
+\usepackage{xspace}
+\usepackage{siunitx}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{lipsum}
+\usepackage{natbib}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathpazo}
+% To install the URW Classico (Optima) Fonts in TeX Live,
+% run "getnonfreefonts-sys classico" as root
+\renewcommand*\sfdefault{uop}
+
+\def\doctitle{RGP - Genetic Programming in R}
+\def\docsubject{TODO}
+\def\docauthor{The RGP Project}
+\def\RMSE{\ensuremath{ \text{RMSE}}\xspace}
+\def\MSE{\ensuremath{ \text{MSE}}\xspace}
+\def\SE{\ensuremath{ \text{SE}}\xspace}
+\def\RGP{RGP\xspace}
+\definecolor{linkcol}{rgb}{0,0,0.5} 
+\definecolor{citecol}{rgb}{0,0,0.5}
+\hypersetup{
+  bookmarksopen = true,
+  pdftitle = \doctitle,
+  pdfauthor = \docauthor, 
+  pdfsubject = \docsubject,
+  colorlinks = true,
+  pdfpagelayout = SinglePage,
+  pdffitwindow = true,
+  linkcolor = linkcol,
+  citecolor = citecol,
+  urlcolor = linkcol}
+\title{\doctitle}
+\author{\docauthor}
+
+\newcommand{\rgpTitlepage}[0]{
+  \cleardoublepage{
+  \sffamily
+  \begin{fullwidth}
+  %\fontsize{16}{18}\selectfont\par\noindent\textcolor{darkgray}{\allcaps{The Authors}}
+  %\vspace{11.5pc}
+  \vskip36pc
+  \fontsize{26}{30}\selectfont\par\noindent\textcolor{darkgray}{\allcaps{RGP}}
+  \vskip4pc
+  \fontsize{20}{22}\selectfont\par\noindent\textcolor{darkgray}{\allcaps{Genetic Programming in R}}
+  \vfill
+  \includegraphics[height=12cm]{decoration/tree_1.pdf}
+  \vskip1.5pc
+  \fontsize{14}{16}\selectfont\par\noindent\allcaps{\thanklesspublisher}
+  \end{fullwidth}
+  }
+  \thispagestyle{empty}
+  \clearpage
+}
+
+
+\begin{document}
+
+\rgpTitlepage
+
+\frontmatter
+\section*{Acknowledgments}
+TODO
+\lipsum[23]
+\tableofcontents
+
+\mainmatter
+\include{introduction}
+\include{getting_started}
+
+
+\backmatter
+\appendix
+%\printnomenclature
+%\bibliographystyle{apalike}
+%\bibliography{main}
+
+\end{document}

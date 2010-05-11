@@ -1,0 +1,134 @@
+% introduction.tex
+
+\chapter{Introduction}
+This chapter provides a detailed description of the case studies conducted in the course of this thesis.
+\lipsum[1]
+
+
+\section{Case Study Design and Organization}
+TODO general overview, concepts of problem sheet, problem instance, and method, intro to
+experimental desgin and planning via SPO
+
+\lipsum[2]
+
+
+\section{Case Studies in Finance}
+Although the application of GP in finance is a young field, there already exist a comparatively
+large body of literature on this subject (TODO lit). The largest fraction of these work applies GP
+to evolve trading strategies for algorithmic trading. Our case studies are no exception in this
+regard, but are special in the fact that they apply the same GP framework in an array of vastly
+markets. TODO short intro to the three markets, etc.
+
+\subsection{Algorithmic Trading in Stock Markets {\sf (AppStock)}}
+TODO
+
+\begin{table}[ht]
+  \caption{Summary Information on the Stocks included in the Case Study. This Summary Information was retreived from Yahoo Finance on March 1, 2010.}
+  \begin{tabular}{lll}
+    \toprule
+    {\em Symbol} & {\em Company} & {\em Sector}    \\
+    \midrule
+    {\sf AAPL}   & Apple Inc.    & Technology      \\
+    {\sf CVX}    & Chevron Corp. & Basic Materials \\
+    {\sf GOOG}   & Google Inc.   & Technology      \\
+    {\sf PEP}    & Pepsico Inc.  & Consumer Goods  \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\lipsum[3]
+
+\subsection{Algorithmic Trading  in the FX Market {\sf (AppFX)}}
+TODO
+
+\paragraph{Objective Function}
+The vTrader fitness function $\mathit{fitness_{vt}}$ assigns a numerical fitness to a signal
+generator function $s$. It is defined as follows:
+
+\begin{align}
+  \mathit{fitness_{vt}}(s) &:= [\underbrace{-1 \cdot \mathit{pnl}(s, \mathit{T_{train}})}_\text{performance term} %
+    + \underbrace{\mathit{c_{mdd}} \cdot \mathit{mdd}(s, \mathit{T_{train}})] %
+    \cdot \mathit{\mathit{balance}}(s)}_\text{penalty terms} \\
+  \mathit{balance}(s)      &:= %
+    \begin{cases}
+      \mathit{c_{balance}} & \text{if } \mathit{skewness}(s) > \mathit{limit_{skewness}} \\
+      1  & \text{otherwise}
+    \end{cases} \\
+  \mathit{skewness}(s)     &:= \frac{\mathit{abs}(|s(\mathit{T_{train}})|_{\mathit{long}} %
+    - |s(\mathit{T_{train}})|_{\mathit{short}})}{|s(\mathit{T_{train}})|_{\mathit{all}}}
+\end{align}
+
+\begin{table}[ht]
+  \caption{Default Parameter Values for the vTrader fitness function $\mathit{fitness_{vt}}$ used in the Case Study.}
+  \begin{tabular}{lll}
+    \toprule
+    {\em Parameter}             & {\em Description}                  & {\em Value} \\
+    \midrule
+    $\mathit{c_{mdd}}$          & Max-Drawdown Penalty Factor        & TODO        \\
+    $\mathit{limit_{skewness}}$ & Long/Short-Skewness Limit          & $0.8$       \\
+    $\mathit{c_{balance}}$      & Long/Short-Skewness Penalty Factor & TODO        \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Algorithmic Trading  of Emission Certificates {\sf (AppCO2)}}
+TODO
+
+\lipsum[5]
+
+
+\section{Case Studies in Water Resource Management}
+TODO
+
+\lipsum[6]
+
+\subsection{Fill-level Prediction for Stormwater Tanks {\sf (AppStorm)}}
+The main goal of this study is the prediction of fill levels in stormwater overflow tanks based on
+rainfall data in order to implement predictive control of water drain rate. Such predictions are of
+immense practical utility in preventing costly and damaging over- or under-loading of the sewage
+system connected to these stormwater overflow tanks. The task of predicting the current fill levels
+from the past rain data alone---not using past fill levels---is rather challenging since the hidden
+state of the surrounding soil influences the impact of rain in a nonlinear
+fashion~\citep{Bart08c,Kone08b}.
+
+\paragraph{Objective Function}
+The quality of a fill level predictor is measured as the root mean squared error (\RMSE) between
+true fill level and predicted fill level on the test dataset defined in Sec.~\ref{sec:testdata}:
+\begin{equation}\label{eq:rmse}
+  \RMSE(\mathsf{y}_{\mathit{pred}}, \mathsf{y}_{\mathit{real}}) := %
+    \sqrt{\mathit{mean}[(\mathsf{y}_{\mathit{pred}} - \mathsf{y}_{\mathit{real}})^2]}
+\end{equation}
+A fill-level predictor is a function from a rainfall time series to a scalar fill level
+prediction. When predicting the fill level at time $t$, a fill level predictor has the rainfall time
+series up to time $t$ available as input. A time series of predicted fill levels is obtained by
+iteratively applying a fill level predictor to a time series of rainfall data.
+
+\paragraph{Test Data}
+TODO update ranges
+
+Training and test time series data for this study consist of $25,344$ data records. This data
+comprises measurements of the current fill level and the current rainfall at a real stormwater tank
+in Germany. These measurements were taken every 5 minutes, ranging from April, 21th 2007 (00:00
+a.m.) to July, 17th 2007 (11:55 p.m.). We divided this dataset into a training dataset, ranging from
+April, 21th 2007 (00:00 a.m.) to April, 28th 2007 (00:00 a.m.) and a test dataset, ranging from
+April, 28th 2007 (00:05 a.m.) to July, 17th 2007 (11:55 p.m.). The results presented in the
+following are based on the test dataset, while all methods were trained on the training dataset. The
+training dataset consists of a short but balanced sample of dry and rainy days.
+
+Making predictions on the training dataset had to be embedded into the fitness function of GP,
+therefore this dataset is comparatively small. We used the same training dataset in each case study
+to keep results comparable. While fill levels responds differently to rain depending on season, the
+response stays very stable within a season. This is why the size of our training dataset should not
+pose a problem to the methods under study, and also why our test dataset spans the late-spring/early
+summer season, but not more. In practice, the methods under study would be retrained for each
+season.
+
+\subsection{Prediction of NH4N in WTP Inflow {\sf (AppNH4N)}}
+TODO
+
+\lipsum[8]
+
+\subsection{Prediction of Chemical Oxygen Demand in WTP Inflow {\sf (AppO2)}}
+TODO
+
+\lipsum[9]
