@@ -24,9 +24,9 @@
 ##' @param ... Grapical parameters for \code{\link{par}} and further arguments to \code{plot}.
 ##'   For example, use the \code{main} parameter to set a title.
 ##'
-##' @examples{
+##' @examples
 ##' plotFunctions(list(function(x) sin(x), function(x) cos(x), function(x) 0.5*sin(2*x)+1), -pi, pi, 256)
-##' }
+##' 
 plotFunctions <- function(funcs, from = 0, to = 1, steps = 1024,
                           type = "l", lty = 1:5, lwd = 1, lend = par("lend"),
                           pch = NULL,

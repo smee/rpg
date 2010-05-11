@@ -77,7 +77,8 @@ sortBy <- function(xs, byFunc) {
 ##' @param n The number of rows in the table to create.
 ##' @return The result of tabulating \code{f} into a list.
 ##'
-##' @examples{tabulateList(sin, 2*pi)}
+##' @examples
+##' tabulateList(sin, 2*pi)
 ##' @export
 tabulateList <- function(f, n) {
   if (n <= 0) {
@@ -97,7 +98,8 @@ tabulateList <- function(f, n) {
 ##' @param sep The object to intersperse.
 ##' @return The result vector or list.
 ##'
-##' @examples{intersperse(c("bonnie", "clyde"), sep = " and ")}
+##' @examples
+##' intersperse(c("bonnie", "clyde"), sep = " and ")
 ##' @export
 intersperse <- function(x, sep = " ") {
   if (length(x) <= 1) {

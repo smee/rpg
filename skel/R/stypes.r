@@ -14,7 +14,7 @@
 ##' \code{st} creates a \emph{base sType} from a string. A base sType is a type without
 ##' any further structure. Example include \code{st("numeric")}, \code{st("character")}
 ##' or \code{st("logical")}.
-##' \code{%->%} creates a \emph{function sType}, i.e. the type of function, from a
+##' \code{\%->\%} creates a \emph{function sType}, i.e. the type of function, from a
 ##' vector of argument sTypes and a result sType. A function sType has \code{domain}
 ##' and \code{range} containing its argument and result types.
 ##' Every sType has a \code{string} field containing a unambiguous string representation
@@ -26,10 +26,10 @@
 ##' @param rangeTypes The result sTypes of the new function sType to create.
 ##' @return The created sType.
 ##'
-##' @examples{
+##' @examples
 ##' st("numeric")
-##' list(st("numeric"), st("numeric")) %->% st("logical")
-##' }
+##' list(st("numeric"), st("numeric")) \%->\% st("logical")
+##' 
 ##' @seealso sTypeTags
 ##' @rdname sTypeConstructors
 ##' @export
@@ -68,7 +68,7 @@ print.sType <- function(x, ...) {
 ##' Objects may be tagged with sTypes. Type tags are stored in the "sType" attribute.
 ##' \code{sType} returns the sType tag for an object. Assign to the result of this function
 ##' to set the sType tag for an object (e.g. \code{sType(foo) <- st("integer")}).
-##' The \code{%::%} operator returns its first argument tagged with the sType given as its
+##' The \code{\%::\%} operator returns its first argument tagged with the sType given as its
 ##' second argument, without modifying the sType of its first argument.
 ##' \code{hasStype} returns true if \code{x} is tagged with an sType.
 ##' 
@@ -78,7 +78,7 @@ print.sType <- function(x, ...) {
 ##' foo <- "foo"
 ##' sType(foo) <- st("string")
 ##' sType(foo)
-##' foo %::% st("string")
+##' foo \%::\% st("string")
 ##' 
 ##' @seealso sTypeConstructors, attr
 ##' @rdname sTypeTags
