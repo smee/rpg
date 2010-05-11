@@ -9,12 +9,14 @@
 
 ##' Functions for Lisp-like list processing
 ##'
-##' Simple wrapper functions that allow Lisp-like list processing in R:
-##' \code{first} to \code{fifth} return the first to fifth element of the list \code{x}.
-##' \code{rest} returns all but the first element of the list \code{x}.
-##' \code{is.empty} returns \code{TRUE} iff the list \code{x} is of length 0.
-##' \code{is.atom} returns \code{TRUE} iff the list \code{x} is of length 1.
-##' \code{is.composite} returns \code{TRUE} iff the list \code{x} is of length > 1.
+##' Simple wrapper functions that allow Lisp-like list processing in
+##' R: \code{first} to \code{fifth} return the first to fifth element
+##' of the list \code{x}. \code{rest} returns all but the first
+##' element of the list \code{x}. \code{is.empty} returns \code{TRUE}
+##' iff the list \code{x} is of length 0. \code{is.atom} returns
+##' \code{TRUE} iff the list \code{x} is of length 1.
+##' \code{is.composite} returns \code{TRUE} iff the list \code{x} is
+##' of length > 1.
 ##'
 ##' @param x A list or vector.
 ##'
@@ -79,58 +81,19 @@ sortBy <- function(xs, byFunc) {
 ##'
 ##' @examples
 ##' tabulateList(sin, 2*pi)
-##' @export
 tabulateList <- function(f, n) {
-  if (n <= 0) {
-    list()
-  } else if (n == 1) {
-    list(f(1))
-  } else {
-    x <- list(f(1))
-    for (i in 2:n) x[[i]] <- f(i)
-    x
-  }
+  lapply(1:n, f)
 }
-
-##' Concatenate a list or vector interspersing a separator
-##'
-##' @param x A list or vector to concatenate.
-##' @param sep The object to intersperse.
-##' @return The result vector or list.
-##'
-##' @examples
-##' intersperse(c("bonnie", "clyde"), sep = " and ")
-##' @export
-intersperse <- function(x, sep = " ") {
-  if (length(x) <= 1) {
-    x
-  } else {
-    result = x[[1]]
-    for (i in 2:length(x)) result <- paste(result, x[[i]], sep = sep)
-    result
-  }
-}
-
-##' Generate random indices for lists or vectors
-##'
-##' Generates uniformly random list indices between 1 and \code{maxidx}.
-##'
-##' @param maxidx The largest index possible.
-##' @param n The number of indices to generate.
-##' @return A vector of one or more uniformly random list indices.
-##' @export
-randidx <- function(maxidx, n = 1) sample(maxidx, n, replace = TRUE)
 
 ##' Choose a random element from a list or vector
 ##'
 ##' Returns a unformly random chosen element of the vector or list \code{x}.
 ##' @param x The vector or list to chose an element from.
 ##' @return A uniformly random element of \code{x}.
-##' @export
 randelt <- function(x) {
   l <- length(x)
   if (l == 0)
     NULL
   else
-    x[[randidx(length(x))]]
+    sample(x, 1)
 }

@@ -44,7 +44,7 @@ st <- function(baseTypeName) {
 `%->%` <- function(domainTypes, rangeType) {
   domainTypeStrings <- Map(function(x) x$string, domainTypes)
   sFunctionTypeString <-
-     paste("(", intersperse(domainTypeStrings, ", "), ") -> ", rangeType$string, sep ="")
+     paste("(", paste(domainTypeStrings, collapse=", "), ") -> ", rangeType$string, sep ="")
   sFunctionType <-
     list(domain = domainTypes,
          range = rangeType,
