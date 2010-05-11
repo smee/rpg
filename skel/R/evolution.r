@@ -70,7 +70,7 @@ geneticProgramming <- function(fitnessFunction,
     if (is.null(progressMonitor) && verbose) {
       function(pop, stepNumber, timeElapsed)
         if (stepNumber %% 100 == 0)
-          logmsg("evolution step %i, time elapsed: %f seconds", stepNumber, timeElapsed)
+          logmsg("evolution step %i, time elapsed: %f seconds", stepNumber, round(timeElapsed, 2))
     } else if (is.null(progressMonitor)) {
       function(pop, stepNumber, timeElapsed) NULL # verbose == FALSE, do not show progress
     } else
@@ -212,7 +212,7 @@ symbolicRegression <- function(formula, data,
 ##'   \code{RMSE} the RMSE between the real and predicted response
 ##'
 ##' @export
-predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", detailed = FALSE) {
+predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", detailed = FALSE, ...) {
   ind <- if (model == "BEST") {
     trainingFitnessSortedPopulation <- sortBy(object$population, object$fitnessFunction)
     trainingFitnessSortedPopulation[[1]]

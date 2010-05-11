@@ -55,12 +55,12 @@ st <- function(baseTypeName) {
 
 ##' Prints a sType and returns it invisible.
 ##'
-##' @param sType The sType to print.
+##' @param x The sType to print.
 ##' @param ... Optional parameters to print are ignored in this method.
 ##' @export
-print.sType <- function(sType, ...) {
-  cat(sType$string, "\n")
-  invisible(sType)
+print.sType <- function(x, ...) {
+  cat(x$string, "\n")
+  invisible(x)
 }
 
 ##' Tagging objects with sTypes
