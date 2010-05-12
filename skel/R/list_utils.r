@@ -70,8 +70,17 @@ sortBy <- function(xs, byFunc) {
   xs[o]
 }
 
-##' Choose a random element from a list or vector
+##' Generate random indices for lists or vectors
 ##'
+##' Generates uniformly random list indices between 1 and \code{maxidx}.
+##'
+##' @param maxidx The largest index possible.
+##' @param n The number of indices to generate.
+##' @return A vector of one or more uniformly random list indices.
+randidx <- function(maxidx, n = 1) sample(maxidx, n, replace = TRUE)
+
+##' Choose a random element from a list or vector
+##'	
 ##' Returns a unformly random chosen element of the vector or list \code{x}.
 ##' @param x The vector or list to chose an element from.
 ##' @return A uniformly random element of \code{x}.
@@ -80,5 +89,7 @@ randelt <- function(x) {
   if (l == 0)
     NULL
   else
-    sample(x, 1)
+    x[[randidx(length(x))]] # "sample" does not seem to work here because "[["
+                            # must be used to select the list element
 }
+
