@@ -27,7 +27,6 @@
 ##' @param expr The expression to transformed.
 ##'
 ##' @rdname expressionTransformation
-##' @export
 MapExpressionNodes <- function(f, expr) {
   if (is.call(expr)) {
     oldfunc <- expr[[1]]
@@ -39,7 +38,6 @@ MapExpressionNodes <- function(f, expr) {
 }
 
 ##' @rdname expressionTransformation
-##' @export
 FlattenExpression <- function(expr) {
   if (is.call(expr)) {
     func <- expr[[1]]
@@ -50,7 +48,6 @@ FlattenExpression <- function(expr) {
 }
 
 ##' @rdname expressionTransformation
-##' @export
 AllExpressionNodes <- function(p, expr) {
   if (is.call(expr)) {
     if (!p(expr[[1]])) return(FALSE) # check function
@@ -66,7 +63,6 @@ AllExpressionNodes <- function(p, expr) {
 }
 
 ##' @rdname expressionTransformation
-##' @export
 AnyExpressionNode <- function(p, expr) {
   if (is.call(expr)) {
     if (p(expr[[1]])) return(TRUE) # check function
@@ -89,7 +85,6 @@ AnyExpressionNode <- function(p, expr) {
 ##' @param expr An R expression.
 ##'
 ##' @rdname expressionComposing
-##' @export
 subexpressions <- function(expr)
   if (is.call(expr)) {
     c(expr, Map(subexpressions, expr[-1]), recursive = TRUE)

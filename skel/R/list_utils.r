@@ -21,38 +21,30 @@
 ##' @param x A list or vector.
 ##'
 ##' @rdname lispLists
-##' @export
 first <- function(x) x[[1]]
 
 ##' @rdname lispLists
-##' @export
 rest <- function(x) x[-1]
 
 ##' @rdname lispLists
-##' @export
 second <- function(x) x[[2]]
 
 ##' @rdname lispLists
-##' @export
 third <- function(x) x[[3]]
 
 ##' @rdname lispLists
-##' @export
 fourth <- function(x) x[[4]]
 
 ##' @rdname lispLists
-##' @export
 fifth <- function(x) x[[5]]
 
 ##' @rdname lispLists
 is.empty <- function(x) length(x) == 0
 
 ##' @rdname lispLists
-##' @export
 is.atom <- function(x) length(x) == 1
 
 ##' @rdname lispLists
-##' @export
 is.composite <- function(x) length(x) > 1
 
 ##' Sort a vector or list by the result of applying a function
@@ -61,7 +53,6 @@ is.composite <- function(x) length(x) > 1
 ##' @param xs A vector or list.
 ##' @param byFunc A function from elements of \code{xs} to \code{numeric}.
 ##' @return The result of sorting \code{xs} by \code{byfunc}.
-##' @export
 sortBy <- function(xs, byFunc) {
   if (missing(byFunc))
     o <- order(xs)

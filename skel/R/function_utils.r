@@ -14,7 +14,6 @@
 ##' @note Always use this function to dynamically generate new functions that are not clojures
 ##' to prevent hard to find memory leaks.
 ##' @return A new function that does not take any arguments and always returns \code{NULL}.
-##' @export
 new.function <- function() {
   # The following line has to be inside this function to prevent capturing the lexical
   # environment, which would cause a hard to find memory leak:
@@ -32,7 +31,6 @@ new.function <- function() {
 ##'
 ##' @param fargs The formal arguments, given as a list or vector of strings.
 ##' @return A formal argument list, ready to be passed via \code{\link{formals}}.
-##' @export
 new.alist <- function(fargs) {
   alistargs <- Reduce(function(a,b) paste(a,b,sep="=,") , fargs, "", right = TRUE)
   alistargslen <- nchar(alistargs)
@@ -47,7 +45,6 @@ new.alist <- function(fargs) {
 ##'
 ##' @param f The function to determine the arity for.
 ##' @return The arity of the function \code{f}.
-##' @export
 arity <- function(f) {
   if (is.primitive(f))
     arity.primitive(f)
@@ -68,7 +65,6 @@ arity <- function(f) {
 ##'
 ##' @param f The primitive to determine the arity for.
 ##' @return The arity of the primitive \code{f}.
-##' @export
 arity.primitive <- function(f) {
   if (identical(f, `+`) ||
       identical(f, `*`) ||
