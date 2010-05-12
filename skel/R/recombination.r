@@ -42,7 +42,7 @@ randsubtree <- function(expr, subtreeprob = 0.1)
 ##' @param func2 The second parent R function.
 ##' @param crossoverprob The probability of crossover at each node of the first parent
 ##'   function (expression).
-##' @return The cild function (expression).
+##' @return The child function (expression).
 ##'
 ##' @rdname expressionCrossover
 ##' @export
