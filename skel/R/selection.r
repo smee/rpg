@@ -26,8 +26,6 @@
 ##'   this population.
 ##' @param fitnessFunction A single fitness function for single-objective selection
 ##'   functions.
-##' @param fitnessFunctions A list of fitness functions for multi-objective
-##'   selection functions.
 ##' @param tournamentSize The number of individuals to randomly select to form a
 ##'   tournament.
 ##' @param tournamentDeterminism The propability \emph{p} for selecting the best individual

@@ -36,8 +36,10 @@ randsubtree <- function(expr, subtreeprob = 0.1)
 ##' \code{crossoverTyped} and \code{crossoverexprTyped} only exchage replace subtress
 ##' if the sTypes of their root nodes match.
 ##'
-##' @param func1, expr1 The first parent function (expression).
-##' @param func2, expr1 The second parent function (expression).
+##' @param expr1 The first parent R expression.
+##' @param func1 The first parent R function.
+##' @param expr2 The second parent R expression.
+##' @param func2 The second parent R function.
 ##' @param crossoverprob The probability of crossover at each node of the first parent
 ##'   function (expression).
 ##' @return The cild function (expression).

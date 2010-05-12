@@ -40,6 +40,8 @@ NA
 ##' \code{constantFactorySet} creates a constant factory set.
 ##'
 ##' @param ... Names of functions or input variables given as strings.
+##' @param list Names of functions or input variables given as a list of strings.
+##' @param recursive Ignored when concatenating function- or input variable sets.
 ##' @return A function set or input variable set.
 ##'
 ##' @examples

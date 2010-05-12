@@ -22,8 +22,6 @@
 ##' STypes can be checked for equality via \code{\link{identical}}.
 ##'
 ##' @param baseTypeName The name of the base sType to create.
-##' @param domainTypes The list of argument sTypes of the new function sType to create.
-##' @param rangeTypes The result sTypes of the new function sType to create.
 ##' @return The created sType.
 ##'
 ##' @examples
@@ -73,6 +71,7 @@ print.sType <- function(x, ...) {
 ##' \code{hasStype} returns true if \code{x} is tagged with an sType.
 ##' 
 ##' @param x The object to retreive, check, or set the sType tag for.
+##' @param value An sType.
 ##'
 ##' @examples
 ##' foo <- "foo"

@@ -21,8 +21,10 @@
 ##' @param conset The set of constant factories.
 ##' @param maxfuncdepth The maximum depth of the functions of the new population.
 ##' @param funcfactory A factory for creating the functions of the new population.
-##' @param object The population to summarize or print.
-
+##' @param x The population to print.
+##' @param object The population to summarize.
+##' @param ... Additional parameters to the \code{\link{print}} or \code{\link{summary}}
+##'   (passed on to their default implementation).
 ##' @return A new population of functions.
 ##'
 ##' @rdname populationCreation
@@ -30,7 +32,7 @@
 makePopulation <- function(size, funcset, inset, conset,
                            maxfuncdepth = 8,
                            funcfactory = function() randfunc(funcset, inset, conset, maxfuncdepth)) {
-  pop <- tabulateList(function(i) funcfactory(), size)
+  pop <- lapply(1:size, function(i) funcfactory())
   class(pop) <- c("untypedPopulation", "population", "list")
   pop
 }

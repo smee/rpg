@@ -70,21 +70,6 @@ sortBy <- function(xs, byFunc) {
   xs[o]
 }
 
-##' Tabulate a function of one variable into a list
-##'
-##' Tabulates a function \code{f} by applying it to consecutive integers from 1 to \code{n}
-##' and returns the results in a list.
-##'
-##' @param f The function to tabulate.
-##' @param n The number of rows in the table to create.
-##' @return The result of tabulating \code{f} into a list.
-##'
-##' @examples
-##' tabulateList(sin, 2*pi)
-tabulateList <- function(f, n) {
-  lapply(1:n, f)
-}
-
 ##' Choose a random element from a list or vector
 ##'
 ##' Returns a unformly random chosen element of the vector or list \code{x}.

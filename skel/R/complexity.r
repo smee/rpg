@@ -20,6 +20,9 @@
 ##' inner functions by their function bodies (see "Crossover Bias in Genetic Programming", Maarten Keijzer
 ##' and James Foster).
 ##'
+##' @param expr An R expression.
+##' @param func An R function.
+##'
 ##' @rdname expressionComplexityMeasures
 ##' @export
 exprDepth <- function(expr)

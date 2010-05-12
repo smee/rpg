@@ -28,7 +28,7 @@ NA
 ##'   selection function is used, \code{fitnessFunction} must be a list of
 ##'   of objective functions.
 ##' @param stopCondition The stop condition for the evolution main loop. See
-##'   \link{evolutionStopConditions} for details.
+##'   \link{makeStepsStopCondition} for details.
 ##' @param population The GP population to start the run with. If this parameter
 ##'   is missing, a new GP population of size \code{populationSize} is created
 ##'   through random growth.
@@ -38,7 +38,7 @@ NA
 ##' @param inputVariables The input variable set.
 ##' @param constantSet The set of constant factory functions.
 ##' @param selectionFunction The selection function to use. Defaults to
-##'   \code{tournamentSelection}. See \link{selectionFunctions} for details.
+##'   \code{tournamentSelection}. See \link{tournamentSelection} for details.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param progressMonitor A function of signature
@@ -134,7 +134,7 @@ geneticProgramming <- function(fitnessFunction,
 ##'   symbolic regression run. The variables in \code{formula} must match
 ##'   column names in this data frame.
 ##' @param stopCondition The stop condition for the evolution main loop. See
-##'   \link{evolutionStopConditions} for details.
+##'   \link{makeStepsStopCondition} for details.
 ##' @param population The GP population to start the run with. If this parameter
 ##'   is missing, a new GP population of size \code{populationSize} is created
 ##'   through random growth.
@@ -147,7 +147,7 @@ geneticProgramming <- function(fitnessFunction,
 ##' @param functionSet The function set.
 ##' @param constantSet The set of constant factory functions.
 ##' @param selectionFunction The selection function to use. Defaults to
-##'   \code{tournamentSelection}. See \link{selectionFunctions} for details.
+##'   \code{tournamentSelection}. See \link{tournamentSelection} for details.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param progressMonitor A function of signature
@@ -201,10 +201,11 @@ symbolicRegression <- function(formula, data,
 ##' @param newdata A \code{\link{data.frame}} containing input data for the
 ##'   symbolic regression model. The variables in \code{object$formula} must match
 ##'   column names in this data frame.
-##  @param model The numeric index of the model function in \code{object$population}
+##' @param model The numeric index of the model function in \code{object$population}
 ##'   to use for prediction or \code{"BEST"} to use the model function with the best
 ##'   training fitness.
-##' 
+##' @param detailed Whether to add metadata to the prediction object returned.
+##' @param ... Ignored in this \code{predict} method.
 ##' @return A vector of predicted values or, if \code{detailed} is \code{TRUE}, a
 ##'   list of the following elements:
 ##'   \code{model} the model used in this prediction
@@ -255,6 +256,8 @@ predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", det
 ##'
 ##' @param stepLimit The maximum number of evolution steps for \code{makeStepsStopCondition}.
 ##' @param timeLimit The maximum runtime in seconds for \code{makeTimeStopCondition}.
+##' @param e1 A stop condition.
+##' @param e2 A stop condition.
 ##'
 ##' @rdname evolutionStopConditions
 ##' @export
@@ -292,9 +295,9 @@ makeTimeStopCondition <- function(timeLimit) {
 
 ##' @rdname evolutionStopConditions
 ##' @export `!.stopCondition`
-`!.stopCondition` <- function(x) {
+`!.stopCondition` <- function(e1) {
   stopCondition <- function(pop, stepNumber, timeElapsed)
-    !x(pop, stepNumber, timeElapsed)
+    !e1(pop, stepNumber, timeElapsed)
   class(stopCondition) <- c("stopCondition", "function")
   stopCondition
 }
@@ -308,8 +311,14 @@ makeTimeStopCondition <- function(timeLimit) {
 ##' \code{positive} returns true if its argument is greater then 0.
 ##' \code{ifPositive} returns its second argument if its first argument is positive,
 ##'   otherwise its third argument.
-##' \code{ifThenElse} returns its second argument if its first argument is true,
+##' \code{ifThenElse} returns its second argument if its first argument is \code{TRUE},
 ##'   otherwise its third argument.
+##'
+##' @param a A numeric value.
+##' @param b A numeric value.
+##' @param x A numeric value.
+##' @param thenbranch The element to return when \code{x} is \code{TRUE}.
+##' @param elsebranch The element to return when \code{x} is \code{FALSE}.
 ##'
 ##' @rdname safeGPfunctions
 ##' @export

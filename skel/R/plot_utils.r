@@ -15,8 +15,16 @@
 ##' @param from The left bound of the plot, i.e. the minimum \eqn{x} value to plot.
 ##' @param to The right bound of the plot, i.e. the maximum \eqn{x} value to plot.
 ##' @param steps The number of steps, or samples, to plot.
-##' @param type, lty, lwd, lend, pch, col, cex, bg, xlab, ylab various Parameters passed to
-##'   \code{\link{matplot}}.
+##' @param type The plot type (e.g. l = line) as passed on to \code{\link{matplot}}.
+##' @param lty The line types as passed on to \code{\link{matplot}}.
+##' @param lwd The line widths as passed on to \code{\link{matplot}}.
+##' @param lend The line end cap types as passed on to \code{\link{matplot}}.
+##' @param pch The plot chars as passed on to \code{\link{matplot}}.
+##' @param col The plot colors as passed on to \code{\link{matplot}}.
+##' @param cex The character expansion sizes as passed on to \code{\link{matplot}}.
+##' @param bg The background (fill) colors as passed on to \code{\link{matplot}}.
+##' @param xlab The x axis label as passed on to \code{\link{matplot}}.
+##' @param ylab The y axis label as passed on to \code{\link{matplot}}.
 ##' @param legendpos The position of the legend, passed as the \code{x} parameter to
 ##'   \code{\link{legend}}. 
 ##' @param bty The box type parameter of the legend, passed as the \code{bty} parameter to
@@ -58,7 +66,7 @@ plotFunctions <- function(funcs, from = 0, to = 1, steps = 1024,
 ##' Tries to convert a function \code{func} to an expression plottable by \code{\link{plotmath}}
 ##' by replacing arithmetic operators and "standard" functions by plottable counterparts.
 ##'
-##' @param ind The GP individual to convert.
+##' @param func The function to convert.
 ##' @return An expression plottable by \code{\link{plotmath}}.
 ##' @export
 funcToPlotmathExpr <- function(func)
