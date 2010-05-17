@@ -12,7 +12,7 @@ fi
 
 # bump version in skel/DESCRIPTION using sed...
 VERSION=$1
-sed -i e " 
+sed -i "" "
 s/^Version:.*$/Version: $VERSION/
 " skel/DESCRIPTION
 echo "Bumped version to $VERSION."
