@@ -356,10 +356,26 @@ ifThenElse <- function(x, thenbranch, elsebranch) ifelse(x, thenbranch, elsebran
 ##' "sqrt", "exp", and "ln".
 ##' \code{trigonometricFunctionSet} is an untyped function set containing the functions
 ##' "sin", "cos", and "tan".
-##' \code{mathFunctionSet} is an untyped function set containing all the above functions.
+##' \code{mathFunctionSet} is an untyped function set containing all of the above functions.
 ##'
 ##' \code{numericConstantSet} is an untyped constant factory set containing a single
 ##' constant factory that creates numeric constants via calls to \code{runif(1, -1, 1)}.
+##'
+##' \code{typedArithmeticFuncset} is a typed function set containing the functions
+##' "+", "-", "*", and "/".
+##' \code{typedExpLogFuncset} is a typed function set containing the functions
+##' "sqrt", "exp", and "ln".
+##' \code{typedTrigonometricFuncset} is a typed function set containing the functions
+##' "sin", "cos", and "tan".
+##' \code{typedMathFuncset} is a typed function set containing all of the typed functions above.
+##'
+##' \code{typedLogicalFuncset} is a typed function set containing the functions
+##' "<", ">", "==", "ifThenElse", "&", "|", and "!".
+##' \code{typedMathLogicalFuncset} is a typed function set containing all functions of
+##' \code{typedMathFuncset} and \code{typedLogicalFuncset}.
+##'
+##' \code{typedHigherOrderVectorFuncset} is a typed function set containing the functions
+##' "sapply" and "mean".
 ##'
 ##' @rdname defaultGPFunctionAndConstantSets
 ##' @export
@@ -380,3 +396,46 @@ mathFunctionSet <- c(arithmeticFunctionSet, expLogFunctionSet, trigonometricFunc
 ##' @rdname defaultGPFunctionAndConstantSets
 ##' @export
 numericConstantSet <- constantFactorySet(function() runif(1, -1, 1))
+
+##' @rdname defaultGPFunctionAndConstantSets
+##' @export
+typedArithmeticFuncset <- functionSet("+" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")),
+                                      "-" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")),
+                                      "*" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")),
+                                      "/" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")))
+
+##' @rdname defaultGPFunctionAndConstantSets
+##' @export
+typedExpLogFuncset <- functionSet("sqrt" %::% (list(st("numeric")) %->% st("numeric")),
+                                  "exp" %::% (list(st("numeric")) %->% st("numeric")),
+                                  "ln" %::% (list(st("numeric")) %->% st("numeric")))
+
+##' @rdname defaultGPFunctionAndConstantSets
+##' @export
+typedTrigonometricFuncset <- functionSet("sin" %::% (list(st("numeric")) %->% st("numeric")),
+                                         "cos" %::% (list(st("numeric")) %->% st("numeric")),
+                                         "tan" %::% (list(st("numeric")) %->% st("numeric")))
+
+##' @rdname defaultGPFunctionAndConstantSets
+##' @export
+typedMathFuncset <- c(typedArithmeticFuncset, typedExpLogFuncset, typedTrigonometricFuncset)
+
+##' @rdname defaultGPFunctionAndConstantSets
+##' @export
+typedLogicalFuncset <- functionSet("<" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
+                                   ">" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
+                                   "==" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
+                                   "ifThenElse" %::% (list(st("logical"), st("numeric"), st("numeric")) %->% st("numeric")),
+                                   "&" %::% (list(st("logical"), st("logical")) %->% st("logical")),
+                                   "|" %::% (list(st("logical"), st("logical")) %->% st("logical")),
+                                   "!" %::% (list(st("logical")) %->% st("logical")))
+
+##' @rdname defaultGPFunctionAndConstantSets
+##' @export
+typedMathLogicalFuncset <- c(typedMathFuncset, typedLogicalFuncset)
+
+##' @rdname defaultGPFunctionAndConstantSets
+##' @export
+typedHigherOrderVectorFuncset <- functionSet("sapply" %::% (list(st("numeric"), list(st("numeric")) %->% st("numeric")) %->% st("numeric")),
+                                             "mean" %::% (list(st("numeric")) %->% st("numeric")))
+
