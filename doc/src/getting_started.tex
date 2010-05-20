@@ -3,10 +3,10 @@
 \chapter{Getting Started}
 This chapter provides a short real-world example of performing symbolic regression with \RGP.
 
+
 \section{Problem Definition}
 
 \subsection{Function Definition}
-
 At first you need to define a fitting problem-function.
 As an example you can use the locus of a mathematical pendulum.
 
@@ -17,7 +17,6 @@ As an example you can use the locus of a mathematical pendulum.
 \colorbox{lightgray}{function(t) A * cos(omega*t*phi)\}} 
 
 This creates a function with the arguments amplitude(A), gravity(g), length(l) and offset(phi).
-
 
 \subsection{Fitness Function}
 The fitness function is used to calculate an error measure.
@@ -33,12 +32,22 @@ end of the sequence of fitness cases.The argument{\bf steps} gives the number of
 {\bf indsizelimit} defines a limit to the size of an individual,
 if the limit is exceeded the individual will receive a fitness of inifinity value. 
 
-\subsection{}
+\subsection{An Example for the Listings Package} % TODO nur ein Beispiel, bitte spaeter entfernen!
+Listing \ref{lstExample} shows an example on how to integrate \R code listings into \LaTeX~documents
+using the nice {\sf Listings} package\footnote{See
+  \url{ftp://ftp.tex.ac.uk/tex-archive/macros/latex/contrib/listings/listings.pdf} for further
+  information.}. As you might have noticed, the last sentence also demonstrates how to refer to
+listings via the {\tt label}/{\tt ref} pair of \LaTeX~commands.
 
+\begin{lstlisting}[caption = {Some Example \R Code}, label = lstExample]
+makePendulum <- function(A = 1, g = 9.81,
+                         l = 0.1, phi = pi) {
+  omega <- sqr(g / l)
+  function(time) A * cos(omega * time * phi)
+}
+\end{lstlisting}
 
-
-
-
-
-
-
+The {\sf Listings} package also supports typesetting of small code snippets like
+\lstinline!gpModel$fitness! through its {\tt lstinline} command. Please note the slightly peculiar way
+the snippets are delimited in the \LaTeX~source code. You can use any character that does not occur
+in the snippet as a delimiter. We are using the {\tt !} character in this example.
