@@ -38,7 +38,7 @@ NA
 ##' @param inputVariables The input variable set.
 ##' @param constantSet The set of constant factory functions.
 ##' @param selectionFunction The selection function to use. Defaults to
-##'   \code{tournamentSelection}. See \link{tournamentSelection} for details.
+##'   tournament selection. See \link{makeTournamentSelection} for details.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param progressMonitor A function of signature
@@ -56,7 +56,7 @@ geneticProgramming <- function(fitnessFunction,
                                functionSet = mathFunctionSet,
                                inputVariables = inputVariableSet("x"),
                                constantSet = numericConstantSet,
-                               selectionFunction = tournamentSelection,
+                               selectionFunction = makeTournamentSelection(),
                                crossoverFunction = crossover,
                                mutationFunction = NULL,
                                progressMonitor = NULL,
@@ -90,18 +90,20 @@ geneticProgramming <- function(fitnessFunction,
   stepNumber <- 1
   startTime <- proc.time()["elapsed"]
   timeElapsed <- 0
-
+  
   logmsg("STARTING genetic programming evolution run...")
   while (!stopCondition(pop = pop, stepNumber = stepNumber, timeElapsed = timeElapsed)) {
-    selA <- selectionFunction(pop, fitnessFunction)
-    selB <- selectionFunction(pop, fitnessFunction)
-    winnerA <- selA$selectedIndex
-    winnerB <- selB$selectedIndex
-    losersA <- selA$fitnessValues[!(selA$fitnessValues[, 1] == selA$selectedIndex), 1]
-    losersB <- selA$fitnessValues[!(selA$fitnessValues[, 1] == selA$selectedIndex), 1]
+    # Select two sets of individuals and divide each into winners and losers...
+    selA <- selectionFunction(pop, fitnessFunction); selB <- selectionFunction(pop, fitnessFunction)
+    winnersA <- selA$selected[, 1]; winnersB <- selB$selected[, 1]
+    losersA <- selA$discarded[, 1]; losersB <- selB$discarded[, 1]
     losers <- c(losersA, losersB)
-    pop[losers] <-
-      replicate(length(losers), mutatefunc(crossoverFunction(pop[[winnerA]], pop[[winnerB]])))
+    # Create winner children...
+    winnerChildren <- Map(function(winnerA, winnerB)
+                            mutatefunc(crossoverFunction(pop[[winnerA]], pop[[winnerB]])),
+                          winnersA, winnersB)
+    # Replace losers by winner children (cycling the list of winner children if too short)...
+    suppressWarnings(pop[losers] <- winnerChildren)
     
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
@@ -147,7 +149,7 @@ geneticProgramming <- function(fitnessFunction,
 ##' @param functionSet The function set.
 ##' @param constantSet The set of constant factory functions.
 ##' @param selectionFunction The selection function to use. Defaults to
-##'   \code{tournamentSelection}. See \link{tournamentSelection} for details.
+##'   tournament selection. See \link{makeTournamentSelection} for details.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param progressMonitor A function of signature
@@ -167,7 +169,7 @@ symbolicRegression <- function(formula, data,
                                penalizeGenotypeConstantIndividuals = FALSE,
                                functionSet = mathFunctionSet,
                                constantSet = numericConstantSet,
-                               selectionFunction = tournamentSelection,
+                               selectionFunction = makeTournamentSelection(),
                                crossoverFunction = crossover,
                                mutationFunction = NULL,
                                progressMonitor = NULL,
