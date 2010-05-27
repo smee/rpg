@@ -12,10 +12,10 @@
 ##' A GP selection function determines which individuals in a population should
 ##' survive, i.e. are selected for variation or cloning, and which individuals
 ##' of a population should be replaced. Single-objective selection functions base
-##' their selection decision only on a single fitness function, whereas
-##' multi-objective selection functions support multiple fitness functions.
-##' Every selection function takes a population and a (list of) fitness
-##' functions as required arguments. It returns a list of two tables \code{selected}
+##' their selection decision on scalar fitness function, whereas multi-objective
+##' selection functions support multiple vector-valued fitness functions.
+##' Every selection function takes a population and a (possibly vector-valued) fitness
+##' function as required arguments. It returns a list of two tables \code{selected}
 ##' and \code{discarded}, with columns \code{index} and \code{fitness} each.
 ##' The first table contains the population indices of the individuals selected as
 ##' survivors, the second table contains the population indices of the individuals
@@ -26,8 +26,8 @@
 ##'
 ##' \code{makeTournamentSelection} returns a classic single-objective tournament selection
 ##'   function.
-##' \code{makeParetoTournamentSelection} returns a multi-objective tournament selection
-##'   function that selects individuals on the pareto front.
+##' \code{makeMultiObjectiveTournamentSelection} returns a multi-objective tournament selection
+##'   function that selects individuals based on multiple objectives.
 ##' \code{makeComplexityTournamentSelection} returns a multi-objective selection function that
 ##'   implements the common case of dual-objective tournament selection with high solution
 ##'   quality as the first objective and low solution complexity as the second objective.
@@ -42,6 +42,10 @@
 ##'   \emph{p * (1 - p)}, the third best individual ist selected with propability
 ##'   \emph{p * (1 - p)^2}, and so on. Note that setting \code{tournamentDeterminism}
 ##'   to \code{1.0} (the default) yields determistic behavior.
+##' @param rankingStrategy The strategy used to rank individuals based on multiple objectives.
+##'   This function must turn a fitness vector (one point per column) into an ordering
+##'   permutation (similar to the one returned by \code{order}). Defaults to
+##'   \code{orderByParetoCrowdingDistance}.
 ##' @return A selection function.
 ##'
 ##' @rdname selectionFunctions
@@ -50,40 +54,101 @@ makeTournamentSelection <- function(tournamentSize = 10,
                                     selectionSize = ceiling(tournamentSize / 2),
                                     tournamentDeterminism = 1.0)
   function(population, fitnessFunction) {
-    if (length(fitnessFunction) > 1) {
-      warning("Multiple fitness function used with single-objective selection, additional objectives are discared.")
-      fitnessFunction <- fitnessFunction[[1]]
-    }
     poolIdxs <- sample(length(population), tournamentSize)
-    poolFitness <- sapply(population[poolIdxs], fitnessFunction)
+    poolFitness <- sapply(population[poolIdxs], fitnessFunction)[1] # only the first fitness component
     idxFitTable <- cbind(poolIdxs, poolFitness)
     colnames(idxFitTable) <- c("index", "fitness")
-    # Sort by (single-criterial) fitness...
+    # Sort by (single-objective) fitness...
     sortedIdxFitTable <- idxFitTable[order(idxFitTable[,"fitness"]),]
     # ...then shuffle the ranking depending on tournamentDeterminism:
     shuffledSortedIdxFitTable <-
-      sortedIdxFitTable[rankingOrder(nondeterministicRanking(tournamentSize)),]
+      sortedIdxFitTable[inversePermutation(nondeterministicRanking(tournamentSize)),]
     # The first selectionSize individuals are selected, the rest are discarded:
-    list(selected = shuffledSortedIdxFitTable[1:selectionSize,],
-         discarded = shuffledSortedIdxFitTable[-(1:selectionSize),])
+    list(selected = matrix(shuffledSortedIdxFitTable[1:selectionSize,], nrow = selectionSize),
+         discarded = matrix(shuffledSortedIdxFitTable[-(1:selectionSize),], nrow = tournamentSize - selectionSize))
   }
 
 ##' @rdname selectionFunctions
 ##' @export
-makeParetoTournamentSelection <- function(tournamentSize = 30, tournamentDeterminism = 1.0)
+makeMultiObjectiveTournamentSelection <- function(tournamentSize = 30,
+                                                  selectionSize = ceiling(tournamentSize / 2),
+                                                  tournamentDeterminism = 1.0,
+                                                  rankingStrategy = orderByParetoCrowdingDistance)
   function(population, fitnessFunction) {
-    if (!is.list(fitnessFunction)) fitnessFunction <- list(fitnessFunction)
-    cat("BAM!") # TODO
-    NA # TODO
+    poolIdxs <- sample(length(population), tournamentSize)
+    poolFitness <- sapply(population[poolIdxs], fitnessFunction) # all fitness components
+    if (!is.matrix(poolFitness)) poolFitness <- matrix(poolFitness, ncol = length(poolFitness))
+    idxFitTable <- cbind(poolIdxs, t(poolFitness))
+    # Sort by (multi-objective) fitness...
+    sortedIdxFitTable <- idxFitTable[rankingStrategy(poolFitness),]
+    # ...then shuffle the ranking depending on tournamentDeterminism:
+    shuffledSortedIdxFitTable <-
+      sortedIdxFitTable[inversePermutation(nondeterministicRanking(tournamentSize)),]
+    # The first selectionSize individuals are selected, the rest are discarded:
+    list(selected = matrix(shuffledSortedIdxFitTable[1:selectionSize,], nrow = selectionSize),
+         discarded = matrix(shuffledSortedIdxFitTable[-(1:selectionSize),], nrow = tournamentSize - selectionSize))
   }
 
 ##' @rdname selectionFunctions
 ##' @export
-makeComplexityTournamentSelection <- function(complexityMeasure = funcVisitationLength,
-                                              tournamentSize = 10, tournamentDeterminism = 1.0) {
-  selectionFunction <- makeParetoTournamentSelection(tournamentSize, tournamentDeterminism)
-  function(population, fitnessFunction)
-    selectionFunction(population, append(fitnessFunction, list(complexityMeasure)))
+makeComplexityTournamentSelection <- function(tournamentSize = 30,
+                                              selectionSize = ceiling(tournamentSize / 2),
+                                              tournamentDeterminism = 1.0,
+                                              rankingStrategy = orderByParetoCrowdingDistance,
+                                              complexityMeasure = funcVisitationLength) {
+  selectionFunction <- makeMultiObjectiveTournamentSelection(tournamentSize, selectionSize,
+                                                             tournamentDeterminism, rankingStrategy)
+  function(population, fitnessFunction) {
+    complexityAugmentedFintessFunction <- function(individual)
+      c(fitnessFunction(individual), complexityMeasure(individual))
+    selectionFunction(population, complexityAugmentedFintessFunction)
+  }
+}
+
+##' Rearrange points via Pareto-based rankings
+##'
+##' Returns a permutation that rearranges points, given as columns in a value matrix, via
+##' Pareto-based ranking. Points are ranked by their Pareto front number. In
+##' \code{orderByParetoCrowdingDistance}, ties are then broken by crowding distance,
+##' in \code{orderByParetoHypervolumeContribution}, ties are broken by hypervolume
+##' contribution.
+##'
+##' @param values The value matrix to return the ordering permutation for. Each column
+##'   represents a point, each row a dimension.
+##' @return A permutation to rearrange \code{values} based on a Pareto based ranking.
+##'
+##' @rdname paretoSorting
+##' @export
+orderByParetoCrowdingDistance <- function(values)
+  orderByParetoMeasure(values, measure = crowding_distance)
+
+##' @rdname paretoSorting
+##' @export
+orderByParetoHypervolumeContribution <- function(values)
+  orderByParetoMeasure(values, measure = hypervolume_contribution)
+
+##' Rearrange points via an arbitrary Pareto-based ranking
+##'
+##' Returns a permutation that rearranges points, given as columns in a value matrix, via
+##' Pareto-based ranking. Points are ranked by their Pareto front number, ties are broken
+##' by the values of \code{measure}.
+##'
+##' @param values The value matrix to return the ordering permutation for. Each column
+##'   represents a point, each row a dimension.
+##' @param measure The measure used for ranking points that lie on the same Pareto front,
+##'   defaults to \code{crowding_distance}.
+##' @return A permutation to rearrange \code{values} based on a Pareto based ranking.
+orderByParetoMeasure <- function(values, measure = crowding_distance) {
+  ndsRanks <- nds_rank(values)
+  indicesOrderedByMeasure <- c()
+  for (ndsRank in 1:max(ndsRanks)) {
+    indicesOfNdsRank <- which(ndsRanks == ndsRank)
+    valuesOfNdsRank <- values[,ndsRanks == ndsRank]
+    measureRanks <- rank(measure(as.matrix(valuesOfNdsRank)), ties.method = "random")
+    indicesOfNdsRankOrderedByMeasure <- indicesOfNdsRank[inversePermutation(measureRanks)]
+    indicesOrderedByMeasure <- append(indicesOrderedByMeasure, indicesOfNdsRankOrderedByMeasure)
+  }
+  indicesOrderedByMeasure
 }
 
 ##' Create a nondeterministic ranking
