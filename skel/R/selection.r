@@ -32,11 +32,6 @@
 ##'   implements the common case of dual-objective tournament selection with high solution
 ##'   quality as the first objective and low solution complexity as the second objective.
 ##'
-##' @param population The population to select from. All indices returned refer to
-##'   this population.
-##' @param fitnessFunction Either a single function or a list of functions to be used for
-##'   measuring the performance of an individual. If a list of functions is given to a
-##'   single-objective selection function, only the first function will be used.
 ##' @param complexityMeasure The function used to measure the complexity of an individual.
 ##' @param tournamentSize The number of individuals to randomly select to form a
 ##'   tournament, defaults to 10 in the single-objective case, 30 in the multi-objective case.
@@ -66,7 +61,8 @@ makeTournamentSelection <- function(tournamentSize = 10,
     # Sort by (single-criterial) fitness...
     sortedIdxFitTable <- idxFitTable[order(idxFitTable[,"fitness"]),]
     # ...then shuffle the ranking depending on tournamentDeterminism:
-    shuffledSortedIdxFitTable <- sortedIdxFitTable[nondeterministicRanking(tournamentSize),]
+    shuffledSortedIdxFitTable <-
+      sortedIdxFitTable[rankingOrder(nondeterministicRanking(tournamentSize)),]
     # The first selectionSize individuals are selected, the rest are discarded:
     list(selected = shuffledSortedIdxFitTable[1:selectionSize,],
          discarded = shuffledSortedIdxFitTable[-(1:selectionSize),])
@@ -85,7 +81,7 @@ makeParetoTournamentSelection <- function(tournamentSize = 30, tournamentDetermi
 ##' @export
 makeComplexityTournamentSelection <- function(complexityMeasure = funcVisitationLength,
                                               tournamentSize = 10, tournamentDeterminism = 1.0) {
-  selectionFunction <- makeMultiObjectiveTournamentSelection(tournamentSize, tournamentDeterminism)
+  selectionFunction <- makeParetoTournamentSelection(tournamentSize, tournamentDeterminism)
   function(population, fitnessFunction)
     selectionFunction(population, append(fitnessFunction, list(complexityMeasure)))
 }

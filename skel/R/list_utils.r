@@ -61,6 +61,33 @@ sortBy <- function(xs, byFunc) {
   xs[o]
 }
 
+##' Sort a vector or list via a given ranking
+##'
+##' Reorders a vector or list according to a given ranking \code{ranking}.
+##' @param xs The vector or list to reorder.
+##' @param ranking The ranking to sort \code{xs} by, defaults to \code{rank(xs)}.
+##' @return The result of reordering \code{xs} by \code{ranking}.
+sortByRanking <- function(xs, ranking = rank(xs)) {
+  sorted <- xs
+  sorted[ranking] <- xs
+  sorted
+}
+
+##' Calculate the permutation (order) for a ranking or the ranking for a permutation (order)
+##'
+##' Returns the associated "order" permutation for a ranking \code{x} or, as
+##' \code{rankingOrder(rankingOrder(x))} = \code{x} for all \code{x}, the associated
+##' ranking for an "order" permutation \code{x}.
+##' @param x An "order" permutation or ranking.
+##' @return A ranking or "order" permutation.
+##' @seealso \code{\link{rank}}
+##' @seealso \code{\link{order}}
+rankingOrder <- function(x) {
+  l <- length(x); o <- numeric(l)
+  o[x] <- 1:l
+  o
+}
+
 ##' Choose a random element from a list or vector
 ##'	
 ##' Returns a unformly random chosen element of the vector or list \code{x}.
