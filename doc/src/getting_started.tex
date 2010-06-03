@@ -3,34 +3,84 @@
 \chapter{Getting Started}
 This chapter provides a short real-world example of performing symbolic regression with \RGP.
 
+\section{Installation}
+
+The newest release version of \RGP is always available on CRAN. To install it just type
+\lstinline!install.packages(``rgp'')! 
 
 \section{Problem Definition}
 
-\subsection{Function Definition}
-At first you need to define a fitting problem-function.
-As an example you can use the locus of a mathematical pendulum.
+For a first run of \RGP you need to define a fitting problem.
+\begin{lstlisting}[caption = {Creating a function with variables}, label = lstExample]
+makeDampedPendulum <- function(A0 = 1, g = 9.81, l = 0.1, phi = pi, gamma = 0.5) {
+  omega <- sqrt(g/l)
+  function(t) A0 * exp(-gamma * t) * cos(omega * t + phi)
+}
+\end{lstlisting}
 
-\colorbox{lightgray}{mathematicalPendulum <- function(A = 1, g = 9.81, l = 0.1 phi = pi) \{}
+The function above represents a damped mathematical Pendulum, the arguments are the starting Amplitude A0, 
+gravity g, length of pendulum l, phase, radial frequency omega and damping gamma.
 
-\colorbox{lightgray}{omega <- sqr(g/l)}
+\begin{lstlisting}[caption = {Attributes}, label = tutattributes]
+dampedPendulum1 <- makeDampedPendulum(l = 0.5)
+\end{lstlisting}
 
-\colorbox{lightgray}{function(t) A * cos(omega*t*phi)\}} 
+Here is a example of alternating the given attributes, 
+the lenght is altered and the function is assigned to a new name.
 
-This creates a function with the arguments amplitude(A), gravity(g), length(l) and offset(phi).
+\begin{lstlisting}[caption = {Sequence Creating }, label = tutsequence]
+xs1 <- seq(from=1, to=10, length.out=512)
+\end{lstlisting}
 
-\subsection{Fitness Function}
-The fitness function is used to calculate an error measure.
+A list of numbers is definded for creating a dataframe. It creates a subsequent list of numbers from 1 to 10
+with 512 steps.
 
-To define the fitness function:
+\begin{lstlisting}[caption = {Data Frame Creation}, label = tutdataframe]
+dampedPendulumData <- data.frame(time=xs1,
+  amplitude=dampedPendulum1(xs1) + rnorm(length(xs1), sd=0.01))
+\end{lstlisting}
 
-\colorbox{lightgray}{mp1 <- mathematicalPendulum()}
+We create a time series dataframe with the sequence defined above. 
+The dataframe consists of the sequence xs1 as time, the amplitude defined through our pendulum-function and a
+interference function.
+To plot the prepared data frame type \lstinline!plot(dampedPendulumData, pch=20)!.
 
-\colorbox{lightgray}{mp1fitness <- makeFunctionFitnessFunction(mp1, 0, 10, steps = 512, indsizelimit = 16)}
+Now let's shift attention to the more interesting objects.
+First, we need to activate \RGP using \lstinline!require(rgp)!.
+We are going to perform a symbolic regression with our pendulum data.
+The time permitted for the regression are 2 minutes ( 2 * 60 seconds ).
+To start the symbolic regression you need the following code.
 
-{\bf mp1} is the function as defined in the step before, {\bf o} and {\bf 10} are the start and the 
-end of the sequence of fitness cases.The argument{\bf steps} gives the number of steps in the sequence.
-{\bf indsizelimit} defines a limit to the size of an individual,
-if the limit is exceeded the individual will receive a fitness of inifinity value. 
+\begin{lstlisting}[caption = {Symbolic Regression }, label = tutsymbolicregression]
+modelSet1 <- symbolicRegression(amplitude ~ time, data=dampedPendulumData,
+                                stopCondition=makeTimeStopCondition(2 * 60))
+\end{lstlisting}
+
+Now we got a set of models with variable fitness. 
+To get our desired prediction we are going to use the model with the best training fitness
+which gives the best results.
+
+\begin{lstlisting}[caption = {Best Model}, label = tutbestmodel]
+bestModel1 <- modelSet1$population[[which.min(Map(modelSet1$fitnessFunction, 
+  modelSet1$population))]]
+
+bestModel1
+\end{lstlisting}
+
+Let's start the prediction and plot our given and predicted data. 
+
+\begin{lstlisting}[caption = {Prediction}, label = tutPrediction]
+
+predictedData <- data.frame(time=xs1,
+  amplitude=predict(modelSet1, newdata=dampedPendulumData))
+
+#plot data
+plot(dampedPendulumData, pch=20)
+points(predictedData, pch=20, col=2)
+
+\end{lstlisting}
+
+
 
 \subsection{An Example for the Listings Package} % TODO nur ein Beispiel, bitte spaeter entfernen!
 Listing \ref{lstExample} shows an example on how to integrate \R code listings into \LaTeX~documents
@@ -39,7 +89,7 @@ using the nice {\sf Listings} package\footnote{See
   information.}. As you might have noticed, the last sentence also demonstrates how to refer to
 listings via the {\tt label}/{\tt ref} pair of \LaTeX~commands.
 
-\begin{lstlisting}[caption = {Some Example \R Code}, label = lstExample]
+\begin{lstlisting}[caption = {test}, label = lstExample]
 makePendulum <- function(A = 1, g = 9.81,
                          l = 0.1, phi = pi) {
   omega <- sqr(g / l)
