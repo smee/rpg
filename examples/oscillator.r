@@ -23,16 +23,24 @@ simulateDampedOscillator <- function(samples = 512, maxt = 4 * pi, ...) {
   data.frame(time=xs, amplitude=dampedOscillator(xs))
 }
 
-dampedOscillatorData1 <- simulateDampedOscillator(noiseSd=0.005)
+dampedOscillatorData <- simulateDampedOscillator(noiseSd=0.001)
+
+plot(dampedOscillatorData, type = "l")
 
 
 # apply symbolic regression via GP to find a model for the damped oscillator data...
 #
 
-models <- symbolicRegression(amplitude ~ time, data=dampedOscillatorData1,
-                             stopCondition=makeTimeStopCondition(120))
-modelRMSEs <- Map(models1$fitnessFunction, model1$population)
+models <- symbolicRegression(amplitude ~ time, data=dampedOscillatorData,
+                             stopCondition=makeTimeStopCondition(5 * 60))
+modelRMSEs <- Map(models$fitnessFunction, models$population)
 bestModelIndex <- which.min(modelRMSEs)
-bestModel <- models1$population[[bestModelIndex]]
+bestModel <- models$population[[bestModelIndex]]
 bestModelRMSE <- modelRMSEs[[bestModelIndex]]
 
+# use the model for predictions...
+#
+
+detailedPrediction <- predict(models, newdata = dampedOscillatorData, detailed = TRUE)
+
+lines(detailedPrediction$response[,"predicted"], col = 2)
