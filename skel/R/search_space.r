@@ -1,5 +1,5 @@
 ## search_space.r
-##   - Functions for defining the search space for symbolic regression
+##   - Functions for defining the search space for Genetic Programming
 ##
 ## RGP - a GP system for R
 ## 2010 Oliver Flasch (oliver.flasch@fh-koeln.de)
@@ -10,7 +10,7 @@
 ##' @include stypes.r
 NA
 
-##' Functions for defining the search space for symbolic regression
+##' Functions for defining the search space for Genetic Programming
 ##'
 ##' The GP search space is defined by a set of functions, a set of
 ##' input variables, a set of constant constructor functions, and some
