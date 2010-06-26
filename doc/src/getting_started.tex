@@ -28,11 +28,8 @@ dampedPendulum1 <- makeDampedPendulum(l = 0.5)
 Here is a example of alternating the given attributes, 
 the lenght is altered and the function is assigned to a new name.
 
-\begin{lstlisting}[caption = {Sequence Creating }, label = tutsequence]
-xs1 <- seq(from=1, to=10, length.out=512)
-\end{lstlisting}
-
-A list of numbers is definded for creating a dataframe. It creates a subsequent list of numbers from 1 to 10
+With \lstinline!xs1 <- seq(from=1, to=10, length.out=512)!
+a list of numbers is definded for creating a dataframe. It creates a subsequent list of numbers from 1 to 10
 with 512 steps.
 
 \begin{lstlisting}[caption = {Data Frame Creation}, label = tutdataframe]
@@ -80,24 +77,6 @@ points(predictedData, pch=20, col=2)
 
 \end{lstlisting}
 
+The plot shows the difference between the real and the predicted data. 
+As you see, the outcome is not ideal. To get better results we need to extend the processing time.
 
-
-\subsection{An Example for the Listings Package} % TODO nur ein Beispiel, bitte spaeter entfernen!
-Listing \ref{lstExample} shows an example on how to integrate \R code listings into \LaTeX~documents
-using the nice {\sf Listings} package\footnote{See
-  \url{ftp://ftp.tex.ac.uk/tex-archive/macros/latex/contrib/listings/listings.pdf} for further
-  information.}. As you might have noticed, the last sentence also demonstrates how to refer to
-listings via the {\tt label}/{\tt ref} pair of \LaTeX~commands.
-
-\begin{lstlisting}[caption = {test}, label = lstExample]
-makePendulum <- function(A = 1, g = 9.81,
-                         l = 0.1, phi = pi) {
-  omega <- sqr(g / l)
-  function(time) A * cos(omega * time * phi)
-}
-\end{lstlisting}
-
-The {\sf Listings} package also supports typesetting of small code snippets like
-\lstinline!gpModel$fitness! through its {\tt lstinline} command. Please note the slightly peculiar way
-the snippets are delimited in the \LaTeX~source code. You can use any character that does not occur
-in the snippet as a delimiter. We are using the {\tt !} character in this example.
