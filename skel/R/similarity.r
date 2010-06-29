@@ -47,6 +47,8 @@
 ##' of their root node labels (as measured by \code{labelDistance}) is added to the sum of
 ##' the differences of the children. The children lists are padded with empty trees to
 ##' equalize their sizes. The summation operator can be changed via \code{distanceFoldOperator}.
+##' \code{normInducedFunctionDistance} Is wrapper that applies \code{normInducedTreeDistance}
+##' to the bodies of the given functions.
 ##'
 ##' @param expr1 An R expression.
 ##' @param expr2 An R expression.
@@ -147,6 +149,39 @@ normInducedTreeDistance <- function(norm, labelDistance = trivialMetric, distanc
                            Reduce(distanceFoldOperator, childrenDistances, 0))
     }
   M
+}
+
+##' @rdname expressionSimilarityMeasures
+##' @export
+normInducedFunctionDistance <- function(norm, labelDistance = trivialMetric, distanceFoldOperator = NULL) {
+  treeM <- normInducedTreeDistance(norm, labelDistance, distanceFoldOperator)
+  function(fun1, fun2) treeM(body(fun1), body(fun2))
+}
+
+##' A \code{dist} function that supports custom metrics
+##'
+##' This function computes and returns the distance matrix computed by using the given metric
+##' to compute the distances between the rows of a data list or vector. Note that in contrast
+##' to \code{\link{dist}}, \code{x} has to be a vector and the the distance \code{metric}
+##' is an arbitrary function that must be symmetric and definite.
+##' @seealso \code{\link{dist}}
+##'
+##' @param x A vector or list of objects.
+##' @param metric A metric, i.e. a function of two arguments that returns a numeric. Note
+##' that a metric must be definite and symmetric, otherwise the results will be undefined.
+##' @param diag \code{TRUE} iff the diagonal of the distance matrix should be printed by
+##' \code{print.dist}.
+##' @parm upper \code{TRUE} iff the upper triangle of the distance matrix should be printed
+##' by \code{print.dist}.
+##' @return A distance matrix.
+##'
+##' @rdname customDist
+##' @export
+customDist <- function(x, metric, diag = FALSE, upper = FALSE) {
+  xlen <- length(x)
+  dm <- matrix(nrow = xlen, ncol = xlen)
+  for (j in 1:(xlen-1)) for (i in j:(xlen-1)) dm[i+1,j] <- metric(x[[i+1]], x[[j]])
+  as.dist(dm, upper = upper, diag = diag)
 }
 
 ##' Return the Children of an Expression or the Empty List if there are None
