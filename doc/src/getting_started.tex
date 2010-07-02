@@ -77,12 +77,24 @@ points(predictedData, pch=20, col=2)
 
 \end{lstlisting}
 
+
+
 The plot shows the difference between the real and the predicted data. 
-As you see, the outcome is not ideal. To get better results we need to extend the processing time.
+As you might see, the outcome is not ideal. To get better results we need to extend the processing time.
+You have to consider that there is a high variance of results. In six predictions with one hour processing 
+time you could find better results than in one prediction with six hours of processing time. 
+
+
+\begin{figure}[h]
+  \includegraphics[width=\linewidth]{getting_started/predictionoutcome.pdf}
+  \caption{This figure shows a example of the prediction outcome. The black curve is the real data and the red curve is the predicted data. 1h processing time}
+  \label{fig:predictionoutcome}
+  \setfloatalignment{t}
+\end{figure}
 
 \begin{figure*}[h]
-  \includegraphics[width=\linewidth]{getting_started/test.pdf}
-  \caption{This figure shows how to add figures to \LaTeX documents.}
-  \label{fig:test}
+  \includegraphics[width=\linewidth]{getting_started/predictionoutcome.pdf}
+  \caption{This figure shows a example of the prediction outcome. The black curve is the real data and the red curve is the predicted data.}
+  \label{fig:predictionoutcome}
   \setfloatalignment{t}
 \end{figure*}
