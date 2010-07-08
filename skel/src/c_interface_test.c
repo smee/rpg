@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <R.h>
 #include <Rinternals.h>
 
@@ -8,8 +7,29 @@
 
 
 SEXP test_hello_world(const SEXP arg) {
-  printf("Hello, C, this is R!\n");
+  Rprintf("Hello, C, this is R!\n");
   return R_NilValue;
+}
+
+/* test_make_function_sexp
+ * Just for fun, build the R function "function(x) 1 / sin(x)" and return it.
+ */
+SEXP test_make_function_sexp() {
+  const SEXP one = PROTECT(allocVector(REALSXP, 1)); // the number "1.0" as an R real vector
+  REAL(one)[0] = 1.0; // "
+  const SEXP x = PROTECT(install("x")); // the symbol "x"
+  const SEXP f_body = PROTECT(LCONS(install("/"), LCONS(one, LCONS(LCONS(install("sin"), LCONS(x, R_NilValue)), R_NilValue)))); // in Lisp syntax, this just means "(/ 1.0 (sin x))"
+
+  const SEXP f_formals = PROTECT(CONS(R_MissingArg, R_NilValue)); // formals in R are quite funny creatures
+  SET_TAG(f_formals, x); // "
+
+  const SEXP f = PROTECT(allocSExp(CLOSXP)); // create an empty function (closure),...
+  SET_CLOENV(f, R_GlobalEnv); // ...its closure environment (could also be R_BaseEnv or given as a parameter),...
+  SET_FORMALS(f, f_formals); // ...its formal arguments,...
+  SET_BODY(f, f_body); // ...as well as its body
+
+  UNPROTECT(5);
+  return f;
 }
 
 /* map_sexp
@@ -21,21 +41,21 @@ SEXP map_sexp(const SEXP, SEXP (*const)(SEXP));
 SEXP print_sexp(const SEXP sexp) {
   // if this code was serious, it would use an ugly hairy switch statement for speed...
   if (isSymbol(sexp)) {
-    printf("symbol '%s'\n", CHAR(PRINTNAME(sexp)));
+    Rprintf("symbol '%s'\n", CHAR(PRINTNAME(sexp)));
   } else if (isNumeric(sexp)) {
     if (isInteger(sexp)) {
-      printf("integer '%d'\n", *INTEGER(sexp));
+      Rprintf("integer '%d'\n", *INTEGER(sexp));
     } else if (isReal(sexp)) {
-      printf("real '%f'\n", *REAL(sexp));
+      Rprintf("real '%f'\n", *REAL(sexp));
     } else {
-      printf("numeric\n");
+      Rprintf("numeric\n");
     }
   } else if (isLogical(sexp)) {
-    printf("logical\n"); // TODO
+    Rprintf("logical\n"); // TODO
   } else if (isString(sexp)) {
-    printf("string\n"); // TODO
+    Rprintf("string\n"); // TODO
   } else {
-    printf("something else (TYPE %d)\n", TYPEOF(sexp));
+    Rprintf("something else (TYPE %d)\n", TYPEOF(sexp));
   }
   return sexp;
 }
@@ -49,9 +69,7 @@ SEXP test_function_manipulation(SEXP f) {
   const SEXP f_formals = FORMALS(f);
   const SEXP f_body = BODY(f);
 
-  map_sexp(f_body, print_sexp);
-
-  return f_body;
+  return map_sexp(f_body, print_sexp);
 }
 
 SEXP map_sexp(const SEXP sexp, SEXP (*const f)(SEXP)) {
@@ -60,9 +78,7 @@ SEXP map_sexp(const SEXP sexp, SEXP (*const f)(SEXP)) {
     return sexp; // do nothing with nils
   case LANGSXP: // fall-through to next case
   case LISTSXP:
-    map_sexp(CAR(sexp), f); // recurse on head...
-    map_sexp(CDR(sexp), f); // ..and tail of list
-    break;
+    return LCONS(map_sexp(CAR(sexp), f), map_sexp(CDR(sexp), f)); // recurse
   default: // base case
     return f(sexp); // apply f here
   }
