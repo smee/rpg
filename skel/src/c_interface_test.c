@@ -4,11 +4,26 @@
 #define CHECK_ARG_IS_FUNCTION(A) \
   if (!isFunction(A)) \
     error("Argument '" #A "' is not a function.");
+#define CHECK_ARG_IS_NUMERIC(A) \
+  if (!isNumeric(A)) \
+    error("Argument '" #A "' is not numeric.");
 
 
 SEXP test_hello_world(const SEXP arg) {
   Rprintf("Hello, C, this is R!\n");
   return R_NilValue;
+}
+
+SEXP test_call_function(const SEXP f, const SEXP reps) {
+  CHECK_ARG_IS_FUNCTION(f);
+  CHECK_ARG_IS_NUMERIC(reps);
+  const int repeats = (int) *REAL(reps);
+  const SEXP f_call = PROTECT(lang1(f));
+  SEXP last_result = R_NilValue;
+  for (int i = 0; i < repeats; i++) last_result = eval(f_call, R_GlobalEnv); // could also be R_BaseEnv or a parameter
+
+  UNPROTECT(1);
+  return last_result;
 }
 
 /* test_make_function_sexp
