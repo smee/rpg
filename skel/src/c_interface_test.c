@@ -117,7 +117,7 @@ SEXP mutate_constant_sexps(const SEXP f) {
   CHECK_ARG_IS_FUNCTION(f);
 
   GetRNGstate();
-  const SEXP mutant_body = PROTECT(map_sexp(BODY(f), mutate_constant_sexp));
+  const SEXP mutant_body = PROTECT(map_sexp_leafs(BODY(f), mutate_constant_sexp));
   PutRNGstate();
 
   UNPROTECT(1);
