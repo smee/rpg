@@ -111,6 +111,7 @@ randexprGrow <- function(funcset, inset, conset,
                          maxdepth = 16,
                          constprob = 0.5, subtreeprob = 0.5,
                          curdepth = 1) {
+  constprob <- if (is.empty(conset$all)) 0.0 else constprob
   if (curdepth >= maxdepth) { # maximum depth reached, create terminal
     if (runif(1) <= constprob) { # create constant
       constfactory <- randelt(conset$all)
@@ -192,6 +193,7 @@ randexprTypedGrow <- function(type, funcset, inset, conset,
                               maxdepth = 16,
                               constprob = 0.5, subtreeprob = 0.5,
                               curdepth = 1) {
+  constprob <- if (is.empty(conset$all)) 0.0 else constprob
   typeString <- type$string
   insetTypes <- Map(sType, inset$all)
   if (curdepth >= maxdepth) { # maximum depth reached, create terminal of correct type
