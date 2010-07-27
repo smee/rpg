@@ -124,6 +124,38 @@ SEXP mutate_constant_sexps(const SEXP f) {
   return make_function(FORMALS(f), mutant_body, CLOENV(f));
 }
 
+typedef struct SEXP_PAIR {
+  const SEXP first;
+  const SEXP second;
+} SEXP_PAIR;
+
+// TODO
+static R_INLINE SEXP_PAIR uniform_one_point_crossover_strategy(const SEXP e0, const SEXP e1) {
+  // TODO
+  Rprintf("IN uniform_one_point_crossover_strategy\n"); // TODO
+  const SEXP_PAIR result = { e0, e1 };
+  return result;
+}
+
+SEXP crossover_functions(const SEXP f, const SEXP g, SEXP_PAIR (*const crossover_strategy)(SEXP, SEXP)) {
+  CHECK_ARG_IS_FUNCTION(f);
+  CHECK_ARG_IS_FUNCTION(g);
+
+  const SEXP_PAIR crossover_result_bodies = crossover_strategy(BODY(f), BODY(g));
+  const SEXP f_prime = make_function(FORMALS(f), crossover_result_bodies.first, CLOENV(f));
+  const SEXP g_prime = make_function(FORMALS(g), crossover_result_bodies.second, CLOENV(g));
+
+  const SEXP result = PROTECT(allocVector(VECSXP, 2));
+  SET_VECTOR_ELT(result, 0, f_prime);
+  SET_VECTOR_ELT(result, 1, g_prime);
+  UNPROTECT(1);
+  return result;
+}
+
+SEXP uniform_one_point_crossover_functions(const SEXP f, const SEXP g) {
+  return crossover_functions(f, g, uniform_one_point_crossover_strategy);
+}
+
 /* Call this from R via .Call("test_function_manipulation", f, PACKAGE = "rgp"),
  * where f is a R function.
  * Example: .Call("test_function_manipulation", function(x) x + 1 + sin(2))
