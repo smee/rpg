@@ -5,9 +5,18 @@
 #define CHECK_ARG_IS_FUNCTION(A) \
   if (!isFunction(A)) \
     error("Argument '" #A "' is not a function.");
+#define CHECK_ARG_IS_LIST(A) \
+  if (!isList(A)) \
+    error("Argument '" #A "' is not a list.");
+#define CHECK_ARG_IS_NEW_LIST(A) \
+  if (!isNewList(A)) \
+    error("Argument '" #A "' is not a 'new list'.");
 #define CHECK_ARG_IS_NUMERIC(A) \
   if (!isNumeric(A)) \
     error("Argument '" #A "' is not numeric.");
+#define CHECK_ARG_IS_INTEGER(A)                 \
+  if (!isInteger(A))                                \
+    error("Argument '" #A "' is not an integer.");
 
 
 SEXP test_hello_world(const SEXP arg) {
@@ -97,6 +106,24 @@ SEXP print_sexp(const SEXP sexp) {
     Rprintf("something else (TYPE %d)\n", TYPEOF(sexp));
   }
   return sexp;
+}
+
+// BEWARE this modifies its argument list in-place! Never use this function directly from R (TODO make this static)
+SEXP test_modify_pairlist(const SEXP list, const SEXP indexSexp, const SEXP replacementElement) {
+  CHECK_ARG_IS_INTEGER(indexSexp);
+  const int index = INTEGER(indexSexp)[0]; // the given index should be 0-based, contrary to R convention
+
+  // TODO
+  SEXP rest = list;
+  int i = 0;
+  for (; rest != R_NilValue; rest = CDR(rest), i++) {
+    if (i == index) {
+      SETCAR(rest, replacementElement);
+      break;
+    }
+  }
+
+  return list;
 }
 
 // You MUST call GetRNGstate() before and PutRNGstate() after a batch of calls to this function!
