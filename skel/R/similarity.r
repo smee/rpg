@@ -171,7 +171,7 @@ normInducedFunctionDistance <- function(norm, labelDistance = trivialMetric, dis
 ##' that a metric must be definite and symmetric, otherwise the results will be undefined.
 ##' @param diag \code{TRUE} iff the diagonal of the distance matrix should be printed by
 ##' \code{print.dist}.
-##' @parm upper \code{TRUE} iff the upper triangle of the distance matrix should be printed
+##' @param upper \code{TRUE} iff the upper triangle of the distance matrix should be printed
 ##' by \code{print.dist}.
 ##' @return A distance matrix.
 ##'

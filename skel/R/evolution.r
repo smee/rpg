@@ -158,8 +158,7 @@ geneticProgramming <- function(fitnessFunction,
 ##' @param verbose Whether to print progress messages.
 ##' @return An symbolic regression model that contains an untyped GP population.
 ##'
-##' @seealso \code{\link{predict.symbolicRegressionModel}}
-##' @seealso \code{\link{geneticProgramming}}
+##' @seealso \code{\link{predict.symbolicRegressionModel}}, \code{\link{geneticProgramming}}
 ##' @export
 symbolicRegression <- function(formula, data,
                                stopCondition = makeStepsStopCondition(1000),

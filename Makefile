@@ -2,17 +2,17 @@
 .PHONEY: usage help install test check clean package
 
 usage:
-	echo "Available targets:"
+	echo "Most important targets:"
 	echo ""
-	echo " install  - install the package, writing the output into install.log"
-	echo " test     - install package and run unit tests"
-	echo " check    - run R CMD check on the package"
-	echo " help     - shows all available targets"
+	echo " install  - Install the package, writing the output into install.log"
+	echo " test     - Install package and run unit tests"
+	echo " check    - Run R CMD check on the package"
+	echo " help     - Show ALL available targets"
 
 help: usage
-	echo " clean    - clean up package cruft"
-	echo " package  - build source package of last commit"
-	echo " roxygen  - roxygenize skel/ into pkg/"
+	echo " clean    - Clean up package cruft"
+	echo " package  - Build source package of last commit"
+	echo " roxygen  - Roxygenize skel/ into pkg/"
 
 install: clean roxygen
 	echo "Installing package..."

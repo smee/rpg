@@ -15,7 +15,7 @@
 ##' @docType package
 ##' @name rgp-package
 ##' @title The RGP package
-##' @author Oliver Flasch \email{oliver.flasch@@fh-koeln.de}, Olaf Mersmann \email{olafm@@statistik.tu-dortmund.de}, Jörg Stork
+##' @author Oliver Flasch \email{oliver.flasch@@fh-koeln.de}, Olaf Mersmann \email{olafm@@statistik.tu-dortmund.de}, Joerg Stork
 ##' @keywords package
 ##' @useDynLib rgp
 

@@ -109,11 +109,10 @@ SEXP print_sexp(const SEXP sexp) {
 }
 
 // BEWARE this modifies its argument list in-place! Never use this function directly from R (TODO make this static)
-SEXP test_modify_pairlist(const SEXP list, const SEXP indexSexp, const SEXP replacementElement) {
+SEXP modify_pairlist(const SEXP list, const SEXP indexSexp, const SEXP replacementElement) {
   CHECK_ARG_IS_INTEGER(indexSexp);
   const int index = INTEGER(indexSexp)[0]; // the given index should be 0-based, contrary to R convention
 
-  // TODO
   SEXP rest = list;
   int i = 0;
   for (; rest != R_NilValue; rest = CDR(rest), i++) {
@@ -156,10 +155,36 @@ typedef struct SEXP_PAIR {
   const SEXP second;
 } SEXP_PAIR;
 
+// TODO make this "static R_INLINE"
+SEXP_PAIR choose_crossover_point(const SEXP e, const SEXP selected_point) {
+  if (selected_point == NULL) { // no point selected yet
+    const SEXP_PAIR result = { e, selected_point }; // TODO
+    return result;
+  } else { // point selected, just copy the tree from now on
+    switch (TYPEOF(e)) { // switch for speed
+    case NILSXP: {
+       const SEXP_PAIR result = { e, selected_point };
+       return result;
+    }
+    case LANGSXP: // fall-through to next case
+    case LISTSXP: {
+      const SEXP_PAIR result = {  LCONS((choose_crossover_point(CAR(e), selected_point)).first,
+                                        (choose_crossover_point(CDR(e), selected_point)).second),
+                                  selected_point };
+      return result;
+    }
+    default: { // base case
+      const SEXP_PAIR result = { e, selected_point };
+      return result;
+    }
+    }
+  }
+}
+
 // TODO
 static R_INLINE SEXP_PAIR uniform_one_point_crossover_strategy(const SEXP e0, const SEXP e1) {
   // TODO
-  Rprintf("IN uniform_one_point_crossover_strategy\n"); // TODO
+  Rprintf("in uniform_one_point_crossover_strategy...\n"); // TODO
   const SEXP_PAIR result = { e0, e1 };
   return result;
 }
@@ -168,7 +193,9 @@ SEXP crossover_functions(const SEXP f, const SEXP g, SEXP_PAIR (*const crossover
   CHECK_ARG_IS_FUNCTION(f);
   CHECK_ARG_IS_FUNCTION(g);
 
+  GetRNGstate();
   const SEXP_PAIR crossover_result_bodies = crossover_strategy(BODY(f), BODY(g));
+  PutRNGstate();
   const SEXP f_prime = make_function(FORMALS(f), crossover_result_bodies.first, CLOENV(f));
   const SEXP g_prime = make_function(FORMALS(g), crossover_result_bodies.second, CLOENV(g));
 
