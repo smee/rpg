@@ -1,5 +1,6 @@
 #include <R.h>
 #include <Rinternals.h>
+#include <float.h>
 #include "sexp_utils.h"
 
 #define CHECK_ARG_IS_FUNCTION(A) \
@@ -220,5 +221,44 @@ SEXP test_function_manipulation(SEXP f) {
   const SEXP f_body = BODY(f);
 
   return map_sexp(f_body, print_sexp);
+}
+
+/*Test-function - Remove*/
+
+// return a random interger between 0 and size-1
+// You MUST call GetRNGstate() before and PutRNGstate() after a batch of calls to this function!
+static R_INLINE int rand_index(const int size) {
+  const double r = unif_rand() - DBL_EPSILON; // subtract DBL_EPSILON to make sure that r < 1.0
+  return (int) (r * size);
+}
+
+SEXP test_rng() {
+  const double test_array[] = { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0 };
+  GetRNGstate();
+  for (int i = 0; i < 100; i++) Rprintf("%f ", test_array[rand_index(sizeof(test_array) / sizeof(double))]);
+  Rprintf("\n");
+  PutRNGstate();
+
+  return R_NilValue;
+}
+
+static R_INLINE SEXP build_tree_rec(int depth)
+{	
+	const double one_array[]= { 1.0 };
+	const SEXP one= make_real_vector(one_array);
+	if (depth > 0)
+		return LCONS(install("+"),LCONS(build_tree_rec(depth-1),LCONS(one, R_NilValue)));
+		//return LCONS(install("+"),LCONS(one,LCONS(build_tree_rec(depth-1), R_NilValue)));
+	else
+		return one;
+}
+
+SEXP new_sexp_tree(const SEXP reps)
+{	
+	SEXP rfun;
+	CHECK_ARG_IS_NUMERIC(reps);
+  	int repeats = (int) *REAL(reps);	
+	rfun= build_tree_rec(repeats);
+	return rfun;
 }
 
