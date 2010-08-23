@@ -117,6 +117,9 @@ SEXP test_make_function_sexp() {
   return f;
 }
 
+/* Probably want to look at src/main/inspect.c in the R source tree
+ * for inspiration. Maby even dispatch to do_inspect()?
+*/
 SEXP print_sexp(const SEXP sexp) {
   // if this code was serious, it would use an ugly hairy switch statement for speed...
   if (isSymbol(sexp)) {
