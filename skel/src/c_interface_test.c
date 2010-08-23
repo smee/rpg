@@ -26,14 +26,23 @@ SEXP test_hello_world(const SEXP arg) {
 }
 
 SEXP test_call_function(const SEXP f, const SEXP reps) {
+  PROTECT_INDEX ip;
   CHECK_ARG_IS_FUNCTION(f);
   CHECK_ARG_IS_NUMERIC(reps);
   const int repeats = (int) *REAL(reps);
   const SEXP f_call = PROTECT(lang1(f));
   SEXP last_result = R_NilValue;
-  for (int i = 0; i < repeats; i++) last_result = eval(f_call, R_GlobalEnv); // could also be R_BaseEnv or a parameter
+  for (int i = 0; i < repeats; i++) {
+      /* This should really be protected: */
+      PROTECT_WITH_INDEX(last_result = eval(f_call, R_GlobalEnv), &ip); 
+      /* Do something with last_result. Maby cast it... */
+      REPROTECT(last_result = coerceVector(last_result, REALSXP), ip);
+      /* Use s_fval ... */
 
-  UNPROTECT(1);
+      /* And unprotext it. */
+      UNPROTECT(1); /* last_result */
+  }
+  UNPROTECT(1); /* f_call */
   return last_result;
 }
 
@@ -61,12 +70,33 @@ SEXP make_function(const SEXP formals, const SEXP body, const SEXP environment) 
 }
 
 SEXP make_real_vector(const double real_data[]) {
-  const int len = sizeof(real_data) / sizeof(double);
-  const SEXP real = PROTECT(allocVector(REALSXP, len));
-  for (int i = 0; i < len; i++) REAL(real)[i] = real_data[i]; // TODO it should be possible to make this faster somehow
+    /* FIXME: This does not work because sizeof(real_data) ==
+     *   sizeof(double *) By pure luck (you are running on a 64bit
+     *   system right?)  sizeof(double *) == sizeof(double) and len is
+     *   always 1. You need to explicitly pass the size of real_data
+     *   as a size_t.
+     */
+    const int len = sizeof(real_data) / sizeof(double);
 
-  UNPROTECT(1);
-  return real;
+    const SEXP s_real = PROTECT(allocVector(REALSXP, len));
+    double *real = REAL(s_real);
+#if defined(GO_SLOW)
+    /* REAL() usually does a type check on the SEXP. No need to do the
+     * same check len times. 
+     */
+    for (int i = 0; i < len; i++) 
+	REAL(s_real)[i] = real_data[i]; 
+#elif defined(GO_FASTER)
+    for (int i = 0; i < len; i++) 
+	real[i] = real_data[i]; 
+#else
+    /* memcpy() is usually hand optimized assembler. Most likely faster
+     * than any for loop for small len and not slower for large len.
+     */
+    memcpy(real, real_data, len);
+#endif
+    UNPROTECT(1);
+    return real;
 }
 
 /* test_make_function_sexp
