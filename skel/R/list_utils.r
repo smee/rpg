@@ -82,8 +82,7 @@ sortByRanking <- function(xs, ranking = rank(xs)) {
 ##'
 ##' @param x The permutation to return the inverse for.
 ##' @return The inverse of the permutation \code{x}.
-##' @seealso \code{\link{rank}}
-##' @seealso \code{\link{order}}
+##' @seealso \code{\link{rank}}, \code{\link{order}}
 inversePermutation <- function(x) {
   l <- length(x); o <- numeric(l)
   o[x] <- 1:l
