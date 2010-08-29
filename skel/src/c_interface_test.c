@@ -77,10 +77,8 @@ static R_INLINE SEXP unify_rec(const SEXP a, const SEXP b, const SEXP rho) {
   if (isSymbol(a) && findVar(a, rho) == R_UnboundValue) {
     // a is a variable...
     if (check_contains(a, b)) { // check if the variable a is contained in b
-      Rprintf("a var, cc failed\n"); // TODO
       return ScalarLogical(NA_LOGICAL); // fail
     } else {
-      Rprintf("a var, cc succeeded\n"); // TODO
       // make substitution [a:b]...
       const SEXP substitution_a_colon_b = PROTECT(list1(b));
       SET_TAG(substitution_a_colon_b, a);
@@ -90,10 +88,8 @@ static R_INLINE SEXP unify_rec(const SEXP a, const SEXP b, const SEXP rho) {
   } else if (isSymbol(b) && findVar(b, rho) == R_UnboundValue) {
     // b is a variable ...
     if (check_contains(b, a)) { // check if the variable b is contained in a
-      Rprintf("b var, cc failed\n"); // TODO
       return ScalarLogical(NA_LOGICAL); // fail
     } else {
-      Rprintf("b var, cc succeeded\n"); // TODO
       // make substitution [b:a]...
       const SEXP substitution_b_colon_a = PROTECT(list1(a));
       SET_TAG(substitution_b_colon_a, b);
@@ -102,8 +98,7 @@ static R_INLINE SEXP unify_rec(const SEXP a, const SEXP b, const SEXP rho) {
     }
   } else if (R_NilValue != a && isLanguage(a) && R_NilValue != b && isLanguage(b)) {
     // both a and b are compound expressions...
-    SEXP sigma = PROTECT(allocList(0));
-    Rprintf("looping over %d subexpressions...\n", length(a)); // TODO
+    SEXP sigma = PROTECT(allocList(0)); // substitution_empty
     SEXP a_cdr = a, b_cdr = b;
     for (; a_cdr != R_NilValue && b_cdr != R_NilValue; a_cdr = CDR(a_cdr), b_cdr = CDR(b_cdr)) {
       const SEXP theta = unify_rec(CAR(a_cdr), CAR(b_cdr), rho);
@@ -112,10 +107,9 @@ static R_INLINE SEXP unify_rec(const SEXP a, const SEXP b, const SEXP rho) {
         UNPROTECT(1);
         return ScalarLogical(NA_LOGICAL); // fail
       } else {
-        sigma = listAppend(sigma, theta); // TODO
+        sigma = listAppend(sigma, theta); // TODO correctly combine the unificators here!
       }
     }
-    Rprintf("finished sigma has len:%d\n", length(sigma)); // TODO
     UNPROTECT(1);
     if (a_cdr == R_NilValue && b_cdr == R_NilValue) {
       // both a and b had the same number of arguments...
@@ -125,11 +119,9 @@ static R_INLINE SEXP unify_rec(const SEXP a, const SEXP b, const SEXP rho) {
     }
   } else if (R_compute_identical(a, b, TRUE, TRUE, TRUE)) {
     // a and b are identical constants or both are empty lists...
-    Rprintf("identical constants or empty lists\n"); // TODO
-    return allocList(0); // TODO
+    return allocList(0); // substitution_empty
   } else {
     // a and b are different constants or only one is the empty list...
-    Rprintf("other\n"); // TODO
     return ScalarLogical(NA_LOGICAL); // fail
   }
 }
@@ -141,9 +133,7 @@ static R_INLINE SEXP unify_rec(const SEXP a, const SEXP b, const SEXP rho) {
  */
 SEXP unify(const SEXP a, const SEXP b, const SEXP rho) {
   CHECK_ARG_IS_ENVIRONMENT(rho);
-  const SEXP foo = unify_rec(a, b, rho); // TODO
-  Rprintf("unify DONE!\n"); // TODO
-  return foo;
+  return unify_rec(a, b, rho);
 }
 
 SEXP make_formals(const SEXP formal_names) {
