@@ -12,6 +12,9 @@
 #define CHECK_ARG_IS_NEW_LIST(A) \
   if (!isNewList(A)) \
     error("Argument '" #A "' is not a 'new list'.");
+#define CHECK_ARG_IS_ENVIRONMENT(A) \
+  if (!isEnvironment(A)) \
+    error("Argument '" #A "' is not an environment.");
 #define CHECK_ARG_IS_NUMERIC(A) \
   if (!isNumeric(A)) \
     error("Argument '" #A "' is not numeric.");
@@ -39,11 +42,108 @@ SEXP test_call_function(const SEXP f, const SEXP reps) {
       REPROTECT(last_result = coerceVector(last_result, REALSXP), ip);
       /* Use s_fval ... */
 
-      /* And unprotext it. */
+      /* And unprotect it. */
       UNPROTECT(1); /* last_result */
   }
   UNPROTECT(1); /* f_call */
   return last_result;
+}
+
+static R_INLINE Rboolean check_contains(const SEXP a, const SEXP b) {
+  if (R_compute_identical(a, b, TRUE, TRUE, TRUE)) {
+    // a and b are identical
+    return TRUE;
+  } else if (R_NilValue == b) {
+    // b is the empty list of subexpressions
+    return FALSE;
+  } else if (isList(b) || isLanguage(b)) {
+    // b is a non-empty list of subexpressions or a language expression
+    return check_contains(a, CAR(b)) || check_contains(a, CDR(b));
+  } else {
+    // a and b are structurally distinct
+    return FALSE;
+  }
+}
+
+SEXP test_check_contains(const SEXP a, const SEXP b) {
+  return ScalarLogical(check_contains(a, b));
+}
+
+SEXP test_find_var(const SEXP v, const SEXP rho) {
+  return findVar(v, rho);
+}
+
+static R_INLINE SEXP unify_rec(const SEXP a, const SEXP b, const SEXP rho) {
+  if (isSymbol(a) && findVar(a, rho) == R_UnboundValue) {
+    // a is a variable...
+    if (check_contains(a, b)) { // check if the variable a is contained in b
+      Rprintf("a var, cc failed\n"); // TODO
+      return ScalarLogical(NA_LOGICAL); // fail
+    } else {
+      Rprintf("a var, cc succeeded\n"); // TODO
+      // make substitution [a:b]...
+      const SEXP substitution_a_colon_b = PROTECT(list1(b));
+      SET_TAG(substitution_a_colon_b, a);
+      UNPROTECT(1);
+      return substitution_a_colon_b;
+    }
+  } else if (isSymbol(b) && findVar(b, rho) == R_UnboundValue) {
+    // b is a variable ...
+    if (check_contains(b, a)) { // check if the variable b is contained in a
+      Rprintf("b var, cc failed\n"); // TODO
+      return ScalarLogical(NA_LOGICAL); // fail
+    } else {
+      Rprintf("b var, cc succeeded\n"); // TODO
+      // make substitution [b:a]...
+      const SEXP substitution_b_colon_a = PROTECT(list1(a));
+      SET_TAG(substitution_b_colon_a, b);
+      UNPROTECT(1);
+      return substitution_b_colon_a;
+    }
+  } else if (R_NilValue != a && isLanguage(a) && R_NilValue != b && isLanguage(b)) {
+    // both a and b are compound expressions...
+    SEXP sigma = PROTECT(allocList(0));
+    Rprintf("looping over %d subexpressions...\n", length(a)); // TODO
+    SEXP a_cdr = a, b_cdr = b;
+    for (; a_cdr != R_NilValue && b_cdr != R_NilValue; a_cdr = CDR(a_cdr), b_cdr = CDR(b_cdr)) {
+      const SEXP theta = unify_rec(CAR(a_cdr), CAR(b_cdr), rho);
+      if (isLogical(theta) && LOGICAL(theta)[0] == NA_LOGICAL) {
+        // some arguments did not unify...
+        UNPROTECT(1);
+        return ScalarLogical(NA_LOGICAL); // fail
+      } else {
+        sigma = listAppend(sigma, theta); // TODO
+      }
+    }
+    Rprintf("finished sigma has len:%d\n", length(sigma)); // TODO
+    UNPROTECT(1);
+    if (a_cdr == R_NilValue && b_cdr == R_NilValue) {
+      // both a and b had the same number of arguments...
+      return sigma;
+    } else {
+      return ScalarLogical(NA_LOGICAL); // fail
+    }
+  } else if (R_compute_identical(a, b, TRUE, TRUE, TRUE)) {
+    // a and b are identical constants or both are empty lists...
+    Rprintf("identical constants or empty lists\n"); // TODO
+    return allocList(0); // TODO
+  } else {
+    // a and b are different constants or only one is the empty list...
+    Rprintf("other\n"); // TODO
+    return ScalarLogical(NA_LOGICAL); // fail
+  }
+}
+
+/* unify
+ * Return the most general unifier of a and b or NA if a and b are not unifiable.
+ * Symbols not existing in the environment rho are treated as variables.
+ * The most general unifier is represented as a tagged list.
+ */
+SEXP unify(const SEXP a, const SEXP b, const SEXP rho) {
+  CHECK_ARG_IS_ENVIRONMENT(rho);
+  const SEXP foo = unify_rec(a, b, rho); // TODO
+  Rprintf("unify DONE!\n"); // TODO
+  return foo;
 }
 
 SEXP make_formals(const SEXP formal_names) {
@@ -70,33 +170,33 @@ SEXP make_function(const SEXP formals, const SEXP body, const SEXP environment) 
 }
 
 SEXP make_real_vector(const double real_data[]) {
-    /* FIXME: This does not work because sizeof(real_data) ==
-     *   sizeof(double *) By pure luck (you are running on a 64bit
-     *   system right?)  sizeof(double *) == sizeof(double) and len is
-     *   always 1. You need to explicitly pass the size of real_data
-     *   as a size_t.
-     */
-    const int len = sizeof(real_data) / sizeof(double);
-
-    const SEXP s_real = PROTECT(allocVector(REALSXP, len));
-    double *real = REAL(s_real);
+  /* FIXME: This does not work because sizeof(real_data) ==
+   *   sizeof(double *) By pure luck (you are running on a 64bit
+   *   system right?)  sizeof(double *) == sizeof(double) and len is
+   *   always 1. You need to explicitly pass the size of real_data
+   *   as a size_t.
+   */
+  const int len = sizeof(real_data) / sizeof(double);
+  
+  const SEXP s_real = PROTECT(allocVector(REALSXP, len));
+  double *real = REAL(s_real);
 #if defined(GO_SLOW)
-    /* REAL() usually does a type check on the SEXP. No need to do the
-     * same check len times. 
-     */
-    for (int i = 0; i < len; i++) 
-	REAL(s_real)[i] = real_data[i]; 
+  /* REAL() usually does a type check on the SEXP. No need to do the
+   * same check len times. 
+   */
+  for (int i = 0; i < len; i++) 
+    REAL(s_real)[i] = real_data[i]; 
 #elif defined(GO_FASTER)
-    for (int i = 0; i < len; i++) 
-	real[i] = real_data[i]; 
+  for (int i = 0; i < len; i++) 
+    real[i] = real_data[i]; 
 #else
-    /* memcpy() is usually hand optimized assembler. Most likely faster
-     * than any for loop for small len and not slower for large len.
-     */
-    memcpy(real, real_data, len);
+  /* memcpy() is usually hand optimized assembler. Most likely faster
+   * than any for loop for small len and not slower for large len.
+   */
+  memcpy(real, real_data, len);
 #endif
-    UNPROTECT(1);
-    return real;
+  UNPROTECT(1);
+  return (SEXP) real;
 }
 
 /* test_make_function_sexp
