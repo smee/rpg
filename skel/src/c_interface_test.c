@@ -73,8 +73,12 @@ SEXP test_find_var(const SEXP v, const SEXP rho) {
   return findVar(v, rho);
 }
 
+static R_INLINE Rboolean containsVar(const SEXP var, const SEXP rho) {
+  return isSymbol(var) && findVar(var, rho) != R_UnboundValue;
+}
+
 static R_INLINE SEXP unify_rec(const SEXP a, const SEXP b, const SEXP rho) {
-  if (isSymbol(a) && findVar(a, rho) == R_UnboundValue) {
+  if (containsVar(a, rho)) {
     // a is a variable...
     if (check_contains(a, b)) { // check if the variable a is contained in b
       return ScalarLogical(NA_LOGICAL); // fail
@@ -85,7 +89,7 @@ static R_INLINE SEXP unify_rec(const SEXP a, const SEXP b, const SEXP rho) {
       UNPROTECT(1);
       return substitution_a_colon_b;
     }
-  } else if (isSymbol(b) && findVar(b, rho) == R_UnboundValue) {
+  } else if (containsVar(b, rho)) {
     // b is a variable ...
     if (check_contains(b, a)) { // check if the variable b is contained in a
       return ScalarLogical(NA_LOGICAL); // fail
@@ -134,6 +138,11 @@ static R_INLINE SEXP unify_rec(const SEXP a, const SEXP b, const SEXP rho) {
 SEXP unify(const SEXP a, const SEXP b, const SEXP rho) {
   CHECK_ARG_IS_ENVIRONMENT(rho);
   return unify_rec(a, b, rho);
+}
+
+SEXP test_make_environment(const SEXP rho) {
+  return R_NilValue; // TODO
+  //return Rf_NewEnvironment(R_NilValue, R_NilValue, rho); // TODO
 }
 
 SEXP make_formals(const SEXP formal_names) {
