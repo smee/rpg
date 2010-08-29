@@ -77,6 +77,10 @@ static R_INLINE Rboolean containsVar(const SEXP var, const SEXP rho) {
   return isSymbol(var) && findVar(var, rho) != R_UnboundValue;
 }
 
+static R_INLINE Rboolean isNaLogical(const SEXP a) {
+  return isLogical(a) && LOGICAL(a)[0] == NA_LOGICAL;
+}
+
 static R_INLINE SEXP unify_rec(const SEXP a, const SEXP b, const SEXP rho) {
   if (containsVar(a, rho)) {
     // a is a variable...
@@ -106,7 +110,7 @@ static R_INLINE SEXP unify_rec(const SEXP a, const SEXP b, const SEXP rho) {
     SEXP a_cdr = a, b_cdr = b;
     for (; a_cdr != R_NilValue && b_cdr != R_NilValue; a_cdr = CDR(a_cdr), b_cdr = CDR(b_cdr)) {
       const SEXP theta = unify_rec(CAR(a_cdr), CAR(b_cdr), rho);
-      if (isLogical(theta) && LOGICAL(theta)[0] == NA_LOGICAL) {
+      if (isNaLogical(theta)) {
         // some arguments did not unify...
         UNPROTECT(1);
         return ScalarLogical(NA_LOGICAL); // fail
