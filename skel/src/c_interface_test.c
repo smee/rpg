@@ -1,6 +1,7 @@
 #include <R.h>
 #include <Rinternals.h>
 #include <float.h>
+#include "list_utils.h"
 #include "sexp_utils.h"
 
 #define CHECK_ARG_IS_FUNCTION(A) \
@@ -191,11 +192,6 @@ SEXP unify(const SEXP a, const SEXP b, const SEXP rho) {
   return unify_rec(a, b, rho);
 }
 
-SEXP test_make_environment(const SEXP rho) {
-  return R_NilValue; // TODO
-  //return Rf_NewEnvironment(R_NilValue, R_NilValue, rho); // TODO
-}
-
 SEXP make_formals(const SEXP formal_names) {
   const SEXP formals = PROTECT(allocList(length(formal_names)));
   SEXP formal = formals;
@@ -327,7 +323,7 @@ SEXP mutate_constant_sexps(const SEXP f) {
   CHECK_ARG_IS_FUNCTION(f);
 
   GetRNGstate();
-  const SEXP mutant_body = PROTECT(map_sexp_leafs(BODY(f), mutate_constant_sexp));
+  const SEXP mutant_body = PROTECT(map_sexp_leafs(mutate_constant_sexp, BODY(f)));
   PutRNGstate();
 
   UNPROTECT(1);
@@ -403,7 +399,7 @@ SEXP test_function_manipulation(SEXP f) {
   const SEXP f_formals = FORMALS(f);
   const SEXP f_body = BODY(f);
 
-  return map_sexp(f_body, print_sexp);
+  return map_sexp(print_sexp, f_body);
 }
 
 /*Test-function - Remove*/
