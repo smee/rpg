@@ -137,36 +137,14 @@ static R_INLINE SEXP unify_rec(const SEXP a, const SEXP b, const SEXP rho) {
 
 /* TODO the above unify code is incomplete and therefore not correct.
  * TODO port this straight-forward Scheme implmentation from SICP to C:
- *
- * (define (unify-match p1 p2 frame)
- *   (cond ((eq? frame 'failed) 'failed)
- *     ((equal? p1 p2) frame)
- *     ((var? p1) (extend-if-possible p1 p2 frame))
- *     ((var? p2) (extend-if-possible p2 p1 frame))
- *     ((and (pair? p1) (pair? p2))
- *      (unify-match (cdr p1)
- *                   (cdr p2)
- *                   (unify-match (car p1)
- *                                (car p2)
- *                                frame)))
- *     (else 'failed)))
- *
- * (define (extend-if-possible var val frame)
- *   (let ((binding (binding-in-frame var frame)))
- *     (cond (binding
- *            (unify-match
- *             (binding-value binding) val frame))
- *           ((var? val)
- *            (let ((binding (binding-in-frame val frame)))
- *              (if binding
- *                  (unify-match
- *                   var (binding-value binding) frame)
- *                  (extend var val frame))))
- *           ((depends-on? val var frame)
- *            'failed)
- *           (else (extend var val frame)))))
- *
- * (define (depends-on? exp var frame) ; this is the contains-check
+ */
+static R_INLINE Rboolean is_equal(const SEXP a, const SEXP b) {
+  return R_compute_identical(a, b, TRUE, TRUE, TRUE);
+}
+static R_INLINE Rboolean is_na_logical(const SEXP a) {
+  return isLogical(a) && LOGICAL(a)[0] == NA_LOGICAL;
+}
+/* (define (depends-on? exp var frame) ; this is the contains-check
  *   (define (tree-walk e)
  *     (cond ((var? e)
  *            (if (equal? var e)
@@ -181,6 +159,69 @@ static R_INLINE SEXP unify_rec(const SEXP a, const SEXP b, const SEXP rho) {
  *           (else false)))
  *   (tree-walk exp))
  */
+SEXP depends_on(const SEXP expression, const SEXP variable, const SEXP sigma,
+                Rboolean (*const is_variable)(SEXP)) {
+  return R_NilValue;
+}
+/* (define (extend-if-possible var val frame)
+ *   (let ((binding (binding-in-frame var frame)))
+ *     (cond (binding
+ *            (unify-match
+ *             (binding-value binding) val frame))
+ *           ((var? val)
+ *            (let ((binding (binding-in-frame val frame)))
+ *              (if binding
+ *                  (unify-match
+ *                   var (binding-value binding) frame)
+ *                  (extend var val frame))))
+ *           ((depends-on? val var frame)
+ *            'failed)
+ *           (else (extend var val frame)))))
+ */
+SEXP extend_if_possible(const SEXP key, const SEXP value, const SEXP sigma,
+                        Rboolean (*const is_variable)(SEXP)) {
+  return R_NilValue; // TODO
+}
+/*
+ * (define (unify-match p1 p2 frame)
+ *   (cond ((eq? frame 'failed) 'failed)
+ *     ((equal? p1 p2) frame)
+ *     ((var? p1) (extend-if-possible p1 p2 frame))
+ *     ((var? p2) (extend-if-possible p2 p1 frame))
+ *     ((and (pair? p1) (pair? p2))
+ *      (unify-match (cdr p1)
+ *                   (cdr p2)
+ *                   (unify-match (car p1)
+ *                                (car p2)
+ *                                frame)))
+ *     (else 'failed)))
+ */
+SEXP unify_match(const SEXP a, const SEXP b, const SEXP sigma,
+                 Rboolean (*const is_variable)(SEXP)) {
+  if (is_na_logical(sigma)) { // match failed already...
+    return sigma; // pass the fail on
+  } else if (is_equal(a, b)) { // expressions are equal...
+    return sigma;
+  } else if (is_variable(a)) { // expression a is a variable...
+    return extend_if_possible(a, b, sigma, is_variable);
+  } else if (is_variable(b)) { // expression b is a variable...
+    return extend_if_possible(b, a, sigma, is_variable);
+  } else if (isLanguage(a) && isLanguage(b)) { // both a and b are compound expressions...
+    return unify_match(CDR(a), CDR(b),
+                       unify_match(CAR(a), CAR(b), sigma, is_variable),
+                       is_variable);
+  } else { // otherwise...
+    return ScalarLogical(NA_LOGICAL); // fail
+  }
+}
+
+Rboolean test_is_variable(const SEXP s) {
+  // here, variables as symbols not bound in the global environment
+  return isSymbol(s) && findVar(s, R_GlobalEnv) == R_UnboundValue;
+}
+SEXP test_unify_match(const SEXP a, const SEXP b) {
+  return unify_match(a, b, make_alist(), test_is_variable);
+}
 
 /* unify
  * Return the most general unifier of a and b or NA if a and b are not unifiable.
