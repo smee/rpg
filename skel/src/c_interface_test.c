@@ -3,6 +3,7 @@
 #include <float.h>
 #include "list_utils.h"
 #include "sexp_utils.h"
+#include "unification.h"
 
 #define CHECK_ARG_IS_FUNCTION(A) \
   if (!isFunction(A)) \
@@ -50,187 +51,13 @@ SEXP test_call_function(const SEXP f, const SEXP reps) {
   return last_result;
 }
 
-static R_INLINE Rboolean check_contains(const SEXP a, const SEXP b) {
-  if (R_compute_identical(a, b, TRUE, TRUE, TRUE)) {
-    // a and b are identical
-    return TRUE;
-  } else if (R_NilValue == b) {
-    // b is the empty list of subexpressions
-    return FALSE;
-  } else if (isList(b) || isLanguage(b)) {
-    // b is a non-empty list of subexpressions or a language expression
-    return check_contains(a, CAR(b)) || check_contains(a, CDR(b));
-  } else {
-    // a and b are structurally distinct
-    return FALSE;
-  }
-}
-
-SEXP test_check_contains(const SEXP a, const SEXP b) {
-  return ScalarLogical(check_contains(a, b));
-}
-
-SEXP test_find_var(const SEXP v, const SEXP rho) {
-  return findVar(v, rho);
-}
-
-static R_INLINE Rboolean containsVar(const SEXP var, const SEXP rho) {
-  return isSymbol(var) && findVar(var, rho) != R_UnboundValue;
-}
-
-static R_INLINE Rboolean isNaLogical(const SEXP a) {
-  return isLogical(a) && LOGICAL(a)[0] == NA_LOGICAL;
-}
-
-static R_INLINE SEXP unify_rec(const SEXP a, const SEXP b, const SEXP rho) {
-  if (containsVar(a, rho)) {
-    // a is a variable...
-    if (check_contains(a, b)) { // check if the variable a is contained in b
-      return ScalarLogical(NA_LOGICAL); // fail
-    } else {
-      // make substitution [a:b]...
-      const SEXP substitution_a_colon_b = PROTECT(list1(b));
-      SET_TAG(substitution_a_colon_b, a);
-      UNPROTECT(1);
-      return substitution_a_colon_b;
-    }
-  } else if (containsVar(b, rho)) {
-    // b is a variable ...
-    if (check_contains(b, a)) { // check if the variable b is contained in a
-      return ScalarLogical(NA_LOGICAL); // fail
-    } else {
-      // make substitution [b:a]...
-      const SEXP substitution_b_colon_a = PROTECT(list1(a));
-      SET_TAG(substitution_b_colon_a, b);
-      UNPROTECT(1);
-      return substitution_b_colon_a;
-    }
-  } else if (R_NilValue != a && isLanguage(a) && R_NilValue != b && isLanguage(b)) {
-    // both a and b are compound expressions...
-    SEXP sigma = PROTECT(allocList(0)); // substitution_empty
-    SEXP a_cdr = a, b_cdr = b;
-    for (; a_cdr != R_NilValue && b_cdr != R_NilValue; a_cdr = CDR(a_cdr), b_cdr = CDR(b_cdr)) {
-      const SEXP theta = unify_rec(CAR(a_cdr), CAR(b_cdr), rho);
-      if (isNaLogical(theta)) {
-        // some arguments did not unify...
-        UNPROTECT(1);
-        return ScalarLogical(NA_LOGICAL); // fail
-      } else {
-        sigma = listAppend(sigma, theta); // TODO correctly combine the unificators here!
-      }
-    }
-    UNPROTECT(1);
-    if (a_cdr == R_NilValue && b_cdr == R_NilValue) {
-      // both a and b had the same number of arguments...
-      return sigma;
-    } else {
-      return ScalarLogical(NA_LOGICAL); // fail
-    }
-  } else if (R_compute_identical(a, b, TRUE, TRUE, TRUE)) {
-    // a and b are identical constants or both are empty lists...
-    return allocList(0); // substitution_empty
-  } else {
-    // a and b are different constants or only one is the empty list...
-    return ScalarLogical(NA_LOGICAL); // fail
-  }
-}
-
-/* TODO the above unify code is incomplete and therefore not correct.
- * TODO port this straight-forward Scheme implmentation from SICP to C:
- */
-static R_INLINE Rboolean is_equal(const SEXP a, const SEXP b) {
-  return R_compute_identical(a, b, TRUE, TRUE, TRUE);
-}
-static R_INLINE Rboolean is_na_logical(const SEXP a) {
-  return isLogical(a) && LOGICAL(a)[0] == NA_LOGICAL;
-}
-/* (define (depends-on? exp var frame) ; this is the contains-check
- *   (define (tree-walk e)
- *     (cond ((var? e)
- *            (if (equal? var e)
- *                true
- *                (let ((b (binding-in-frame e frame)))
- *                  (if b
- *                      (tree-walk (binding-value b))
- *                      false))))
- *           ((pair? e)
- *            (or (tree-walk (car e))
- *                (tree-walk (cdr e))))
- *           (else false)))
- *   (tree-walk exp))
- */
-SEXP depends_on(const SEXP expression, const SEXP variable, const SEXP sigma,
-                Rboolean (*const is_variable)(SEXP)) {
-  return R_NilValue;
-}
-/* (define (extend-if-possible var val frame)
- *   (let ((binding (binding-in-frame var frame)))
- *     (cond (binding
- *            (unify-match
- *             (binding-value binding) val frame))
- *           ((var? val)
- *            (let ((binding (binding-in-frame val frame)))
- *              (if binding
- *                  (unify-match
- *                   var (binding-value binding) frame)
- *                  (extend var val frame))))
- *           ((depends-on? val var frame)
- *            'failed)
- *           (else (extend var val frame)))))
- */
-SEXP extend_if_possible(const SEXP key, const SEXP value, const SEXP sigma,
-                        Rboolean (*const is_variable)(SEXP)) {
-  return R_NilValue; // TODO
-}
-/*
- * (define (unify-match p1 p2 frame)
- *   (cond ((eq? frame 'failed) 'failed)
- *     ((equal? p1 p2) frame)
- *     ((var? p1) (extend-if-possible p1 p2 frame))
- *     ((var? p2) (extend-if-possible p2 p1 frame))
- *     ((and (pair? p1) (pair? p2))
- *      (unify-match (cdr p1)
- *                   (cdr p2)
- *                   (unify-match (car p1)
- *                                (car p2)
- *                                frame)))
- *     (else 'failed)))
- */
-SEXP unify_match(const SEXP a, const SEXP b, const SEXP sigma,
-                 Rboolean (*const is_variable)(SEXP)) {
-  if (is_na_logical(sigma)) { // match failed already...
-    return sigma; // pass the fail on
-  } else if (is_equal(a, b)) { // expressions are equal...
-    return sigma;
-  } else if (is_variable(a)) { // expression a is a variable...
-    return extend_if_possible(a, b, sigma, is_variable);
-  } else if (is_variable(b)) { // expression b is a variable...
-    return extend_if_possible(b, a, sigma, is_variable);
-  } else if (isLanguage(a) && isLanguage(b)) { // both a and b are compound expressions...
-    return unify_match(CDR(a), CDR(b),
-                       unify_match(CAR(a), CAR(b), sigma, is_variable),
-                       is_variable);
-  } else { // otherwise...
-    return ScalarLogical(NA_LOGICAL); // fail
-  }
-}
-
 Rboolean test_is_variable(const SEXP s) {
   // here, variables as symbols not bound in the global environment
   return isSymbol(s) && findVar(s, R_GlobalEnv) == R_UnboundValue;
 }
+
 SEXP test_unify_match(const SEXP a, const SEXP b) {
   return unify_match(a, b, make_alist(), test_is_variable);
-}
-
-/* unify
- * Return the most general unifier of a and b or NA if a and b are not unifiable.
- * Symbols not existing in the environment rho are treated as variables.
- * The most general unifier is represented as a tagged list.
- */
-SEXP unify(const SEXP a, const SEXP b, const SEXP rho) {
-  CHECK_ARG_IS_ENVIRONMENT(rho);
-  return unify_rec(a, b, rho);
 }
 
 SEXP make_formals(const SEXP formal_names) {
