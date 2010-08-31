@@ -47,6 +47,7 @@ SEXP extend_if_possible(const SEXP variable, const SEXP value, const SEXP sigma,
 
 Rboolean depends_on(const SEXP expression, const SEXP variable, const SEXP sigma,
                     Rboolean (*const is_variable)(SEXP)) {
+  Rprintf("in depends on\n"); // TODO
   if (is_variable(expression))
     if (is_equal(variable, expression))
       return TRUE;
@@ -54,6 +55,8 @@ Rboolean depends_on(const SEXP expression, const SEXP variable, const SEXP sigma
       return depends_on(get_alist(expression, sigma), variable, sigma, is_variable);
     else
       return FALSE;
+  else if (isNull(expression))
+    return FALSE;
   else if (is_compound_expression(expression))
     return depends_on(CAR(expression), variable, sigma, is_variable)
       || depends_on(CDR(expression), variable, sigma, is_variable);
