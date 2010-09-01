@@ -47,7 +47,6 @@ SEXP extend_if_possible(const SEXP variable, const SEXP value, const SEXP sigma,
 
 Rboolean depends_on(const SEXP expression, const SEXP variable, const SEXP sigma,
                     Rboolean (*const is_variable)(SEXP)) {
-  Rprintf("in depends on\n"); // TODO
   if (is_variable(expression))
     if (is_equal(variable, expression))
       return TRUE;
