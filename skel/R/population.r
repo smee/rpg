@@ -82,7 +82,7 @@ plotPopulationFitnessComplexity <- function(pop, fitnessFunction,
                                             showIndices = TRUE,
                                             showParetoFront = TRUE,
                                             hideOutliers = 0, ...) {
-  popFit <- as.vector(lapply(pop, fitnessFunction), mode = "numeric")
+  popFit <- as.vector(lapply(pop, fitnessFunction), mode = "numeric")[1] # only the first fitness component
   popCpx <- as.vector(lapply(pop, complexityFunction), mode = "numeric")
   popFitLim <-
     if (hideOutliers)

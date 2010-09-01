@@ -6,47 +6,49 @@
 #include "list_utils.h"
 
 
-SEXP extend_if_possible(const SEXP variable, const SEXP value, const SEXP sigma, Rboolean (*const is_variable)(SEXP));
-Rboolean depends_on(const SEXP expression, const SEXP variable, const SEXP sigma, Rboolean (*const is_variable)(SEXP));
+static SEXP extend_if_possible(const SEXP variable, const SEXP value, const SEXP sigma,
+                               Rboolean (*const is_variable)(SEXP), const Rboolean contains_check);
+static Rboolean depends_on(const SEXP expression, const SEXP variable, const SEXP sigma,
+                           Rboolean (*const is_variable)(SEXP));
 static R_INLINE Rboolean is_equal(const SEXP a, const SEXP b);
 static R_INLINE Rboolean is_na_logical(const SEXP a);
 static R_INLINE Rboolean is_compound_expression(const SEXP a);
 
 SEXP unify_match(const SEXP a, const SEXP b, const SEXP sigma,
-                 Rboolean (*const is_variable)(SEXP)) {
+                 Rboolean (*const is_variable)(SEXP), const Rboolean contains_check) {
   if (is_na_logical(sigma))
     return sigma; // pass the fail on
   else if (is_equal(a, b))
     return sigma;
   else if (is_variable(a))
-    return extend_if_possible(a, b, sigma, is_variable);
+    return extend_if_possible(a, b, sigma, is_variable, contains_check);
   else if (is_variable(b))
-    return extend_if_possible(b, a, sigma, is_variable);
+    return extend_if_possible(b, a, sigma, is_variable, contains_check);
   else if (is_compound_expression(a) && is_compound_expression(b))
     return unify_match(CDR(a), CDR(b),
-                       unify_match(CAR(a), CAR(b), sigma, is_variable),
-                       is_variable);
+                       unify_match(CAR(a), CAR(b), sigma, is_variable, contains_check),
+                       is_variable, contains_check);
   else // otherwise...
     return ScalarLogical(NA_LOGICAL); // fail
 }
 
-SEXP extend_if_possible(const SEXP variable, const SEXP value, const SEXP sigma,
-                        Rboolean (*const is_variable)(SEXP)) {
+static SEXP extend_if_possible(const SEXP variable, const SEXP value, const SEXP sigma,
+                               Rboolean (*const is_variable)(SEXP), const Rboolean contains_check) {
   if (contains_alist(variable, sigma))
-    return unify_match(get_alist(variable, sigma), value, sigma, is_variable);
+    return unify_match(get_alist(variable, sigma), value, sigma, is_variable, contains_check);
   else if (is_variable(value))
     if (contains_alist(value, sigma))
-      return unify_match(variable, get_alist(value, sigma), sigma, is_variable);
+      return unify_match(variable, get_alist(value, sigma), sigma, is_variable, contains_check);
     else
       return add_alist(variable, value, sigma);
-  else if (depends_on(value, variable, sigma, is_variable)) // "contains-check"
+  else if (contains_check && depends_on(value, variable, sigma, is_variable)) // "contains-check"
     return ScalarLogical(NA_LOGICAL); // fail
   else
     return add_alist(variable, value, sigma);
 }
 
-Rboolean depends_on(const SEXP expression, const SEXP variable, const SEXP sigma,
-                    Rboolean (*const is_variable)(SEXP)) {
+static Rboolean depends_on(const SEXP expression, const SEXP variable, const SEXP sigma,
+                           Rboolean (*const is_variable)(SEXP)) {
   if (is_variable(expression))
     if (is_equal(variable, expression))
       return TRUE;

@@ -23,6 +23,9 @@
 #define CHECK_ARG_IS_INTEGER(A)                 \
   if (!isInteger(A))                                \
     error("Argument '" #A "' is not an integer.");
+#define CHECK_ARG_IS_LOGICAL(A)                 \
+  if (!isLogical(A))                                \
+    error("Argument '" #A "' is not a logical.");
 
 
 SEXP test_hello_world(const SEXP arg) {
@@ -56,8 +59,9 @@ Rboolean test_is_variable(const SEXP s) {
   return isSymbol(s) && findVar(s, R_GlobalEnv) == R_UnboundValue;
 }
 
-SEXP test_unify_match(const SEXP a, const SEXP b) {
-  return unify_match(a, b, make_alist(), test_is_variable);
+SEXP test_unify_match(const SEXP a, const SEXP b, const SEXP contains_check) {
+  CHECK_ARG_IS_LOGICAL(contains_check);
+  return unify_match(a, b, make_alist(), test_is_variable, asLogical(contains_check));
 }
 
 SEXP make_formals(const SEXP formal_names) {

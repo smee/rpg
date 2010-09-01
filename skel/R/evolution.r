@@ -17,16 +17,17 @@ NA
 ##' must be supplied with an objective function that assigns a numerical fitness
 ##' value to an R function. Fitness values are minimized, i.e. smaller values mean
 ##' higher/better fitness. If a multi-objective \code{selectionFunction} is
-##' used, \code{fitnessFunction} must be a list of objective functions.
-##' The result of the genetic programming run is a genetic programming model
-##' containing a GP population of R functions.
+##' used, \code{fitnessFunction} return a numerical vector of fitness values.
+##' The result of the genetic programming run is a genetic programming result object
+##' containing a GP population of R functions. \code{summary.geneticProgrammingResult}
+##' can be used to create summary views of a GP result object.
 ##'
 ##' @param fitnessFunction In case of a single-objective selection function,
 ##'   \code{fitnessFunction} must be a single function that assigns a
 ##'   numerical fitness value to a GP individual represented as a R function.
 ##'   Smaller fitness values mean higher/better fitness. If a multi-objective
-##'   selection function is used, \code{fitnessFunction} must be a list of
-##'   of objective functions.
+##'   selection function is used, \code{fitnessFunction} must return a numerical
+##'   vector of fitness values.
 ##' @param stopCondition The stop condition for the evolution main loop. See
 ##'   \link{makeStepsStopCondition} for details.
 ##' @param population The GP population to start the run with. If this parameter
@@ -42,12 +43,13 @@ NA
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param progressMonitor A function of signature
-##'   \code{function(population, stepNumber, timeElapsed)} to be called
+##'   \code{function(population, stepNumber, evaluationNumber, timeElapsed)} to be called
 ##'   with each evolution step.
 ##' @param verbose Whether to print progress messages.
-##' @return A genetic programming model that contains a GP population in the
+##' @return A genetic programming result object that contains a GP population in the
 ##'   field \code{population}, as well as metadata describing the run parameters.
 ##'
+##' @seealso \code{\link{summary.geneticProgrammingResult}}, \code{\link{symbolicRegression}}
 ##' @export
 geneticProgramming <- function(fitnessFunction,
                                stopCondition = makeTimeStopCondition(5),
@@ -68,11 +70,12 @@ geneticProgramming <- function(fitnessFunction,
   
   progmon <-
     if (is.null(progressMonitor) && verbose) {
-      function(pop, stepNumber, timeElapsed)
+      function(pop, evaluationNumber, stepNumber, timeElapsed)
         if (stepNumber %% 100 == 0)
-          logmsg("evolution step %i, time elapsed: %f seconds", stepNumber, round(timeElapsed, 2))
+          logmsg("evolution step %i, fitness evaluations: %i, time elapsed: %f seconds",
+                 stepNumber, evaluationNumber, round(timeElapsed, 2))
     } else if (is.null(progressMonitor)) {
-      function(pop, stepNumber, timeElapsed) NULL # verbose == FALSE, do not show progress
+      function(pop, stepNumber, evaluationNumber, timeElapsed) NULL # verbose == FALSE, do not show progress
     } else
       progressMonitor
   mutatefunc <-
@@ -88,6 +91,7 @@ geneticProgramming <- function(fitnessFunction,
     else
       population
   stepNumber <- 1
+  evaluationNumber <- 0
   startTime <- proc.time()["elapsed"]
   timeElapsed <- 0
   
@@ -107,10 +111,11 @@ geneticProgramming <- function(fitnessFunction,
     
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
-    progmon(pop = pop, stepNumber = stepNumber, timeElapsed = timeElapsed)
+    evaluationNumber <- selA$numberOfFitnessEvaluations + selB$numberOfFitnessEvaluations + evaluationNumber
+    progmon(pop = pop, stepNumber = stepNumber, evaluationNumber = evaluationNumber, timeElapsed = timeElapsed)
   }
-  logmsg("Genetic programming evolution run FINISHED after %i evolution steps and %g seconds.",
-         stepNumber, timeElapsed)
+  logmsg("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %g seconds.",
+         stepNumber, evaluationNumber, timeElapsed)
   
   structure(list(fitnessFunction = fitnessFunction,
                  stopCondition = stopCondition,
@@ -118,7 +123,47 @@ geneticProgramming <- function(fitnessFunction,
                  functionSet = functionSet,
                  constantSet = constantSet,
                  crossoverFunction = crossoverFunction,
-                 mutationFunction = mutatefunc), class = "geneticProgrammingModel")
+                 mutationFunction = mutatefunc), class = "geneticProgrammingResult")
+}
+
+##' Summary reports of genetic programming run result objects
+##'
+##' Create a summary report of a genetic programming result object as returned by
+##' \code{\link{geneticProgramming}} or \code{\link{symbolicRegression}}, for
+##' example.
+##'
+##' @param object The genetic programming run result object to report on.
+##' @param reportFitness Whether to report the fitness values of each individual
+##'   in the result population. Note that calculating fitness values may take
+##'   a long time. Defaults to \code{TRUE}.
+##' @param orderByFitness Whether the report of the result population should be
+##'   ordered by fitness. This does not have an effect if \code{reportFitness}
+##'   is set to \code{FALSE}. Defaults to \code{TRUE}.
+##' @param ... Ignored in this summary function.
+##'
+##' @seealso \code{\link{geneticProgramming}}, \code{\link{symbolicRegression}}
+##' @export
+summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, orderByFitness = TRUE, ...) {
+  individualFunctions <- object$population
+  individualFunctionsAsStrings <- Map(function(f) Reduce(function(a, b) paste(a, b, sep=""),
+                                                         deparse(f)),
+                                      individualFunctions)
+  report <- cbind(1:length(individualFunctions), individualFunctions, individualFunctionsAsStrings)
+  colnames(report) <- c("Individual Index", "Individual Function", "(as String)")
+  if (reportFitness) {
+    fitnessList <- lapply(individualFunctions, object$fitnessFunction)
+    fitnessesLength <- length(fitnessList)
+    fitnessDimemsion <- length(fitnessList[[1]])
+    flatFitnesses <- Reduce(c, fitnessList)
+    fitnessMatrix <- matrix(as.list(flatFitnesses), ncol = fitnessDimemsion)
+    if (is.null(colnames(fitnessMatrix))) colnames(fitnessMatrix) <- paste("Fitness", 1:fitnessDimemsion)
+    report <- cbind(report, fitnessMatrix)
+    if (orderByFitness) {
+      rawFitnessMatrix <- matrix(flatFitnesses, ncol = fitnessDimemsion)
+      report <- report[do.call("order", split(rawFitnessMatrix, col(rawFitnessMatrix))),]
+    }
+  }
+  report
 }
 
 ##' Symbolic regression via untyped genetic programming
@@ -153,7 +198,7 @@ geneticProgramming <- function(fitnessFunction,
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param progressMonitor A function of signature
-##'   \code{function(population, stepNumber, timeElapsed)} to be called
+##'   \code{function(population, stepNumber, evaluationNumber, timeElapsed)} to be called
 ##'   with each evolution step.
 ##' @param verbose Whether to print progress messages.
 ##' @return An symbolic regression model that contains an untyped GP population.
@@ -190,7 +235,7 @@ symbolicRegression <- function(formula, data,
                                 progressMonitor, verbose)
   
   structure(append(gpModel, list(formula = formula(mf))),
-                   class = c("symbolicRegressionModel", "geneticProgrammingModel"))
+                   class = c("symbolicRegressionModel", "geneticProgrammingResult"))
 }
 
 ##' Predict method for symbolic regression models
@@ -245,17 +290,21 @@ predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", det
 ##' Evolution stop conditions
 ##'
 ##' Evolution stop conditions are predicates (functions that return a single logical value)
-##' of the signature \code{function(population, stepNumber, timeElapsed)}. They are used
-##' to decide when to finish a GP evolution run. Stop conditions must be members of the
-##' S3 class \code{c("stopCondition", "function")}. They can be combined using the generic
-##' \emph{and} (\code{|}), \emph{or} (\code{|}) and \emph{not} (\code{!}) functions.
+##' of the signature \code{function(population, stepNumber, evaluationNumber, timeElapsed)}.
+##' They are used to decide when to finish a GP evolution run. Stop conditions must be members
+##' of the S3 class \code{c("stopCondition", "function")}. They can be combined using the
+##' generic \emph{and} (\code{|}), \emph{or} (\code{|}) and \emph{not} (\code{!}) functions.
 ##'
 ##' \code{makeStepsStopCondition} creates a stop condition that is fulfilled if the number
 ##' of evolution steps exceeds a given limit.
+##' \code{makeEvaluationsStopCondition} creates a stop condition that is fulfilled if the
+##' number of fitness function evaluations exceeds a given limit.
 ##' \code{makeTimeStopCondition} creates a stop condition that is fulfilled if the run time
 ##' (in seconds) of an evolution run exceeds a given limit.
 ##'
 ##' @param stepLimit The maximum number of evolution steps for \code{makeStepsStopCondition}.
+##' @param evaluationLimit The maximum number of fitness function evaluations for
+##'   \code{makeEvaluationsStopCondition}
 ##' @param timeLimit The maximum runtime in seconds for \code{makeTimeStopCondition}.
 ##' @param e1 A stop condition.
 ##' @param e2 A stop condition.
@@ -263,7 +312,15 @@ predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", det
 ##' @rdname evolutionStopConditions
 ##' @export
 makeStepsStopCondition <- function(stepLimit) {
-  stopCondition <- function(pop, stepNumber, timeElapsed) stepNumber >= stepLimit
+  stopCondition <- function(pop, stepNumber, evaluationNumber, timeElapsed) stepNumber >= stepLimit
+  class(stopCondition) <- c("stopCondition", "function")
+  stopCondition
+}
+
+##' @rdname evolutionStopConditions
+##' @export
+makeEvaluationsStopCondition <- function(evaluationLimit) {
+  stopCondition <- function(pop, stepNumber, evaluationNumber, timeElapsed) evaluationNumber >= evaluationLimit
   class(stopCondition) <- c("stopCondition", "function")
   stopCondition
 }
@@ -271,7 +328,7 @@ makeStepsStopCondition <- function(stepLimit) {
 ##' @rdname evolutionStopConditions
 ##' @export
 makeTimeStopCondition <- function(timeLimit) {
-  stopCondition <- function(pop, stepNumber, timeElapsed) timeElapsed >= timeLimit
+  stopCondition <- function(pop, stepNumber, evaluationNumber, timeElapsed) timeElapsed >= timeLimit
   class(stopCondition) <- c("stopCondition", "function")
   stopCondition
 }
@@ -279,8 +336,8 @@ makeTimeStopCondition <- function(timeLimit) {
 ##' @rdname evolutionStopConditions
 ##' @export `&.stopCondition`
 `&.stopCondition` <- function(e1, e2) {
-  stopCondition <- function(pop, stepNumber, timeElapsed)
-    e1(pop, stepNumber, timeElapsed) && e2(pop, stepNumber, timeElapsed)
+  stopCondition <- function(pop, stepNumber, evaluationNumber, timeElapsed)
+    e1(pop, stepNumber, evaluationNumber, timeElapsed) && e2(pop, stepNumber, evaluationNumber, timeElapsed)
   class(stopCondition) <- c("stopCondition", "function")
   stopCondition
 }
@@ -288,8 +345,8 @@ makeTimeStopCondition <- function(timeLimit) {
 ##' @rdname evolutionStopConditions
 ##' @export `|.stopCondition`
 `|.stopCondition` <- function(e1, e2) {
-  stopCondition <- function(pop, stepNumber, timeElapsed)
-    e1(pop, stepNumber, timeElapsed) || e2(pop, stepNumber, timeElapsed)
+  stopCondition <- function(pop, stepNumber, evaluationNumber, timeElapsed)
+    e1(pop, stepNumber, evaluationNumber, timeElapsed) || e2(pop, stepNumber, evaluationNumber, timeElapsed)
   class(stopCondition) <- c("stopCondition", "function")
   stopCondition
 }
@@ -297,8 +354,8 @@ makeTimeStopCondition <- function(timeLimit) {
 ##' @rdname evolutionStopConditions
 ##' @export `!.stopCondition`
 `!.stopCondition` <- function(e1) {
-  stopCondition <- function(pop, stepNumber, timeElapsed)
-    !e1(pop, stepNumber, timeElapsed)
+  stopCondition <- function(pop, stepNumber, evaluationNumber, timeElapsed)
+    !e1(pop, stepNumber, evaluationNumber, timeElapsed)
   class(stopCondition) <- c("stopCondition", "function")
   stopCondition
 }
