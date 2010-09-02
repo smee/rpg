@@ -9,6 +9,7 @@
 ##
 
 ##' @include search_space.r
+##' @include time_utils.r
 NA
 
 ##' Genetic programming run
@@ -72,8 +73,8 @@ geneticProgramming <- function(fitnessFunction,
     if (is.null(progressMonitor) && verbose) {
       function(pop, evaluationNumber, stepNumber, timeElapsed)
         if (stepNumber %% 100 == 0)
-          logmsg("evolution step %i, fitness evaluations: %i, time elapsed: %f seconds",
-                 stepNumber, evaluationNumber, round(timeElapsed, 2))
+          logmsg("evolution step %i, fitness evaluations: %i, time elapsed: %s",
+                 stepNumber, evaluationNumber, formatSeconds(timeElapsed))
     } else if (is.null(progressMonitor)) {
       function(pop, stepNumber, evaluationNumber, timeElapsed) NULL # verbose == FALSE, do not show progress
     } else
@@ -114,8 +115,8 @@ geneticProgramming <- function(fitnessFunction,
     evaluationNumber <- selA$numberOfFitnessEvaluations + selB$numberOfFitnessEvaluations + evaluationNumber
     progmon(pop = pop, stepNumber = stepNumber, evaluationNumber = evaluationNumber, timeElapsed = timeElapsed)
   }
-  logmsg("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %g seconds.",
-         stepNumber, evaluationNumber, timeElapsed)
+  logmsg("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
+         stepNumber, evaluationNumber, formatSeconds(timeElapsed))
   
   structure(list(fitnessFunction = fitnessFunction,
                  stopCondition = stopCondition,
@@ -160,7 +161,7 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
     report <- cbind(report, fitnessMatrix)
     if (orderByFitness) {
       rawFitnessMatrix <- matrix(flatFitnesses, ncol = fitnessDimemsion)
-      report <- report[do.call("order", split(rawFitnessMatrix, col(rawFitnessMatrix))),]
+      report <- report[do.call(order, split(rawFitnessMatrix, col(rawFitnessMatrix))),]
     }
   }
   report
