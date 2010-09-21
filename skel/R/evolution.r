@@ -70,11 +70,14 @@ geneticProgramming <- function(fitnessFunction,
   }
   
   progmon <-
-    if (is.null(progressMonitor) && verbose) {
-      function(pop, evaluationNumber, stepNumber, timeElapsed)
+    if (verbose) {
+      function(pop, evaluationNumber, stepNumber, timeElapsed) {
+        if (!is.null(progressMonitor))
+          progressMonitor(pop, evaluationNumber, stepNumber, timeElapsed)
         if (stepNumber %% 100 == 0)
           logmsg("evolution step %i, fitness evaluations: %i, time elapsed: %s",
                  stepNumber, evaluationNumber, formatSeconds(timeElapsed))
+      }
     } else if (is.null(progressMonitor)) {
       function(pop, stepNumber, evaluationNumber, timeElapsed) NULL # verbose == FALSE, do not show progress
     } else
@@ -120,6 +123,9 @@ geneticProgramming <- function(fitnessFunction,
   
   structure(list(fitnessFunction = fitnessFunction,
                  stopCondition = stopCondition,
+                 timeElapsed = timeElapsed,
+                 stepNumber = stepNumber,
+                 evaluationNumber = evaluationNumber,
                  population = pop,
                  functionSet = functionSet,
                  constantSet = constantSet,
