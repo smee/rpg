@@ -24,6 +24,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                                          passStopCondition = makeTimeStopCondition(5),
                                          numberOfNiches = 2,
                                          clusterFunction = groupListConsecutive,
+                                         joinFunction = function(niches) Reduce(c, niches),
                                          population = NULL,
                                          populationSize = 500,
                                          functionSet = mathFunctionSet,
@@ -67,31 +68,52 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
       makePopulation(populationSize, functionSet, inputVariables, constantSet)
     else
       population
+  popClass <- class(pop)
   stepNumber <- 1
   evaluationNumber <- 0
   startTime <- proc.time()["elapsed"]
   timeElapsed <- 0
+  clusterLibrary(rgp) # load RGP library on cluster
 
   ## Execute multi-niche GP run...
   niches <- clusterFunction(pop, numberOfNiches) # cluster population into niches
-  for (i in 1:numberOfNiches) class(niches[[i]]) <- class(pop) # niches should be of class "gp population"
-
+  for (i in 1:numberOfNiches) class(niches[[i]]) <- popClass # niches should be of class "gp population"
   # TODO ...
-  passResults <- clusterApply(niches,
-                              function(niche) geneticProgramming(fitnessFunction,
-                                                                 stopCondition = passStopCondition,
-                                                                 population = niche,
-                                                                 functionSet = functionSet,
-                                                                 inputVariables = inputVariables,
-                                                                 constantSet = constantSet,
-                                                                 selectionFunction = selectionFunction,
-                                                                 crossoverFunction = crossoverFunction,
-                                                                 mutationFunction = mutatefunc,
-                                                                 progressMonitor = function(pop, stepNumber, evaluationNumber, timeElapsed) NULL,
-                                                                 verbose = FALSE))
-  timeElapsed <- proc.time()["elapsed"] - startTime
-  stepNumber <- stepNumber + Reduce(`+`, Map(function(passResult) passResult$stepNumber, passResults))
-  evaluationNumber <- evaluationNumber + Reduce(`+`, Map(function(passResult) passResult$evaluationNumber, passResults))
+  logmsg("STARTING multi-niche genetic programming evolution run...")
+  while (!runStopCondition(pop = pop, stepNumber = stepNumber, timeElapsed = timeElapsed)) {
+    logmsg("multi-niche pass with %i niches, evolution steps %i, fitness evaluations: %i, time elapsed: %s",
+           numberOfNiches, stepNumber, evaluationNumber, formatSeconds(timeElapsed))
+    passResults <- clusterApply(niches,
+                                function(niche) geneticProgramming(fitnessFunction,
+                                                                   stopCondition = passStopCondition,
+                                                                   population = niche,
+                                                                   functionSet = functionSet,
+                                                                   inputVariables = inputVariables,
+                                                                   constantSet = constantSet,
+                                                                   selectionFunction = selectionFunction,
+                                                                   crossoverFunction = crossoverFunction,
+                                                                   mutationFunction = mutatefunc,
+                                                                   progressMonitor = function(pop, stepNumber, evaluationNumber, timeElapsed) NULL,
+                                                                   verbose = FALSE))
+    timeElapsed <- proc.time()["elapsed"] - startTime
+    stepNumber <- stepNumber + Reduce(`+`, Map(function(passResult) passResult$stepNumber, passResults))
+    evaluationNumber <- evaluationNumber + Reduce(`+`, Map(function(passResult) passResult$evaluationNumber, passResults))
+    passResultNiches <- Map(function(passResult) passResult$population, passResults)
+    pop <- joinFunction(passResultNiches) # join niches again after each pass
+    class(pop) <- popClass # pop should be of class "gp population"
+  }
+  logmsg("Multi-niche genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
+         stepNumber, evaluationNumber, formatSeconds(timeElapsed))
 
-  passResults
+  ## Return GP run result...
+  structure(list(fitnessFunction = fitnessFunction,
+                 stopCondition = runStopCondition,
+                 timeElapsed = timeElapsed,
+                 stepNumber = stepNumber,
+                 evaluationNumber = evaluationNumber,
+                 population = pop,
+                 functionSet = functionSet,
+                 constantSet = constantSet,
+                 crossoverFunction = crossoverFunction,
+                 mutationFunction = mutatefunc), class = "geneticProgrammingResult")
 }

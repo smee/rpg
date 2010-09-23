@@ -40,7 +40,8 @@ NA
 ##' @param inputVariables The input variable set.
 ##' @param constantSet The set of constant factory functions.
 ##' @param selectionFunction The selection function to use. Defaults to
-##'   tournament selection. See \link{makeTournamentSelection} for details.
+##'   tournament selection with tournament size \code{populationSize / 2}. See
+##'   \link{makeTournamentSelection} for details.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param progressMonitor A function of signature
@@ -55,11 +56,11 @@ NA
 geneticProgramming <- function(fitnessFunction,
                                stopCondition = makeTimeStopCondition(5),
                                population = NULL,
-                               populationSize = 500,
+                               populationSize = 100,
                                functionSet = mathFunctionSet,
                                inputVariables = inputVariableSet("x"),
                                constantSet = numericConstantSet,
-                               selectionFunction = makeTournamentSelection(),
+                               selectionFunction = makeTournamentSelection(tournamentSize = ceiling(populationSize / 2)),
                                crossoverFunction = crossover,
                                mutationFunction = NULL,
                                progressMonitor = NULL,
@@ -99,7 +100,7 @@ geneticProgramming <- function(fitnessFunction,
   timeElapsed <- 0
 
   ## Execute GP run...
-  logmsg("STARTING genetic programming evolution run...")
+  logmsg("STARTING standard genetic programming evolution run...")
   while (!stopCondition(pop = pop, stepNumber = stepNumber, timeElapsed = timeElapsed)) {
     # Select two sets of individuals and divide each into winners and losers...
     selA <- selectionFunction(pop, fitnessFunction); selB <- selectionFunction(pop, fitnessFunction)
@@ -118,7 +119,7 @@ geneticProgramming <- function(fitnessFunction,
     evaluationNumber <- selA$numberOfFitnessEvaluations + selB$numberOfFitnessEvaluations + evaluationNumber
     progmon(pop = pop, stepNumber = stepNumber, evaluationNumber = evaluationNumber, timeElapsed = timeElapsed)
   }
-  logmsg("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
+  logmsg("Standard genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
          stepNumber, evaluationNumber, formatSeconds(timeElapsed))
 
   ## Return GP run result...
@@ -202,7 +203,8 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
 ##' @param functionSet The function set.
 ##' @param constantSet The set of constant factory functions.
 ##' @param selectionFunction The selection function to use. Defaults to
-##'   tournament selection. See \link{makeTournamentSelection} for details.
+##'   tournament selection with tournament size \code{populationSize / 2}. See
+##'   \link{makeTournamentSelection} for details.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param progressMonitor A function of signature
@@ -216,12 +218,12 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
 symbolicRegression <- function(formula, data,
                                stopCondition = makeStepsStopCondition(1000),
                                population = NULL,
-                               populationSize = 500,
+                               populationSize = 100,
                                individualSizeLimit = 64,
                                penalizeGenotypeConstantIndividuals = FALSE,
                                functionSet = mathFunctionSet,
                                constantSet = numericConstantSet,
-                               selectionFunction = makeTournamentSelection(),
+                               selectionFunction = makeTournamentSelection(tournamentSize = ceiling(populationSize / 2)),
                                crossoverFunction = crossover,
                                mutationFunction = NULL,
                                progressMonitor = NULL,

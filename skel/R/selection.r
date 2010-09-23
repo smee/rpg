@@ -58,7 +58,8 @@ makeTournamentSelection <- function(tournamentSize = 10,
                                     tournamentDeterminism = 1.0)
   function(population, fitnessFunction) {
     poolIdxs <- sample(length(population), tournamentSize)
-    poolFitness <- sapply(population[poolIdxs], fitnessFunction)[1] # only the first fitness component
+    poolFitness <- sapply(population[poolIdxs], fitnessFunction)
+    poolFitness <- sapply(poolFitness, function(fitness) fitness[1]) # only use the first fitness component
     idxFitTable <- cbind(poolIdxs, poolFitness)
     colnames(idxFitTable) <- c("index", "fitness")
     # Sort by (single-objective) fitness...
