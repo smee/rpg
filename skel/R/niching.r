@@ -36,9 +36,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                                          progressMonitor = NULL,
                                          verbose = TRUE,
                                          clusterApply = sfClusterApplyLB,
-                                         clusterLibrary = sfLibrary,
-                                         clusterExport = sfExport,
-                                         clusterRemove = sfRemove) {
+                                         clusterLibrary = sfLibrary) {
   ## Provide default parameters and initialize GP run...
   logmsg <- function(msg, ...) {
     if (verbose)
@@ -78,7 +76,6 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
   ## Execute multi-niche GP run...
   niches <- clusterFunction(pop, numberOfNiches) # cluster population into niches
   for (i in 1:numberOfNiches) class(niches[[i]]) <- popClass # niches should be of class "gp population"
-  # TODO ...
   logmsg("STARTING multi-niche genetic programming evolution run...")
   while (!runStopCondition(pop = pop, stepNumber = stepNumber, timeElapsed = timeElapsed)) {
     logmsg("multi-niche pass with %i niches, evolution steps %i, fitness evaluations: %i, time elapsed: %s",
