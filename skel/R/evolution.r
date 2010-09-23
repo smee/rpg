@@ -12,9 +12,9 @@
 ##' @include time_utils.r
 NA
 
-##' Genetic programming run
+##' Standard genetic programming
 ##'
-##' Perform a genetic programming run. The required argument \code{fitnessFunction}
+##' Perform a standard genetic programming run. The required argument \code{fitnessFunction}
 ##' must be supplied with an objective function that assigns a numerical fitness
 ##' value to an R function. Fitness values are minimized, i.e. smaller values mean
 ##' higher/better fitness. If a multi-objective \code{selectionFunction} is
@@ -64,11 +64,11 @@ geneticProgramming <- function(fitnessFunction,
                                mutationFunction = NULL,
                                progressMonitor = NULL,
                                verbose = TRUE) {
+  ## Provide default parameters and initialize GP run...
   logmsg <- function(msg, ...) {
     if (verbose)
       message(sprintf(msg, ...))
   }
-  
   progmon <-
     if (verbose) {
       function(pop, evaluationNumber, stepNumber, timeElapsed) {
@@ -88,7 +88,6 @@ geneticProgramming <- function(fitnessFunction,
                                   functionSet, inputVariables, constantSet, mutatesubtreeprob = 0.01)
     } else
       mutationFunction
-  
   pop <-
     if (is.null(population))
       makePopulation(populationSize, functionSet, inputVariables, constantSet)
@@ -98,7 +97,8 @@ geneticProgramming <- function(fitnessFunction,
   evaluationNumber <- 0
   startTime <- proc.time()["elapsed"]
   timeElapsed <- 0
-  
+
+  ## Execute GP run...
   logmsg("STARTING genetic programming evolution run...")
   while (!stopCondition(pop = pop, stepNumber = stepNumber, timeElapsed = timeElapsed)) {
     # Select two sets of individuals and divide each into winners and losers...
@@ -120,7 +120,8 @@ geneticProgramming <- function(fitnessFunction,
   }
   logmsg("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
          stepNumber, evaluationNumber, formatSeconds(timeElapsed))
-  
+
+  ## Return GP run result...
   structure(list(fitnessFunction = fitnessFunction,
                  stopCondition = stopCondition,
                  timeElapsed = timeElapsed,
