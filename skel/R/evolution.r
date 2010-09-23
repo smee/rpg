@@ -40,8 +40,7 @@ NA
 ##' @param inputVariables The input variable set.
 ##' @param constantSet The set of constant factory functions.
 ##' @param selectionFunction The selection function to use. Defaults to
-##'   tournament selection with tournament size \code{0.1 * populationSize}. See
-##'   \link{makeTournamentSelection} for details.
+##'   tournament selection. See \link{makeTournamentSelection} for details.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param progressMonitor A function of signature
@@ -60,7 +59,7 @@ geneticProgramming <- function(fitnessFunction,
                                functionSet = mathFunctionSet,
                                inputVariables = inputVariableSet("x"),
                                constantSet = numericConstantSet,
-                               selectionFunction = makeTournamentSelection(tournamentSize = ceiling(0.1 * populationSize)),
+                               selectionFunction = makeTournamentSelection(),
                                crossoverFunction = crossover,
                                mutationFunction = NULL,
                                progressMonitor = NULL,
@@ -203,8 +202,7 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
 ##' @param functionSet The function set.
 ##' @param constantSet The set of constant factory functions.
 ##' @param selectionFunction The selection function to use. Defaults to
-##'   tournament selection with tournament size \code{0.1 * populationSize}. See
-##'   \link{makeTournamentSelection} for details.
+##'   tournament selection. See \link{makeTournamentSelection} for details.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param progressMonitor A function of signature
@@ -223,7 +221,7 @@ symbolicRegression <- function(formula, data,
                                penalizeGenotypeConstantIndividuals = FALSE,
                                functionSet = mathFunctionSet,
                                constantSet = numericConstantSet,
-                               selectionFunction = makeTournamentSelection(tournamentSize = ceiling(0.1 * populationSize)),
+                               selectionFunction = makeTournamentSelection(),
                                crossoverFunction = crossover,
                                mutationFunction = NULL,
                                progressMonitor = NULL,
