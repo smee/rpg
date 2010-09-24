@@ -100,7 +100,8 @@ geneticProgramming <- function(fitnessFunction,
 
   ## Execute GP run...
   logmsg("STARTING standard genetic programming evolution run...")
-  while (!stopCondition(pop = pop, stepNumber = stepNumber, timeElapsed = timeElapsed)) {
+  while (!stopCondition(pop = pop, stepNumber = stepNumber, evaluationNumber = evaluationNumber,
+                        timeElapsed = timeElapsed)) {
     # Select two sets of individuals and divide each into winners and losers...
     selA <- selectionFunction(pop, fitnessFunction); selB <- selectionFunction(pop, fitnessFunction)
     winnersA <- selA$selected[, 1]; winnersB <- selB$selected[, 1]

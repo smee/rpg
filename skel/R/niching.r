@@ -20,7 +20,7 @@ NA
 ##' @seealso \code{\link{geneticProgramming}}, \code{\link{summary.geneticProgrammingResult}}, \code{\link{symbolicRegression}}
 ##' @export
 multiNicheGeneticProgramming <- function(fitnessFunction,
-                                         runStopCondition = makeTimeStopCondition(25),
+                                         stopCondition = makeTimeStopCondition(25),
                                          passStopCondition = makeTimeStopCondition(5),
                                          numberOfNiches = 2,
                                          clusterFunction = groupListConsecutive,
@@ -77,7 +77,8 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
   niches <- clusterFunction(pop, numberOfNiches) # cluster population into niches
   for (i in 1:numberOfNiches) class(niches[[i]]) <- popClass # niches should be of class "gp population"
   logmsg("STARTING multi-niche genetic programming evolution run...")
-  while (!runStopCondition(pop = pop, stepNumber = stepNumber, timeElapsed = timeElapsed)) {
+  while (!stopCondition(pop = pop, stepNumber = stepNumber, evaluationNumber = evaluationNumber,
+                        timeElapsed = timeElapsed)) {
     logmsg("multi-niche pass with %i niches, evolution steps %i, fitness evaluations: %i, time elapsed: %s",
            numberOfNiches, stepNumber, evaluationNumber, formatSeconds(timeElapsed))
     passResults <- clusterApply(niches,
@@ -104,7 +105,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
 
   ## Return GP run result...
   structure(list(fitnessFunction = fitnessFunction,
-                 stopCondition = runStopCondition,
+                 stopCondition = stopCondition,
                  timeElapsed = timeElapsed,
                  stepNumber = stepNumber,
                  evaluationNumber = evaluationNumber,
