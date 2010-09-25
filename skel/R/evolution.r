@@ -175,13 +175,13 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
   report
 }
 
-##' Symbolic regression via untyped genetic programming
+##' Symbolic regression via untyped standard genetic programming
 ##'
 ##' Perform symbolic regression via untyped genetic programming. The regression
-##' task is specified as a \code{\link{formula}}. Only the simple formulas
-##' without interactions are supported at this time. The result of the symbolic
-##' regression run is a symbolic regression model containing an untyped GP
-##' population of model functions.
+##' task is specified as a \code{\link{formula}}. Only simple formulas without
+##' interactions are supported. The result of the symbolic regression run is a
+##' symbolic regression model containing an untyped GP population of model
+##' functions.
 ##'
 ##' @param formula A \code{\link{formula}} describing the regression task. Only
 ##'   simple formulas of the form \code{response ~ variable1 + ... + variableN}

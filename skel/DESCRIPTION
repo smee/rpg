@@ -7,4 +7,4 @@ Maintainer: Oliver Flasch <oliver.flasch@fh-koeln.de>
 License: GPL-2
 URL: http://rsymbolic.org/projects/show/rgp
 LazyData: yes
-Depends: R (>= 2.10.0), methods, emoa, rrules (>= 0.1-0), snowfall (>= 1.84)
+Depends: R (>= 2.11.0), methods, emoa, rrules (>= 0.1-0), snowfall (>= 1.84)

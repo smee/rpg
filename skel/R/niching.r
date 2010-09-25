@@ -13,9 +13,64 @@ NA
 
 ##' Cluster-based multi-niche genetic programming
 ##'
-##' TODO one run, multiple parallel passes
+##' Perform a multi-niche genetic programming run. The required argument
+##' \code{fitnessFunction} must be supplied with an objective function that assigns
+##' a numerical fitness value to an R function. Fitness values are minimized, i.e.
+##' smaller values mean higher/better fitness. If a multi-objective
+##' \code{selectionFunction} is used, \code{fitnessFunction} return a numerical
+##' vector of fitness values.
+##' In a multi-niche genetic programming run, the initial population is clustered
+##' via a \code{clusterFunction} into \code{numberOfNiches} niches. In each niche,
+##' a genetic programming run is executed with \code{passStopCondition} as stop
+##' condition. These runs are referred to as a parallel pass. After each parallel
+##' pass, the niches are joined again using a \code{joinFunction} into a population.
+##' From here, the process starts again with a clustering step, until the global
+##' \code{stopCondition} is met.
+##' The result of the multi-niche genetic programming run is a genetic programming
+##' result object containing a GP population of R functions.
+##' \code{summary.geneticProgrammingResult} can be used to create summary views of a
+##' GP result object.
 ##'
-##' @param fitnessFunction TODO
+##' @param fitnessFunction In case of a single-objective selection function,
+##'   \code{fitnessFunction} must be a single function that assigns a
+##'   numerical fitness value to a GP individual represented as a R function.
+##'   Smaller fitness values mean higher/better fitness. If a multi-objective
+##'   selection function is used, \code{fitnessFunction} must return a numerical
+##'   vector of fitness values.
+##' @param stopCondition The stop condition for the evolution main loop. See
+##'   \link{makeStepsStopCondition} for details.
+##' @param passStopCondition The stop condition for each parallel pass. See
+##'   \link{makeStepsStopCondition} for details.
+##' @param numberOfNiches The number of niches to cluster the population into.
+##' @param clusterFunction The function used to cluster the population into
+##'   niches. The first parameter of this function is a GP population, the
+##'   second paramater an integer representing the number of niches. Defaults
+##'   to \code{\link{groupListConsecutive}}.
+##' @param joinFunction The function used to join all niches into a population
+##'   again after a round of parallel passes. Defaults to a function that
+##'   simply concatenates all niches.
+##' @param population The GP population to start the run with. If this parameter
+##'   is missing, a new GP population of size \code{populationSize} is created
+##'   through random growth.
+##' @param populationSize The number of individuals if a population is to be
+##'   created.
+##' @param functionSet The function set.
+##' @param inputVariables The input variable set.
+##' @param constantSet The set of constant factory functions.
+##' @param selectionFunction The selection function to use. Defaults to
+##'   tournament selection. See \link{makeTournamentSelection} for details.
+##' @param crossoverFunction The crossover function.
+##' @param mutationFunction The mutation function.
+##' @param progressMonitor A function of signature
+##'   \code{function(population, stepNumber, evaluationNumber, timeElapsed)} to be called
+##'   with each evolution step.
+##' @param verbose Whether to print progress messages.
+##' @param clusterApply The cluster apply function that is used to distribute the
+##'   parallel passes to CPUs in a compute cluster.
+##' @param clusterLibrary A function that is used to load R package code into CPU cluster
+##'   nodes, defaults to \code{\link{sfLibrary}}.
+##' @return A genetic programming result object that contains a GP population in the
+##'   field \code{population}, as well as metadata describing the run parameters.
 ##'
 ##' @seealso \code{\link{geneticProgramming}}, \code{\link{summary.geneticProgrammingResult}}, \code{\link{symbolicRegression}}
 ##' @export
@@ -114,4 +169,98 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                  constantSet = constantSet,
                  crossoverFunction = crossoverFunction,
                  mutationFunction = mutatefunc), class = "geneticProgrammingResult")
+}
+
+##' Symbolic regression via multi-niche standard genetic programming
+##'
+##' Perform symbolic regression via untyped multi-niche genetic programming.
+##' The regression task is specified as a \code{\link{formula}}. Only simple
+##' formulas without interactions are supported. The result of the symbolic
+##' regression run is a symbolic regression model containing an untyped GP
+##' population of model functions.
+##'
+##' @param formula A \code{\link{formula}} describing the regression task. Only
+##'   simple formulas of the form \code{response ~ variable1 + ... + variableN}
+##'   are supported at this point in time.
+##' @param data A \code{\link{data.frame}} containing training data for the
+##'   symbolic regression run. The variables in \code{formula} must match
+##'   column names in this data frame.
+##' @param stopCondition The stop condition for the evolution main loop. See
+##'   \link{makeStepsStopCondition} for details.
+##' @param passStopCondition The stop condition for each parallel pass. See
+##'   \link{makeStepsStopCondition} for details.
+##' @param numberOfNiches The number of niches to cluster the population into.
+##' @param clusterFunction The function used to cluster the population into
+##'   niches. The first parameter of this function is a GP population, the
+##'   second paramater an integer representing the number of niches. Defaults
+##'   to \code{\link{groupListConsecutive}}.
+##' @param joinFunction The function used to join all niches into a population
+##'   again after a round of parallel passes. Defaults to a function that
+##'   simply concatenates all niches.
+##' @param population The GP population to start the run with. If this parameter
+##'   is missing, a new GP population of size \code{populationSize} is created
+##'   through random growth.
+##' @param populationSize The number of individuals if a population is to be
+##'   created.
+##' @param individualSizeLimit Individuals with a number of tree nodes that
+##'   exceeds this size limit will get a fitness of \code{Inf}.
+##' @param penalizeGenotypeConstantIndividuals Individuals that do not contain
+##'   any input variables will get a fitness of \code{Inf}.
+##' @param functionSet The function set.
+##' @param constantSet The set of constant factory functions.
+##' @param selectionFunction The selection function to use. Defaults to
+##'   tournament selection. See \link{makeTournamentSelection} for details.
+##' @param crossoverFunction The crossover function.
+##' @param mutationFunction The mutation function.
+##' @param progressMonitor A function of signature
+##'   \code{function(population, stepNumber, evaluationNumber, timeElapsed)} to be called
+##'   with each evolution step.
+##' @param verbose Whether to print progress messages.
+##' @param clusterApply The cluster apply function that is used to distribute the
+##'   parallel passes to CPUs in a compute cluster.
+##' @param clusterLibrary A function that is used to load R package code into CPU cluster
+##'   nodes, defaults to \code{\link{sfLibrary}}.
+##' @return An symbolic regression model that contains an untyped GP population.
+##'
+##' @seealso \code{\link{predict.symbolicRegressionModel}}, \code{\link{geneticProgramming}}
+##' @export
+multiNicheSymbolicRegression <- function(formula, data,
+                                         stopCondition = makeTimeStopCondition(25),
+                                         passStopCondition = makeTimeStopCondition(5),
+                                         numberOfNiches = 2,
+                                         clusterFunction = groupListConsecutive,
+                                         joinFunction = function(niches) Reduce(c, niches),
+                                         population = NULL,
+                                         populationSize = 100,
+                                         individualSizeLimit = 64,
+                                         penalizeGenotypeConstantIndividuals = FALSE,
+                                         functionSet = mathFunctionSet,
+                                         constantSet = numericConstantSet,
+                                         selectionFunction = makeTournamentSelection(),
+                                         crossoverFunction = crossover,
+                                         mutationFunction = NULL,
+                                         progressMonitor = NULL,
+                                         verbose = TRUE,
+                                         clusterApply = sfClusterApplyLB,
+                                         clusterLibrary = sfLibrary) {
+  ## Match variables in formula to those in data or parent.frame() and
+  ## return them in a new data frame. This also expands any '.'
+  ## arguments in the formula.  
+  mf <- model.frame(formula, data)
+  ## Extract list of terms (rhs of ~) in expanded formula
+  variableNames <- attr(terms(formula(mf)), "term.labels")
+  ## Create inputVariableSet
+  inVarSet <- inputVariableSet(list=as.list(variableNames))
+  fitFunc <- makeRegressionFitnessFunction(formula(mf), mf, errormeasure = rmse,
+                                           penalizeGenotypeConstantIndividuals = penalizeGenotypeConstantIndividuals,
+                                           indsizelimit = individualSizeLimit)
+  gpModel <- multiNicheGeneticProgramming(fitFunc, stopCondition, passStopCondition,
+                                          numberOfNiches, clusterFunction, joinFunction,
+                                          population, populationSize,
+                                          functionSet, inVarSet, constantSet, selectionFunction,
+                                          crossoverFunction, mutationFunction,
+                                          progressMonitor, verbose, clusterApply, clusterLibrary)
+  
+  structure(append(gpModel, list(formula = formula(mf))),
+                   class = c("symbolicRegressionModel", "geneticProgrammingResult"))
 }

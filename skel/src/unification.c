@@ -65,7 +65,8 @@ static Rboolean depends_on(const SEXP expression, const SEXP variable, const SEX
 }
 
 static R_INLINE Rboolean is_equal(const SEXP a, const SEXP b) {
-  return R_compute_identical(a, b, TRUE, TRUE, TRUE);
+  // return R_compute_identical(a, b, TRUE, TRUE, TRUE); // R_compute_identical is missing from Linux-R?
+  error("is_equal: Not implemented."); // TODO
 }
 
 static R_INLINE Rboolean is_na_logical(const SEXP a) {

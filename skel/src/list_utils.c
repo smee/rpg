@@ -21,7 +21,8 @@ SEXP add_alist(const SEXP key, const SEXP value, const SEXP alist) {
 
 SEXP get_alist(const SEXP key, const SEXP alist) {
   for (SEXP rest = alist; rest != R_NilValue; rest = CDR(rest)) {
-    if (R_compute_identical(key, TAG(rest), TRUE, TRUE, TRUE)) return CAR(rest);
+    //if (R_compute_identical(key, TAG(rest), TRUE, TRUE, TRUE)) return CAR(rest); // TODO R_compute_identical is missing from Linux-R?
+    error("get_alist: Not implemented."); // TODO
   }
   error("get_alist: No such key.");
   return R_NilValue;
@@ -29,7 +30,8 @@ SEXP get_alist(const SEXP key, const SEXP alist) {
 
 Rboolean contains_alist(const SEXP key, const SEXP alist) {
   for (SEXP rest = alist; rest != R_NilValue; rest = CDR(rest)) {
-    if (R_compute_identical(key, TAG(rest), TRUE, TRUE, TRUE)) return TRUE;
+    //if (R_compute_identical(key, TAG(rest), TRUE, TRUE, TRUE)) return TRUE; // TODO R_compute_identical is missing from Linux-R?
+    error("contains_alist: Not implemented."); // TODO
   }
   return FALSE;
 }
