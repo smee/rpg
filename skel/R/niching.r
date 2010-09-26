@@ -62,8 +62,8 @@ NA
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param progressMonitor A function of signature
-##'   \code{function(population, stepNumber, evaluationNumber, timeElapsed)} to be called
-##'   with each evolution step.
+##'   \code{function(population, stepNumber, evaluationNumber, bestFitness, timeElapsed)}
+##'   to be called with each evolution step.
 ##' @param verbose Whether to print progress messages.
 ##' @param clusterApply The cluster apply function that is used to distribute the
 ##'   parallel passes to CPUs in a compute cluster.
@@ -100,19 +100,19 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
     if (verbose)
       message(sprintf(msg, ...))
   }
-  quietProgmon <- function(pop, stepNumber, evaluationNumber, timeElapsed) NULL
+  quietProgmon <- function(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed) NULL
   environment(quietProgmon) <- globalenv() # prevent a possible memory-leak
   progmon <-
     if (verbose) {
-      function(pop, evaluationNumber, stepNumber, timeElapsed) {
+      function(pop, evaluationNumber, stepNumber, bestFitness, timeElapsed) {
         if (!is.null(progressMonitor))
-          progressMonitor(pop, evaluationNumber, stepNumber, timeElapsed)
+          progressMonitor(pop, evaluationNumber, stepNumber, bestFitness, timeElapsed)
         if (stepNumber %% 100 == 0)
-          logmsg("evolution step %i, fitness evaluations: %i, time elapsed: %s",
-                 stepNumber, evaluationNumber, formatSeconds(timeElapsed))
+          logmsg("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %s",
+                 stepNumber, evaluationNumber, bestFitness, formatSeconds(timeElapsed))
       }
     } else if (is.null(progressMonitor)) {
-      function(pop, stepNumber, evaluationNumber, timeElapsed) NULL # verbose == FALSE, do not show progress
+      function(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed) NULL # verbose == FALSE, do not show progress
     } else
       progressMonitor
   mutatefunc <-
@@ -134,6 +134,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
   evaluationNumber <- 0
   startTime <- proc.time()["elapsed"]
   timeElapsed <- 0
+  bestFitness <- Inf
 
   # Distribute multi-niche GP run to compute cluster...
   clusterLibrary(rgp) # load RGP library on cluster
@@ -158,10 +159,10 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
   logmsg("STARTING multi-niche genetic programming evolution run...")
   while (!stopCondition(pop = pop, stepNumber = stepNumber, evaluationNumber = evaluationNumber,
                         timeElapsed = timeElapsed)) {
-    logmsg("multi-niche pass with %i niches, evolution steps %i, fitness evaluations: %i, time elapsed: %s",
-           numberOfNiches, stepNumber, evaluationNumber, formatSeconds(timeElapsed))
-    # TODO FIXME there's a memory leak in here...
+    logmsg("multi-niche pass with %i niches, evolution steps %i, fitness evaluations: %i, best fitness: %f, time elapsed: %s",
+           numberOfNiches, stepNumber, evaluationNumber, bestFitness, formatSeconds(timeElapsed))
     passResults <- clusterApply(niches, passWorker)
+    bestFitness <- min(as.numeric(Map(function(passResult) passResult$bestFitness, passResults)))
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- stepNumber + Reduce(`+`, Map(function(passResult) passResult$stepNumber, passResults))
     evaluationNumber <- evaluationNumber + Reduce(`+`, Map(function(passResult) passResult$evaluationNumber, passResults))
@@ -178,6 +179,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                  timeElapsed = timeElapsed,
                  stepNumber = stepNumber,
                  evaluationNumber = evaluationNumber,
+                 bestFitness = bestFitness,
                  population = pop,
                  functionSet = functionSet,
                  constantSet = constantSet,
@@ -227,8 +229,8 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param progressMonitor A function of signature
-##'   \code{function(population, stepNumber, evaluationNumber, timeElapsed)} to be called
-##'   with each evolution step.
+##'   \code{function(population, stepNumber, evaluationNumber, bestFitness, timeElapsed)}
+##'   to be called with each evolution step.
 ##' @param verbose Whether to print progress messages.
 ##' @param clusterApply The cluster apply function that is used to distribute the
 ##'   parallel passes to CPUs in a compute cluster.

@@ -44,8 +44,8 @@ NA
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param progressMonitor A function of signature
-##'   \code{function(population, stepNumber, evaluationNumber, timeElapsed)} to be called
-##'   with each evolution step.
+##'   \code{function(population, stepNumber, evaluationNumber, bestFitness, timeElapsed)}
+##'   to be called with each evolution step.
 ##' @param verbose Whether to print progress messages.
 ##' @return A genetic programming result object that contains a GP population in the
 ##'   field \code{population}, as well as metadata describing the run parameters.
@@ -71,15 +71,15 @@ geneticProgramming <- function(fitnessFunction,
   }
   progmon <-
     if (verbose) {
-      function(pop, evaluationNumber, stepNumber, timeElapsed) {
+      function(pop, evaluationNumber, stepNumber, bestFitness, timeElapsed) {
         if (!is.null(progressMonitor))
-          progressMonitor(pop, evaluationNumber, stepNumber, timeElapsed)
+          progressMonitor(pop, evaluationNumber, stepNumber, bestFitness, timeElapsed)
         if (stepNumber %% 100 == 0)
-          logmsg("evolution step %i, fitness evaluations: %i, time elapsed: %s",
-                 stepNumber, evaluationNumber, formatSeconds(timeElapsed))
+          logmsg("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %s",
+                 stepNumber, evaluationNumber, bestFitness, formatSeconds(timeElapsed))
       }
     } else if (is.null(progressMonitor)) {
-      function(pop, stepNumber, evaluationNumber, timeElapsed) NULL # verbose == FALSE, do not show progress
+      function(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed) NULL # verbose == FALSE, do not show progress
     } else
       progressMonitor
   mutatefunc <-
@@ -97,14 +97,16 @@ geneticProgramming <- function(fitnessFunction,
   evaluationNumber <- 0
   startTime <- proc.time()["elapsed"]
   timeElapsed <- 0
+  bestFitness <- Inf # best fitness value seen in this run, if multi-criterial, only the first component counts
 
   ## Execute GP run...
   logmsg("STARTING standard genetic programming evolution run...")
   while (!stopCondition(pop = pop, stepNumber = stepNumber, evaluationNumber = evaluationNumber,
-                        timeElapsed = timeElapsed)) {
+                        bestFitness = bestFitness, timeElapsed = timeElapsed)) {
     # Select two sets of individuals and divide each into winners and losers...
     selA <- selectionFunction(pop, fitnessFunction); selB <- selectionFunction(pop, fitnessFunction)
     winnersA <- selA$selected[, 1]; winnersB <- selB$selected[, 1]
+    bestFitness <- min(c(bestFitness, selA$selected[, 2], selB$selected[, 2]))
     losersA <- selA$discarded[, 1]; losersB <- selB$discarded[, 1]
     losers <- c(losersA, losersB)
     # Create winner children...
@@ -117,7 +119,8 @@ geneticProgramming <- function(fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- selA$numberOfFitnessEvaluations + selB$numberOfFitnessEvaluations + evaluationNumber
-    progmon(pop = pop, stepNumber = stepNumber, evaluationNumber = evaluationNumber, timeElapsed = timeElapsed)
+    progmon(pop = pop, stepNumber = stepNumber, evaluationNumber = evaluationNumber,
+            bestFitness = bestFitness, timeElapsed = timeElapsed)
   }
   logmsg("Standard genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
          stepNumber, evaluationNumber, formatSeconds(timeElapsed))
@@ -128,6 +131,7 @@ geneticProgramming <- function(fitnessFunction,
                  timeElapsed = timeElapsed,
                  stepNumber = stepNumber,
                  evaluationNumber = evaluationNumber,
+                 bestFitness = bestFitness,
                  population = pop,
                  functionSet = functionSet,
                  constantSet = constantSet,
@@ -207,8 +211,8 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param progressMonitor A function of signature
-##'   \code{function(population, stepNumber, evaluationNumber, timeElapsed)} to be called
-##'   with each evolution step.
+##'   \code{function(population, stepNumber, evaluationNumber, bestFitness, timeElapsed)}
+##'   to be called with each evolution step.
 ##' @param verbose Whether to print progress messages.
 ##' @return An symbolic regression model that contains an untyped GP population.
 ##'
@@ -299,7 +303,8 @@ predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", det
 ##' Evolution stop conditions
 ##'
 ##' Evolution stop conditions are predicates (functions that return a single logical value)
-##' of the signature \code{function(population, stepNumber, evaluationNumber, timeElapsed)}.
+##' of the signature \code{function(population, stepNumber, evaluationNumber, bestFitness,
+##' timeElapsed)}.
 ##' They are used to decide when to finish a GP evolution run. Stop conditions must be members
 ##' of the S3 class \code{c("stopCondition", "function")}. They can be combined using the
 ##' generic \emph{and} (\code{|}), \emph{or} (\code{|}) and \emph{not} (\code{!}) functions.
@@ -308,6 +313,8 @@ predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", det
 ##' of evolution steps exceeds a given limit.
 ##' \code{makeEvaluationsStopCondition} creates a stop condition that is fulfilled if the
 ##' number of fitness function evaluations exceeds a given limit.
+##' \code{makeFitnessStopCondition} creates a stop condition that is fulfilled if the
+##' number best fitness seen in an evaluation run undercuts a certain limit.
 ##' \code{makeTimeStopCondition} creates a stop condition that is fulfilled if the run time
 ##' (in seconds) of an evolution run exceeds a given limit.
 ##'
@@ -321,7 +328,7 @@ predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", det
 ##' @rdname evolutionStopConditions
 ##' @export
 makeStepsStopCondition <- function(stepLimit) {
-  stopCondition <- function(pop, stepNumber, evaluationNumber, timeElapsed) stepNumber >= stepLimit
+  stopCondition <- function(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed) stepNumber >= stepLimit
   class(stopCondition) <- c("stopCondition", "function")
   stopCondition
 }
@@ -329,7 +336,15 @@ makeStepsStopCondition <- function(stepLimit) {
 ##' @rdname evolutionStopConditions
 ##' @export
 makeEvaluationsStopCondition <- function(evaluationLimit) {
-  stopCondition <- function(pop, stepNumber, evaluationNumber, timeElapsed) evaluationNumber >= evaluationLimit
+  stopCondition <- function(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed) evaluationNumber >= evaluationLimit
+  class(stopCondition) <- c("stopCondition", "function")
+  stopCondition
+}
+
+##' @rdname evolutionStopConditions
+##' @export
+makeFitnessStopCondition <- function(fitnessLimit) {
+  stopCondition <- function(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed) bestFitness <= fitnessLimit
   class(stopCondition) <- c("stopCondition", "function")
   stopCondition
 }
@@ -337,7 +352,7 @@ makeEvaluationsStopCondition <- function(evaluationLimit) {
 ##' @rdname evolutionStopConditions
 ##' @export
 makeTimeStopCondition <- function(timeLimit) {
-  stopCondition <- function(pop, stepNumber, evaluationNumber, timeElapsed) timeElapsed >= timeLimit
+  stopCondition <- function(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed) timeElapsed >= timeLimit
   class(stopCondition) <- c("stopCondition", "function")
   stopCondition
 }
@@ -345,8 +360,8 @@ makeTimeStopCondition <- function(timeLimit) {
 ##' @rdname evolutionStopConditions
 ##' @export `&.stopCondition`
 `&.stopCondition` <- function(e1, e2) {
-  stopCondition <- function(pop, stepNumber, evaluationNumber, timeElapsed)
-    e1(pop, stepNumber, evaluationNumber, timeElapsed) && e2(pop, stepNumber, evaluationNumber, timeElapsed)
+  stopCondition <- function(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed)
+    e1(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed) && e2(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   class(stopCondition) <- c("stopCondition", "function")
   stopCondition
 }
@@ -354,8 +369,8 @@ makeTimeStopCondition <- function(timeLimit) {
 ##' @rdname evolutionStopConditions
 ##' @export `|.stopCondition`
 `|.stopCondition` <- function(e1, e2) {
-  stopCondition <- function(pop, stepNumber, evaluationNumber, timeElapsed)
-    e1(pop, stepNumber, evaluationNumber, timeElapsed) || e2(pop, stepNumber, evaluationNumber, timeElapsed)
+  stopCondition <- function(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed)
+    e1(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed) || e2(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   class(stopCondition) <- c("stopCondition", "function")
   stopCondition
 }
@@ -363,8 +378,8 @@ makeTimeStopCondition <- function(timeLimit) {
 ##' @rdname evolutionStopConditions
 ##' @export `!.stopCondition`
 `!.stopCondition` <- function(e1) {
-  stopCondition <- function(pop, stepNumber, evaluationNumber, timeElapsed)
-    !e1(pop, stepNumber, evaluationNumber, timeElapsed)
+  stopCondition <- function(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed)
+    !e1(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   class(stopCondition) <- c("stopCondition", "function")
   stopCondition
 }
