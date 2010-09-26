@@ -54,6 +54,8 @@ NA
 ##'   through random growth.
 ##' @param populationSize The number of individuals if a population is to be
 ##'   created.
+##' @param eliteSize The number of "elite" individuals to keep. Defaults to
+##'  \code{ceiling(0.1 * populationSize)}.
 ##' @param functionSet The function set.
 ##' @param inputVariables The input variable set.
 ##' @param constantSet The set of constant factory functions.
@@ -64,7 +66,7 @@ NA
 ##' @param restartCondition The restart condition for the evolution main loop. See
 ##'   \link{makeFitnessStagnationRestartCondition} for details.
 ##' @param restartStrategy The strategy for doing restarts. See
-##'   \link{makeReplaceAllButBestRestartStrategy} for details.
+##'   \link{makeLocalRestartStrategy} for details.
 ##' @param progressMonitor A function of signature
 ##'   \code{function(population, fitnessFunction, stepNumber, evaluationNumber,
 ##'   bestFitness, timeElapsed)} to be called with each evolution step.
@@ -88,6 +90,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                                          joinFunction = function(niches) Reduce(c, niches),
                                          population = NULL,
                                          populationSize = 100,
+                                         eliteSize = ceiling(0.1 * populationSize),
                                          functionSet = mathFunctionSet,
                                          inputVariables = inputVariableSet("x"),
                                          constantSet = numericConstantSet,
@@ -95,7 +98,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                                          crossoverFunction = crossover,
                                          mutationFunction = NULL,
                                          restartCondition = makeEmptyRestartCondition(),
-                                         restartStrategy = makeReplaceAllButBestRestartStrategy(),
+                                         restartStrategy = makeLocalRestartStrategy(),
                                          progressMonitor = NULL,
                                          verbose = TRUE,
                                          clusterApply = sfClusterApplyLB,
@@ -133,9 +136,10 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
     else
       population
   popClass <- class(pop)
+  elite <- list()
   variablesToExportToClusterNodes <- c("quietProgmon", "mutatefunc", "restartCondition", "restartStrategy", "crossoverFunction",
-                                       "selectionFunction", "constantSet", "inputVariables", "functionSet", "passStopCondition",
-                                       "fitnessFunction")
+                                       "selectionFunction", "constantSet", "inputVariables", "functionSet", "eliteSize",
+                                       "passStopCondition", "fitnessFunction")
   stepNumber <- 1
   evaluationNumber <- 0
   startTime <- proc.time()["elapsed"]
@@ -149,6 +153,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
     geneticProgramming(fitnessFunction,
                        stopCondition = passStopCondition,
                        population = niche,
+                       eliteSize = eliteSize,
                        functionSet = functionSet,
                        inputVariables = inputVariables,
                        constantSet = constantSet,
@@ -170,12 +175,14 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
     logmsg("multi-niche pass with %i niches, evolution steps %i, fitness evaluations: %i, best fitness: %f, time elapsed: %s",
            numberOfNiches, stepNumber, evaluationNumber, bestFitness, formatSeconds(timeElapsed))
     passResults <- clusterApply(niches, passWorker)
-    bestFitness <- min(as.numeric(Map(function(passResult) passResult$bestFitness, passResults)))
+    bestFitness <- min(c(as.numeric(Map(function(passResult) passResult$bestFitness, passResults)), bestFitness))
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- stepNumber + Reduce(`+`, Map(function(passResult) passResult$stepNumber, passResults))
     evaluationNumber <- evaluationNumber + Reduce(`+`, Map(function(passResult) passResult$evaluationNumber, passResults))
     passResultNiches <- Map(function(passResult) passResult$population, passResults)
+    passResultElites <- Map(function(passResult) passResult$elite, passResults)
     pop <- joinFunction(passResultNiches) # join niches again after each pass
+    elite <- Reduce(function(e1, e2) joinElites(e1, e2, eliteSize, fitnessFunction), passResultElites) # join elites
     class(pop) <- popClass # pop should be of class "gp population"
   }
   logmsg("Multi-niche genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
@@ -189,6 +196,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                  evaluationNumber = evaluationNumber,
                  bestFitness = bestFitness,
                  population = pop,
+                 elite = elite,
                  functionSet = functionSet,
                  constantSet = constantSet,
                  crossoverFunction = crossoverFunction,
@@ -228,6 +236,8 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
 ##'   through random growth.
 ##' @param populationSize The number of individuals if a population is to be
 ##'   created.
+##' @param eliteSize The number of "elite" individuals to keep. Defaults to
+##'  \code{ceiling(0.1 * populationSize)}.
 ##' @param individualSizeLimit Individuals with a number of tree nodes that
 ##'   exceeds this size limit will get a fitness of \code{Inf}.
 ##' @param penalizeGenotypeConstantIndividuals Individuals that do not contain
@@ -241,7 +251,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
 ##' @param restartCondition The restart condition for the evolution main loop. See
 ##'   \link{makeFitnessStagnationRestartCondition} for details.
 ##' @param restartStrategy The strategy for doing restarts. See
-##'   \link{makeReplaceAllButBestRestartStrategy} for details.
+##'   \link{makeLocalRestartStrategy} for details.
 ##' @param progressMonitor A function of signature
 ##'   \code{function(population, fitnessfunction, stepNumber, evaluationNumber,
 ##'   bestFitness, timeElapsed)} to be called with each evolution step.
@@ -264,6 +274,7 @@ multiNicheSymbolicRegression <- function(formula, data,
                                          joinFunction = function(niches) Reduce(c, niches),
                                          population = NULL,
                                          populationSize = 100,
+                                         eliteSize = ceiling(0.1 * populationSize),
                                          individualSizeLimit = 64,
                                          penalizeGenotypeConstantIndividuals = FALSE,
                                          functionSet = mathFunctionSet,
@@ -272,7 +283,7 @@ multiNicheSymbolicRegression <- function(formula, data,
                                          crossoverFunction = crossover,
                                          mutationFunction = NULL,
                                          restartCondition = makeEmptyRestartCondition(),
-                                         restartStrategy = makeReplaceAllButBestRestartStrategy(),
+                                         restartStrategy = makeLocalRestartStrategy(),
                                          progressMonitor = NULL,
                                          verbose = TRUE,
                                          clusterApply = sfClusterApplyLB,
@@ -291,7 +302,7 @@ multiNicheSymbolicRegression <- function(formula, data,
                                            indsizelimit = individualSizeLimit)
   gpModel <- multiNicheGeneticProgramming(fitFunc, stopCondition, passStopCondition,
                                           numberOfNiches, clusterFunction, joinFunction,
-                                          population, populationSize,
+                                          population, populationSize, eliteSize,
                                           functionSet, inVarSet, constantSet, selectionFunction,
                                           crossoverFunction, mutationFunction,
                                           restartCondition, restartStrategy,

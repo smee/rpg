@@ -14,14 +14,21 @@ NA
 
 ##' Standard genetic programming
 ##'
-##' Perform a standard genetic programming run. The required argument \code{fitnessFunction}
-##' must be supplied with an objective function that assigns a numerical fitness
-##' value to an R function. Fitness values are minimized, i.e. smaller values mean
-##' higher/better fitness. If a multi-objective \code{selectionFunction} is
+##' Perform a standard genetic programming (GP) run. The required argument
+##' \code{fitnessFunction} must be supplied with an objective function that assigns a
+##' numerical fitness value to an R function. Fitness values are minimized, i.e. smaller
+##' values denote higher/better fitness. If a multi-objective \code{selectionFunction} is
 ##' used, \code{fitnessFunction} return a numerical vector of fitness values.
-##' The result of the genetic programming run is a genetic programming result object
-##' containing a GP population of R functions. \code{summary.geneticProgrammingResult}
-##' can be used to create summary views of a GP result object.
+##' The result of the GP run is a GP result object containing a GP population of R
+##' functions. \code{summary.geneticProgrammingResult} can be used to create summary views
+##' of a GP result object. During the run, restarts are triggered by the
+##' \code{restartCondition}. When a restart is triggered, the restartStrategy is executed,
+##' which returns a new population to replace the current one as well as a list of elite
+##' individuals. These are added to the runs elite list, where fitter individuals replace
+##' individuals with lesser fittness. The runs elite list is always sorted by fitness in
+##' ascending order. Only the first component of a multi-criterial fitness counts in this
+##' sorting. After a GP run, the population is inserted into the elite list. The elite list
+##' is returned as part of the GP result object.
 ##'
 ##' @param fitnessFunction In case of a single-objective selection function,
 ##'   \code{fitnessFunction} must be a single function that assigns a
@@ -36,6 +43,8 @@ NA
 ##'   through random growth.
 ##' @param populationSize The number of individuals if a population is to be
 ##'   created.
+##' @param eliteSize The number of elite individuals to keep. Defaults to
+##'  \code{ceiling(0.1 * populationSize)}.
 ##' @param functionSet The function set.
 ##' @param inputVariables The input variable set.
 ##' @param constantSet The set of constant factory functions.
@@ -46,7 +55,7 @@ NA
 ##' @param restartCondition The restart condition for the evolution main loop. See
 ##'   \link{makeEmptyRestartCondition} for details.
 ##' @param restartStrategy The strategy for doing restarts. See
-##'   \link{makeReplaceAllButBestRestartStrategy} for details.
+##'   \link{makeLocalRestartStrategy} for details.
 ##' @param progressMonitor A function of signature
 ##'   \code{function(population, fitnessfunction, stepNumber, evaluationNumber,
 ##'   bestFitness, timeElapsed)} to be called with each evolution step.
@@ -60,6 +69,7 @@ geneticProgramming <- function(fitnessFunction,
                                stopCondition = makeTimeStopCondition(5),
                                population = NULL,
                                populationSize = 100,
+                               eliteSize = ceiling(0.1 * populationSize),
                                functionSet = mathFunctionSet,
                                inputVariables = inputVariableSet("x"),
                                constantSet = numericConstantSet,
@@ -67,7 +77,7 @@ geneticProgramming <- function(fitnessFunction,
                                crossoverFunction = crossover,
                                mutationFunction = NULL,
                                restartCondition = makeEmptyRestartCondition(),
-                               restartStrategy = makeReplaceAllButBestRestartStrategy(),
+                               restartStrategy = makeLocalRestartStrategy(),
                                progressMonitor = NULL,
                                verbose = TRUE) {
   ## Provide default parameters and initialize GP run...
@@ -99,6 +109,7 @@ geneticProgramming <- function(fitnessFunction,
       makePopulation(populationSize, functionSet, inputVariables, constantSet)
     else
       population
+  elite <- list()
   stepNumber <- 1
   evaluationNumber <- 0
   startTime <- proc.time()["elapsed"]
@@ -124,7 +135,9 @@ geneticProgramming <- function(fitnessFunction,
     # Apply restart strategy
     if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                          evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
-      pop <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
+      restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
+      pop <- restartResult[[1]]
+      elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
       logmsg("restarted run")
     }
     
@@ -134,6 +147,7 @@ geneticProgramming <- function(fitnessFunction,
     progmon(pop = pop, fitnessFunction = Fitnessfunction, stepNumber = stepNumber,
             evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
   }
+  elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
   logmsg("Standard genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
          stepNumber, evaluationNumber, formatSeconds(timeElapsed))
 
@@ -145,12 +159,35 @@ geneticProgramming <- function(fitnessFunction,
                  evaluationNumber = evaluationNumber,
                  bestFitness = bestFitness,
                  population = pop,
+                 elite = elite,
                  functionSet = functionSet,
                  constantSet = constantSet,
                  crossoverFunction = crossoverFunction,
                  mutationFunction = mutatefunc,
                  restartCondition = restartCondition,
                  restartStrategy = restartStrategy), class = "geneticProgrammingResult")
+}
+
+##' Join elite lists
+##'
+##' Inserts a list of new individuals into an elite list, replacing the worst individuals
+##' in this list to make place, if needed.
+##'
+##' @param individuals The list of individuals to insert.
+##' @param elite The list of elite individuals to insert \code{individuals} into. This
+##'   list must be sorted by fitness in ascending order, i.e. lower fitnesses first.
+##' @param eliteSize The maximum size of the \code{elite}.
+##' @param fitnessFunction The fitness function.
+##' @return The \code{elite} with \code{individuals} inserted, sorted by fitness in
+##'   ascending order, i.e. lower fitnesses first.
+joinElites <- function(individuals, elite, eliteSize, fitnessFunction) {
+  allIndividuals <- c(individuals, elite)
+  allFitnesses <- as.numeric(Map(function(ind) fitnessFunction(ind)[1], allIndividuals))
+  allIndividualsSorted <- allIndividuals[order(allFitnesses, decreasing = FALSE)]
+  newElite <- if (length(allIndividualsSorted) > eliteSize)
+    allIndividualsSorted[1:eliteSize]
+  else
+    allIndividualsSorted
 }
 
 ##' Summary reports of genetic programming run result objects
@@ -171,26 +208,28 @@ geneticProgramming <- function(fitnessFunction,
 ##' @seealso \code{\link{geneticProgramming}}, \code{\link{symbolicRegression}}
 ##' @export
 summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, orderByFitness = TRUE, ...) {
-  individualFunctions <- object$population
-  individualFunctionsAsStrings <- Map(function(f) Reduce(function(a, b) paste(a, b, sep=""),
-                                                         deparse(f)),
-                                      individualFunctions)
-  report <- cbind(1:length(individualFunctions), individualFunctions, individualFunctionsAsStrings)
-  colnames(report) <- c("Individual Index", "Individual Function", "(as String)")
-  if (reportFitness) {
-    fitnessList <- lapply(individualFunctions, object$fitnessFunction)
-    fitnessesLength <- length(fitnessList)
-    fitnessDimemsion <- length(fitnessList[[1]])
-    flatFitnesses <- Reduce(c, fitnessList)
-    fitnessMatrix <- matrix(as.list(flatFitnesses), ncol = fitnessDimemsion)
-    if (is.null(colnames(fitnessMatrix))) colnames(fitnessMatrix) <- paste("Fitness", 1:fitnessDimemsion)
-    report <- cbind(report, fitnessMatrix)
-    if (orderByFitness) {
-      rawFitnessMatrix <- matrix(flatFitnesses, ncol = fitnessDimemsion)
-      report <- report[do.call(order, split(rawFitnessMatrix, col(rawFitnessMatrix))),]
+  reportPopulation <- function(individualFunctions) {
+    individualFunctionsAsStrings <- Map(function(f) Reduce(function(a, b) paste(a, b, sep=""),
+                                                           deparse(f)),
+                                        individualFunctions)
+    report <- cbind(1:length(individualFunctions), individualFunctions, individualFunctionsAsStrings)
+    colnames(report) <- c("Individual Index", "Individual Function", "(as String)")
+    if (reportFitness) {
+      fitnessList <- lapply(individualFunctions, object$fitnessFunction)
+      fitnessesLength <- length(fitnessList)
+      fitnessDimemsion <- length(fitnessList[[1]])
+      flatFitnesses <- Reduce(c, fitnessList)
+      fitnessMatrix <- matrix(as.list(flatFitnesses), ncol = fitnessDimemsion)
+      if (is.null(colnames(fitnessMatrix))) colnames(fitnessMatrix) <- paste("Fitness", 1:fitnessDimemsion)
+      report <- cbind(report, fitnessMatrix)
+      if (orderByFitness) {
+        rawFitnessMatrix <- matrix(flatFitnesses, ncol = fitnessDimemsion)
+        report <- report[do.call(order, split(rawFitnessMatrix, col(rawFitnessMatrix))),]
+      }
     }
+    report
   }
-  report
+  list(population = reportPopulation(object$population), elite = reportPopulation(object$elite))
 }
 
 ##' Symbolic regression via untyped standard genetic programming
@@ -214,6 +253,8 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
 ##'   through random growth.
 ##' @param populationSize The number of individuals if a population is to be
 ##'   created.
+##' @param eliteSize The number of elite individuals to keep. Defaults to
+##'  \code{ceiling(0.1 * populationSize)}.
 ##' @param individualSizeLimit Individuals with a number of tree nodes that
 ##'   exceeds this size limit will get a fitness of \code{Inf}.
 ##' @param penalizeGenotypeConstantIndividuals Individuals that do not contain
@@ -227,7 +268,7 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
 ##' @param restartCondition The restart condition for the evolution main loop. See
 ##'   \link{makeEmptyRestartCondition} for details.
 ##' @param restartStrategy The strategy for doing restarts. See
-##'   \link{makeReplaceAllButBestRestartStrategy} for details.
+##'   \link{makeLocalRestartStrategy} for details.
 ##' @param progressMonitor A function of signature
 ##'   \code{function(population, fitnessfunction, stepNumber, evaluationNumber,
 ##'   bestFitness, timeElapsed)} to be called with each evolution step.
@@ -237,9 +278,10 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
 ##' @seealso \code{\link{predict.symbolicRegressionModel}}, \code{\link{geneticProgramming}}
 ##' @export
 symbolicRegression <- function(formula, data,
-                               stopCondition = makeStepsStopCondition(1000),
+                               stopCondition = makeTimeStopCondition(5),
                                population = NULL,
                                populationSize = 100,
+                               eliteSize = ceiling(0.1 * populationSize),
                                individualSizeLimit = 64,
                                penalizeGenotypeConstantIndividuals = FALSE,
                                functionSet = mathFunctionSet,
@@ -248,7 +290,7 @@ symbolicRegression <- function(formula, data,
                                crossoverFunction = crossover,
                                mutationFunction = NULL,
                                restartCondition = makeEmptyRestartCondition(),
-                               restartStrategy = makeReplaceAllButBestRestartStrategy(),
+                               restartStrategy = makeLocalRestartStrategy(),
                                progressMonitor = NULL,
                                verbose = TRUE) {
   ## Match variables in formula to those in data or parent.frame() and
@@ -262,7 +304,7 @@ symbolicRegression <- function(formula, data,
   fitFunc <- makeRegressionFitnessFunction(formula(mf), mf, errormeasure = rmse,
                                            penalizeGenotypeConstantIndividuals = penalizeGenotypeConstantIndividuals,
                                            indsizelimit = individualSizeLimit)
-  gpModel <- geneticProgramming(fitFunc, stopCondition, population, populationSize,
+  gpModel <- geneticProgramming(fitFunc, stopCondition, population, populationSize, eliteSize,
                                 functionSet, inVarSet, constantSet, selectionFunction,
                                 crossoverFunction, mutationFunction,
                                 restartCondition, restartStrategy,
@@ -380,7 +422,6 @@ makeFitnessDistributionRestartCondition <- function(testFrequency = 100,
     if (stepNumber %% testFrequency == 0) {
       fitnessValues <- as.numeric(Map(function(ind) fitnessFunction(ind)[1], pop))
       fitnessSd <- sd(fitnessValues)
-      print(fitnessSd) # TODO
       !is.nan(fitnessSd) && fitnessSd <= fitnessStandardDeviationLimit # restart if sd drop below limit
     } else FALSE
   }
@@ -391,22 +432,22 @@ makeFitnessDistributionRestartCondition <- function(testFrequency = 100,
 ##' Evolution restart strategies
 ##'
 ##' Evolution restart strategies are functions of the signature \code{function(fitnessFunction,
-##' population, populationSize, functionSet, inputVariables, constantSet)} that return a population
-##' that replace the run's current population.
+##' population, populationSize, functionSet, inputVariables, constantSet)} that return a list of
+##' two obtjects: First, a population that replace the run's current population. Second, a list
+##' of elite individuals to keep.
 ##'
-##' \code{makeReplaceAllButBestRestartStrategy} creates a restart strategy that replaces
-##' all individuals but the one with best fitness with newly created individuals. When using
-##' a multi-criterial fitness function, only the first component counts in the fitness sorting.
+##' \code{makeLocalRestartStrategy} creates a restart strategy that replaces all individuals with
+##' new individuals. The single best individual is returned as the elite. When using a
+##' multi-criterial fitness function, only the first component counts in the fitness sorting.
 ##'
 ##' @rdname evolutionRestartStrategies
 ##' @export
-makeReplaceAllButBestRestartStrategy <- function() {
+makeLocalRestartStrategy <- function() {
   restartStrategy <- function(fitnessFunction, population, populationSize, functionSet, inputVariables, constantSet) {
     fitnessValues <- as.numeric(Map(function(ind) fitnessFunction(ind)[1], population))
     bestInd <- population[[which.min(fitnessValues)]]
     restartedPopulation <- makePopulation(populationSize, functionSet, inputVariables, constantSet)
-    restartedPopulation[[1]] <- bestInd
-    restartedPopulation # TODO test this code!
+    list(population = restartedPopulation, elite = list(bestInd))
   }
   class(restartStrategy) <- c("restartStrategy", "function")
   restartStrategy
