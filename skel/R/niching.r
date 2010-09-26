@@ -61,9 +61,13 @@ NA
 ##'   tournament selection. See \link{makeTournamentSelection} for details.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
+##' @param restartCondition The restart condition for the evolution main loop. See
+##'   \link{makeFitnessStagnationRestartCondition} for details.
+##' @param restartStrategy The strategy for doing restarts. See
+##'   \link{makeReplaceAllButBestRestartStrategy} for details.
 ##' @param progressMonitor A function of signature
-##'   \code{function(population, stepNumber, evaluationNumber, bestFitness, timeElapsed)}
-##'   to be called with each evolution step.
+##'   \code{function(population, fitnessFunction, stepNumber, evaluationNumber,
+##'   bestFitness, timeElapsed)} to be called with each evolution step.
 ##' @param verbose Whether to print progress messages.
 ##' @param clusterApply The cluster apply function that is used to distribute the
 ##'   parallel passes to CPUs in a compute cluster.
@@ -90,6 +94,8 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                                          selectionFunction = makeTournamentSelection(),
                                          crossoverFunction = crossover,
                                          mutationFunction = NULL,
+                                         restartCondition = makeEmptyRestartCondition(),
+                                         restartStrategy = makeReplaceAllButBestRestartStrategy(),
                                          progressMonitor = NULL,
                                          verbose = TRUE,
                                          clusterApply = sfClusterApplyLB,
@@ -100,19 +106,19 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
     if (verbose)
       message(sprintf(msg, ...))
   }
-  quietProgmon <- function(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed) NULL
+  quietProgmon <- function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) NULL
   environment(quietProgmon) <- globalenv() # prevent a possible memory-leak
   progmon <-
     if (verbose) {
-      function(pop, evaluationNumber, stepNumber, bestFitness, timeElapsed) {
+      function(pop, fitnessFunction, evaluationNumber, stepNumber, bestFitness, timeElapsed) {
         if (!is.null(progressMonitor))
-          progressMonitor(pop, evaluationNumber, stepNumber, bestFitness, timeElapsed)
+          progressMonitor(pop, fitnessFunction, evaluationNumber, stepNumber, bestFitness, timeElapsed)
         if (stepNumber %% 100 == 0)
           logmsg("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %s",
                  stepNumber, evaluationNumber, bestFitness, formatSeconds(timeElapsed))
       }
     } else if (is.null(progressMonitor)) {
-      function(pop, stepNumber, evaluationNumber, bestFitness, timeElapsed) NULL # verbose == FALSE, do not show progress
+      function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) NULL # verbose == FALSE, do not show progress
     } else
       progressMonitor
   mutatefunc <-
@@ -127,8 +133,8 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
     else
       population
   popClass <- class(pop)
-  variablesToExportToClusterNodes <- c("quietProgmon", "mutatefunc", "crossoverFunction", "selectionFunction",
-                                       "constantSet", "inputVariables", "functionSet", "passStopCondition",
+  variablesToExportToClusterNodes <- c("quietProgmon", "mutatefunc", "restartCondition", "restartStrategy", "crossoverFunction",
+                                       "selectionFunction", "constantSet", "inputVariables", "functionSet", "passStopCondition",
                                        "fitnessFunction")
   stepNumber <- 1
   evaluationNumber <- 0
@@ -149,6 +155,8 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                        selectionFunction = selectionFunction,
                        crossoverFunction = crossoverFunction,
                        mutationFunction = mutatefunc,
+                       restartCondition = restartCondition,
+                       restartStrategy = restartStrategy,
                        progressMonitor = quietProgmon,
                        verbose = FALSE)
   environment(passWorker) <- globalenv()
@@ -157,8 +165,8 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
   niches <- clusterFunction(pop, numberOfNiches) # cluster population into niches
   for (i in 1:numberOfNiches) class(niches[[i]]) <- popClass # niches should be of class "gp population"
   logmsg("STARTING multi-niche genetic programming evolution run...")
-  while (!stopCondition(pop = pop, stepNumber = stepNumber, evaluationNumber = evaluationNumber,
-                        timeElapsed = timeElapsed)) {
+  while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+                        evaluationNumber = evaluationNumber, timeElapsed = timeElapsed)) {
     logmsg("multi-niche pass with %i niches, evolution steps %i, fitness evaluations: %i, best fitness: %f, time elapsed: %s",
            numberOfNiches, stepNumber, evaluationNumber, bestFitness, formatSeconds(timeElapsed))
     passResults <- clusterApply(niches, passWorker)
@@ -184,7 +192,9 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                  functionSet = functionSet,
                  constantSet = constantSet,
                  crossoverFunction = crossoverFunction,
-                 mutationFunction = mutatefunc), class = "geneticProgrammingResult")
+                 mutationFunction = mutatefunc,
+                 restartCondition = restartCondition,
+                 restartStrategy = restartStrategy), class = "geneticProgrammingResult")
 }
 
 ##' Symbolic regression via multi-niche standard genetic programming
@@ -228,9 +238,13 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
 ##'   tournament selection. See \link{makeTournamentSelection} for details.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
+##' @param restartCondition The restart condition for the evolution main loop. See
+##'   \link{makeFitnessStagnationRestartCondition} for details.
+##' @param restartStrategy The strategy for doing restarts. See
+##'   \link{makeReplaceAllButBestRestartStrategy} for details.
 ##' @param progressMonitor A function of signature
-##'   \code{function(population, stepNumber, evaluationNumber, bestFitness, timeElapsed)}
-##'   to be called with each evolution step.
+##'   \code{function(population, fitnessfunction, stepNumber, evaluationNumber,
+##'   bestFitness, timeElapsed)} to be called with each evolution step.
 ##' @param verbose Whether to print progress messages.
 ##' @param clusterApply The cluster apply function that is used to distribute the
 ##'   parallel passes to CPUs in a compute cluster.
@@ -257,6 +271,8 @@ multiNicheSymbolicRegression <- function(formula, data,
                                          selectionFunction = makeTournamentSelection(),
                                          crossoverFunction = crossover,
                                          mutationFunction = NULL,
+                                         restartCondition = makeEmptyRestartCondition(),
+                                         restartStrategy = makeReplaceAllButBestRestartStrategy(),
                                          progressMonitor = NULL,
                                          verbose = TRUE,
                                          clusterApply = sfClusterApplyLB,
@@ -278,6 +294,7 @@ multiNicheSymbolicRegression <- function(formula, data,
                                           population, populationSize,
                                           functionSet, inVarSet, constantSet, selectionFunction,
                                           crossoverFunction, mutationFunction,
+                                          restartCondition, restartStrategy,
                                           progressMonitor, verbose,
                                           clusterApply, clusterExport, clusterLibrary)
   

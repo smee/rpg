@@ -254,13 +254,13 @@ randfuncTyped <- function(type, funcset, inset, conset, maxdepth = 16, exprfacto
   newf
 }
 
-##' @rdname randomFunctionCreation
+##' @rdname randomFunctionCreationTyped
 ##' @export
-randfuncTypedRampedHalfAndHalf <- function(funcset, inset, conset, maxdepth = 16) {
+randfuncTypedRampedHalfAndHalf <- function(type, funcset, inset, conset, maxdepth = 16) {
   if (runif(1) > 0.5)
-    randfuncTyped(funcset, inset, conset, maxdepth, exprfactory = randexprTypedFull)
+    randfuncTyped(type, funcset, inset, conset, maxdepth, exprfactory = randexprTypedFull)
   else
-    randfuncTyped(funcset, inset, conset, maxdepth, exprfactory = randexprTypedGrow)
+    randfuncTyped(type, funcset, inset, conset, maxdepth, exprfactory = randexprTypedGrow)
 }
 
 ##' Create a random terminal node
