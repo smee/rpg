@@ -67,6 +67,8 @@ NA
 ##' @param verbose Whether to print progress messages.
 ##' @param clusterApply The cluster apply function that is used to distribute the
 ##'   parallel passes to CPUs in a compute cluster.
+##' @param clusterExport A function that is used to export R variables to the nodes of
+##'   a CPU cluster, defaults to \code{\link{sfExport}}.
 ##' @param clusterLibrary A function that is used to load R package code into CPU cluster
 ##'   nodes, defaults to \code{\link{sfLibrary}}.
 ##' @return A genetic programming result object that contains a GP population in the
@@ -91,12 +93,15 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                                          progressMonitor = NULL,
                                          verbose = TRUE,
                                          clusterApply = sfClusterApplyLB,
+                                         clusterExport = sfExport,
                                          clusterLibrary = sfLibrary) {
   ## Provide default parameters and initialize GP run...
   logmsg <- function(msg, ...) {
     if (verbose)
       message(sprintf(msg, ...))
   }
+  quietProgmon <- function(pop, stepNumber, evaluationNumber, timeElapsed) NULL
+  environment(quietProgmon) <- globalenv() # prevent a possible memory-leak
   progmon <-
     if (verbose) {
       function(pop, evaluationNumber, stepNumber, timeElapsed) {
@@ -122,11 +127,30 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
     else
       population
   popClass <- class(pop)
+  variablesToExportToClusterNodes <- c("quietProgmon", "mutatefunc", "crossoverFunction", "selectionFunction",
+                                       "constantSet", "inputVariables", "functionSet", "passStopCondition",
+                                       "fitnessFunction")
   stepNumber <- 1
   evaluationNumber <- 0
   startTime <- proc.time()["elapsed"]
   timeElapsed <- 0
+
+  # Distribute multi-niche GP run to compute cluster...
   clusterLibrary(rgp) # load RGP library on cluster
+  clusterExport(list = variablesToExportToClusterNodes)
+  passWorker <- function(niche)
+    geneticProgramming(fitnessFunction,
+                       stopCondition = passStopCondition,
+                       population = niche,
+                       functionSet = functionSet,
+                       inputVariables = inputVariables,
+                       constantSet = constantSet,
+                       selectionFunction = selectionFunction,
+                       crossoverFunction = crossoverFunction,
+                       mutationFunction = mutatefunc,
+                       progressMonitor = quietProgmon,
+                       verbose = FALSE)
+  environment(passWorker) <- globalenv()
 
   ## Execute multi-niche GP run...
   niches <- clusterFunction(pop, numberOfNiches) # cluster population into niches
@@ -136,18 +160,8 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                         timeElapsed = timeElapsed)) {
     logmsg("multi-niche pass with %i niches, evolution steps %i, fitness evaluations: %i, time elapsed: %s",
            numberOfNiches, stepNumber, evaluationNumber, formatSeconds(timeElapsed))
-    passResults <- clusterApply(niches,
-                                function(niche) geneticProgramming(fitnessFunction,
-                                                                   stopCondition = passStopCondition,
-                                                                   population = niche,
-                                                                   functionSet = functionSet,
-                                                                   inputVariables = inputVariables,
-                                                                   constantSet = constantSet,
-                                                                   selectionFunction = selectionFunction,
-                                                                   crossoverFunction = crossoverFunction,
-                                                                   mutationFunction = mutatefunc,
-                                                                   progressMonitor = function(pop, stepNumber, evaluationNumber, timeElapsed) NULL,
-                                                                   verbose = FALSE))
+    # TODO FIXME there's a memory leak in here...
+    passResults <- clusterApply(niches, passWorker)
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- stepNumber + Reduce(`+`, Map(function(passResult) passResult$stepNumber, passResults))
     evaluationNumber <- evaluationNumber + Reduce(`+`, Map(function(passResult) passResult$evaluationNumber, passResults))
@@ -218,6 +232,8 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
 ##' @param verbose Whether to print progress messages.
 ##' @param clusterApply The cluster apply function that is used to distribute the
 ##'   parallel passes to CPUs in a compute cluster.
+##' @param clusterExport A function that is used to export R variables to the nodes of
+##'   a CPU cluster, defaults to \code{\link{sfExport}}.
 ##' @param clusterLibrary A function that is used to load R package code into CPU cluster
 ##'   nodes, defaults to \code{\link{sfLibrary}}.
 ##' @return An symbolic regression model that contains an untyped GP population.
@@ -242,6 +258,7 @@ multiNicheSymbolicRegression <- function(formula, data,
                                          progressMonitor = NULL,
                                          verbose = TRUE,
                                          clusterApply = sfClusterApplyLB,
+                                         clusterExport = sfExport,
                                          clusterLibrary = sfLibrary) {
   ## Match variables in formula to those in data or parent.frame() and
   ## return them in a new data frame. This also expands any '.'
@@ -259,7 +276,8 @@ multiNicheSymbolicRegression <- function(formula, data,
                                           population, populationSize,
                                           functionSet, inVarSet, constantSet, selectionFunction,
                                           crossoverFunction, mutationFunction,
-                                          progressMonitor, verbose, clusterApply, clusterLibrary)
+                                          progressMonitor, verbose,
+                                          clusterApply, clusterExport, clusterLibrary)
   
   structure(append(gpModel, list(formula = formula(mf))),
                    class = c("symbolicRegressionModel", "geneticProgrammingResult"))
