@@ -56,6 +56,8 @@ NA
 ##'   created.
 ##' @param eliteSize The number of "elite" individuals to keep. Defaults to
 ##'  \code{ceiling(0.1 * populationSize)}.
+##' @param elite The elite list, must be alist of individuals sorted in ascending
+##'   order by their first fitness component.
 ##' @param functionSet The function set.
 ##' @param inputVariables The input variable set.
 ##' @param constantSet The set of constant factory functions.
@@ -91,6 +93,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                                          population = NULL,
                                          populationSize = 100,
                                          eliteSize = ceiling(0.1 * populationSize),
+                                         elite = list(),
                                          functionSet = mathFunctionSet,
                                          inputVariables = inputVariableSet("x"),
                                          constantSet = numericConstantSet,
@@ -136,7 +139,6 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
     else
       population
   popClass <- class(pop)
-  elite <- list()
   variablesToExportToClusterNodes <- c("quietProgmon", "mutatefunc", "restartCondition", "restartStrategy", "crossoverFunction",
                                        "selectionFunction", "constantSet", "inputVariables", "functionSet", "eliteSize",
                                        "passStopCondition", "fitnessFunction")
@@ -154,6 +156,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                        stopCondition = passStopCondition,
                        population = niche,
                        eliteSize = eliteSize,
+                       elite = list(), # each pass starts with an empty elite
                        functionSet = functionSet,
                        inputVariables = inputVariables,
                        constantSet = constantSet,
@@ -181,8 +184,9 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
     evaluationNumber <- evaluationNumber + Reduce(`+`, Map(function(passResult) passResult$evaluationNumber, passResults))
     passResultNiches <- Map(function(passResult) passResult$population, passResults)
     passResultElites <- Map(function(passResult) passResult$elite, passResults)
+    allElites <- c(elite, passResultElites)
     pop <- joinFunction(passResultNiches) # join niches again after each pass
-    elite <- Reduce(function(e1, e2) joinElites(e1, e2, eliteSize, fitnessFunction), passResultElites) # join elites
+    elite <- Reduce(function(e1, e2) joinElites(e1, e2, eliteSize, fitnessFunction), allElites) # join all elites
     class(pop) <- popClass # pop should be of class "gp population"
   }
   logmsg("Multi-niche genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
@@ -238,6 +242,8 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
 ##'   created.
 ##' @param eliteSize The number of "elite" individuals to keep. Defaults to
 ##'  \code{ceiling(0.1 * populationSize)}.
+##' @param elite The elite list, must be alist of individuals sorted in ascending
+##'   order by their first fitness component.
 ##' @param individualSizeLimit Individuals with a number of tree nodes that
 ##'   exceeds this size limit will get a fitness of \code{Inf}.
 ##' @param penalizeGenotypeConstantIndividuals Individuals that do not contain
@@ -275,6 +281,7 @@ multiNicheSymbolicRegression <- function(formula, data,
                                          population = NULL,
                                          populationSize = 100,
                                          eliteSize = ceiling(0.1 * populationSize),
+                                         elite = list(),
                                          individualSizeLimit = 64,
                                          penalizeGenotypeConstantIndividuals = FALSE,
                                          functionSet = mathFunctionSet,
@@ -302,7 +309,7 @@ multiNicheSymbolicRegression <- function(formula, data,
                                            indsizelimit = individualSizeLimit)
   gpModel <- multiNicheGeneticProgramming(fitFunc, stopCondition, passStopCondition,
                                           numberOfNiches, clusterFunction, joinFunction,
-                                          population, populationSize, eliteSize,
+                                          population, populationSize, eliteSize, elite,
                                           functionSet, inVarSet, constantSet, selectionFunction,
                                           crossoverFunction, mutationFunction,
                                           restartCondition, restartStrategy,

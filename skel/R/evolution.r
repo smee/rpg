@@ -45,6 +45,8 @@ NA
 ##'   created.
 ##' @param eliteSize The number of elite individuals to keep. Defaults to
 ##'  \code{ceiling(0.1 * populationSize)}.
+##' @param elite The elite list, must be alist of individuals sorted in ascending
+##'   order by their first fitness component.
 ##' @param functionSet The function set.
 ##' @param inputVariables The input variable set.
 ##' @param constantSet The set of constant factory functions.
@@ -70,6 +72,7 @@ geneticProgramming <- function(fitnessFunction,
                                population = NULL,
                                populationSize = 100,
                                eliteSize = ceiling(0.1 * populationSize),
+                               elite = list(),
                                functionSet = mathFunctionSet,
                                inputVariables = inputVariableSet("x"),
                                constantSet = numericConstantSet,
@@ -109,7 +112,6 @@ geneticProgramming <- function(fitnessFunction,
       makePopulation(populationSize, functionSet, inputVariables, constantSet)
     else
       population
-  elite <- list()
   stepNumber <- 1
   evaluationNumber <- 0
   startTime <- proc.time()["elapsed"]
@@ -255,6 +257,8 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
 ##'   created.
 ##' @param eliteSize The number of elite individuals to keep. Defaults to
 ##'  \code{ceiling(0.1 * populationSize)}.
+##' @param elite The elite list, must be alist of individuals sorted in ascending
+##'   order by their first fitness component.
 ##' @param individualSizeLimit Individuals with a number of tree nodes that
 ##'   exceeds this size limit will get a fitness of \code{Inf}.
 ##' @param penalizeGenotypeConstantIndividuals Individuals that do not contain
@@ -304,7 +308,7 @@ symbolicRegression <- function(formula, data,
   fitFunc <- makeRegressionFitnessFunction(formula(mf), mf, errormeasure = rmse,
                                            penalizeGenotypeConstantIndividuals = penalizeGenotypeConstantIndividuals,
                                            indsizelimit = individualSizeLimit)
-  gpModel <- geneticProgramming(fitFunc, stopCondition, population, populationSize, eliteSize,
+  gpModel <- geneticProgramming(fitFunc, stopCondition, population, populationSize, eliteSize, elite,
                                 functionSet, inVarSet, constantSet, selectionFunction,
                                 crossoverFunction, mutationFunction,
                                 restartCondition, restartStrategy,
