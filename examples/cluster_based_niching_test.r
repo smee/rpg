@@ -15,16 +15,24 @@ dfDampedOscillator1d <- data.frame(x=seq(from=1, to=4*pi, length.out=512), y=dam
 
 ## define cluster worker functions
 makeSgpWorker <- function(data) {
-  symbolicRegression(y ~ x, data, stopCondition = makeEvaluationsStopConditions(evaluationsPerRun), restartCondition = makeFitnessStagnationRestartCondition())
+  function(i)
+    symbolicRegression(y ~ x, data, stopCondition = makeEvaluationsStopCondition(evaluationsPerRun), restartCondition = makeFitnessDistributionRestartCondition())
 }
 
 ## initialize the compute cluster
-sfInit(cpus=2, parallel=TRUE)
+sfInit(cpus = 2, parallel = TRUE)
+sfLibrary(rgp)
+sfExport("evaluationsPerRun")
+sfExport("dfSalustowicz1d")
+sfExport("dfUnwrappedBall1d")
+sfExport("dfDampedOscillator1d")
 
 ## create baseline results with symbolic regression by standard GP
 print("starting baseline runs...")
 sgpResultsSalustowicz1d <- sfClusterApplyLB(1:numberOfRuns, makeSgpWorker(dfSalustowicz1d))
+print("1/3 done")
 sgpResultsUnwrappedBall1d <- sfClusterApplyLB(1:numberOfRuns, makeSgpWorker(dfUnwrappedBall1d))
+print("2/3 done")
 sgpResultsDampedOscillator1d <- sfClusterApplyLB(1:numberOfRuns, makeSgpWorker(dfDampedOscillator1d))
 print("DONE.")
 
