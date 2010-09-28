@@ -15,7 +15,7 @@ populationPlotMDS <- function(p) {
   dm <- populationDistanceMatrix(p)
   dmp <- abs(dm + rnorm(1, sd = 0.01)) # pertube and remove negative values
   fit <- isoMDS(dmp, k=2)
-  plot(fit$points[,1], fit$points[,2], main="Nonmetric MDS of Genotypic Distance")
+  plot(fit$points[,1], fit$points[,2], main = "Nonmetric MDS of Genotypic Distance")
 }
 
 populationWardClustering <- function(p, k = 5) {
@@ -38,5 +38,5 @@ populationPlotWardClusteringMDS <- function(p, k = 5) {
   x <- fit$points[,1]
   y <- fit$points[,2]
   plot(x, y, type = "n", main = "Ward Clustering by Genotypic Distance, Nonmetric MDS")
-  text(x, y, labels = groups, cex=.7)
+  text(x, y, labels = groups, cex = 0.7)
 }
