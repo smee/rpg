@@ -31,6 +31,6 @@ print("DONE.")
 #srr1 <- multiNicheSymbolicRegression(y~x, df2, stopCondition=makeTimeStopCondition(10*60), passStopCondition=makeTimeStopCondition(30), individualSizeLimit=64, restartCondition=makeFitnessStagnationRestartCondition(), numberOfNiches=4)
 
 ## stop the compute cluster
-sfStop()‚
+sfStop()
 
 #pdf(width=7.5, height=2.5, file="~/Desktop/sr_test_functions.pdf"); par(mfrow=c(1,3), mar=c(3.1,2.1,2.1,1.1)); plot(DampedOscillator1D, type="l", main="1: Damped Oscillator 1D", xlab="", ylab=""); plot(UnwrappedBall1D, type="l", main="2: Unwrapped Ball 1D", xlab="", ylab=""); plot(Salustowicz1D, type="l", main="3: Salustowicz 1D", xlab="", ylab=""); dev.off()
