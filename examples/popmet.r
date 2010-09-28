@@ -25,7 +25,8 @@ populationWardClustering <- function(p, k = 5) {
 }
 
 populationPlotWardClusteringDendrogram <- function(p, k = 5) {
-  groups <- populationWardClustering(p, k) 
+  d <- populationDistanceMatrix(p)
+  fit <- hclust(d, method = "ward")
   plot(fit)
   rect.hclust(fit, k, border = "red")
 }
