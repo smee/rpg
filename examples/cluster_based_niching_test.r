@@ -28,15 +28,26 @@ makeSgpWorker <- function(data) {
     symbolicRegression(y ~ x, data, stopCondition = makeEvaluationsStopCondition(evaluationsPerRun), restartCondition = makeFitnessDistributionRestartCondition())
 }
 
-fngpRun <- function(data, evaluationsPerPass = ceiling(evaluationsPerRun / 50),
+fngpRun <- function(df, evaluationsPerPass = ceiling(evaluationsPerRun / 50),
                     nniches = 10, spop = 200) {
-  results <- list()
+  runRes <- list()
   for (i in 1:numberOfRuns) {
     print(sprintf("starting run %i/%i...", i, numberOfRuns))
-    results[[i]] <- multiNicheSymbolicRegression(y ~ x, data = data, stopCondition = makeEvaluationsStopCondition(evaluationsPerRun), passStopCondition = makeEvaluationsStopCondition(evaluationsPerPass), restartCondition = makeFitnessDistributionRestartCondition(), numberOfNiches = nniches, populationSize = spop)
+    runRes <- c(runRes, multiNicheSymbolicRegression(y ~ x, data = df, stopCondition = makeEvaluationsStopCondition(evaluationsPerRun), passStopCondition = makeEvaluationsStopCondition(evaluationsPerPass), restartCondition = makeFitnessDistributionRestartCondition(), numberOfNiches = nniches, populationSize = spop))
     print(sprintf("run %i/%i done", i, numberOfRuns))
   }
-  results
+  runRes
+}
+
+cbngpRun <- function(df, evaluationsPerPass = ceiling(evaluationsPerRun / 50),
+                     nniches = 10, spop = 200) {
+  runRes <- list()
+  for (i in 1:numberOfRuns) {
+    print(sprintf("starting run %i/%i...", i, numberOfRuns))
+    runRes <- c(runRes, multiNicheSymbolicRegression(y ~ x, data = df, stopCondition = makeEvaluationsStopCondition(evaluationsPerRun), passStopCondition = makeEvaluationsStopCondition(evaluationsPerPass), clusterFunction = makeHierarchicalClusterFunction(minNicheSize=10), restartCondition = makeFitnessDistributionRestartCondition(), numberOfNiches = nniches, populationSize = spop))
+    print(sprintf("run %i/%i done", i, numberOfRuns))
+  }
+  runRes
 }
 
 ## create baseline results with symbolic regression by standard GP
@@ -54,19 +65,23 @@ fngpRun <- function(data, evaluationsPerPass = ceiling(evaluationsPerRun / 50),
 #stopClst()
 
 ## create fixed niche results
-initClst()
-print("starting fixed niche runs...")
-fngpResultsSalustowicz1d <- fngpRun(dfSalustowicz1d)
+#print("starting fixed niching runs...")
+#fngpResultsSalustowicz1d <- fngpRun(dfSalustowicz1d)
+#print("1/3 done")
+#fngpResultsUnwrappedBall1d <- fngpRun(dfUnwrappedBall1d)
+#print("2/3 done")
+#fngpResultsDampedOscillator1d <- fngpRun(dfDampedOscillator1d)
+#print("DONE.")
+
+## create cluster based niching results
+print("starting cluster based niching runs...")
+cbngpResultsSalustowicz1d <- cbngpRun(dfSalustowicz1d)
 print("1/3 done")
-fngpResultsUnwrappedBall1d <- fngpRun(dfUnwrappedBall1d)
+cbngpResultsUnwrappedBall1d <- cbngpRun(dfUnwrappedBall1d)
 print("2/3 done")
-fngpResultsDampedOscillator1d <- fngpRun(dfDampedOscillator1d)
+cbngpResultsDampedOscillator1d <- cbngpRun(dfDampedOscillator1d)
 print("DONE.")
-stopClst()
 
 #srr1 <- multiNicheSymbolicRegression(y~x, df2, stopCondition=makeTimeStopCondition(10*60), passStopCondition=makeTimeStopCondition(30), individualSizeLimit=64, restartCondition=makeFitnessStagnationRestartCondition(), numberOfNiches=4)
-
-## stop the compute cluster
-sfStop()
 
 #pdf(width=7.5, height=2.5, file="~/Desktop/sr_test_functions.pdf"); par(mfrow=c(1,3), mar=c(3.1,2.1,2.1,1.1)); plot(DampedOscillator1D, type="l", main="1: Damped Oscillator 1D", xlab="", ylab=""); plot(UnwrappedBall1D, type="l", main="2: Unwrapped Ball 1D", xlab="", ylab=""); plot(Salustowicz1D, type="l", main="3: Salustowicz 1D", xlab="", ylab=""); dev.off()
