@@ -312,3 +312,27 @@ multiNicheSymbolicRegression <- function(formula, data,
   structure(append(gpModel, list(formula = formula(mf))),
                    class = c("symbolicRegressionModel", "geneticProgrammingResult"))
 }
+
+##' Clustering Populations for Niching
+##'
+##' These functions create \code{clusterFunction}s for
+##' \code{\link{multiNicheGeneticProgramming}} and \code{\link{multiNicheSymbolicRegression}}.
+##' \code{makeHierarchicalClusterFunction} returns a clustering function that uses Ward's
+##' agglomerative hierarchical clustering algorithm \code{\link{hclust}}.
+##'
+##' @param distanceMeasure A distance measure, used for calculating distances between individuals
+##'   in a population.
+##' @param minNicheSize The minimum number of individuals in each niche.
+##' @return A \code{clusterFunction} for clustering populations.
+##'
+##' @rdname populationClustering
+##' @seealso \code{\link{multiNicheGeneticProgramming}}, \code{\link{multiNicheSymbolicRegression}}
+##' @export
+makeHierarchicalClusterFunction <- function(distanceMeasure = normInducedFunctionDistance(exprVisitationLength),
+                                            minNicheSize = 1) {
+  function(p, numberOfClusters) {
+    dm <- customDist(p, distanceMeasure)
+    groups <- cutree(hclust(dm, method = "ward"), numberOfClusters)
+    Filter(function(niche) length(niche) > minNicheSize, splitList(p, groups))
+  }
+}
