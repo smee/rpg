@@ -169,7 +169,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
   logmsg("STARTING multi-niche genetic programming evolution run...")
   while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                         evaluationNumber = evaluationNumber, timeElapsed = timeElapsed)) {
-    logmsg("clustering population into % i niches", numberOfNiches)
+    logmsg("clustering population into %i niches", numberOfNiches)
     niches <- clusterFunction(pop, numberOfNiches) # cluster population into niches
     for (i in 1:length(niches)) class(niches[[i]]) <- popClass # niches should be of class "gp population"
     logmsg("multi-niche pass with %i niches, evolution steps %i, fitness evaluations: %i, best fitness: %f, time elapsed: %s",
