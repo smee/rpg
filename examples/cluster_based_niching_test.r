@@ -39,7 +39,7 @@ fngpRun <- function(df, evaluationsPerPass = ceiling(evaluationsPerRun / 50),
   runRes
 }
 
-cbngpRun <- function(df, evaluationsPerPass = ceiling(evaluationsPerRun / 50),
+cbngpRun <- function(df, evaluationsPerPass = ceiling(evaluationsPerRun / 10),
                      nniches = 10, spop = 200) {
   runRes <- list()
   for (i in 1:numberOfRuns) {
