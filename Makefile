@@ -46,7 +46,7 @@ package: clean roxygen
 	echo "Building package..."
 	-git stash save -q
 	echo "Date: $(date +%Y-%m-%d)" >> pkg/DESCRIPTION
-	git log --no-merges -M --date=iso --format=medium pkg/ > pkg/ChangeLog
+	git log --no-merges -M --date=iso pkg/ > pkg/ChangeLog
 	R CMD build pkg > build.log 2>&1
 	-git stash pop -q
 	rm -f pkg/ChangeLog
