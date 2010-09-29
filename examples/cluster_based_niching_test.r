@@ -14,29 +14,36 @@ dfUnwrappedBall1d <- data.frame(x=seq(from=-2, to=8, length.out=512), y=unwrappe
 dfDampedOscillator1d <- data.frame(x=seq(from=1, to=4*pi, length.out=512), y=dampedOscillator1d(seq(from=1, to=4*pi, length.out=512)))
 
 ## define cluster worker functions and tools
+initClst <- function() {
+  sfInit(cpus = 10, parallel = TRUE)
+  sfLibrary(rgp)
+  sfExport("evaluationsPerRun")
+  sfExport("numberOfRuns")
+}
+
+stopClst <- function() sfStop()
+
 makeSgpWorker <- function(data) {
   function(i)
     symbolicRegression(y ~ x, data, stopCondition = makeEvaluationsStopCondition(evaluationsPerRun), restartCondition = makeFitnessDistributionRestartCondition())
 }
 
-fngpRun <- function(data, evaluationsPerPass = ceiling(evaluationsPerRun / 10),
+fngpRun <- function(data, evaluationsPerPass = ceiling(evaluationsPerRun / 50),
                     nniches = 10, spop = 200) {
   results <- list()
   for (i in 1:numberOfRuns) {
+    print(sprintf("starting run %i/%i...", i, numberOfRuns))
     results[[i]] <- multiNicheSymbolicRegression(y ~ x, data = data, stopCondition = makeEvaluationsStopCondition(evaluationsPerRun), passStopCondition = makeEvaluationsStopCondition(evaluationsPerPass), restartCondition = makeFitnessDistributionRestartCondition(), numberOfNiches = nniches, populationSize = spop)
+    print(sprintf("run %i/%i done", i, numberOfRuns))
   }
   results
 }
 
-## initialize the compute cluster
-sfInit(cpus = 10, parallel = TRUE)
-sfLibrary(rgp)
-sfExport("evaluationsPerRun")
-sfExport("dfSalustowicz1d")
-sfExport("dfUnwrappedBall1d")
-sfExport("dfDampedOscillator1d")
-
 ## create baseline results with symbolic regression by standard GP
+#initClst()
+#sfExport("dfSalustowicz1d")
+#sfExport("dfUnwrappedBall1d")
+#sfExport("dfDampedOscillator1d")
 #print("starting baseline runs...")
 #sgpResultsSalustowicz1d <- sfClusterApplyLB(1:numberOfRuns, makeSgpWorker(dfSalustowicz1d))
 #print("1/3 done")
@@ -44,8 +51,10 @@ sfExport("dfDampedOscillator1d")
 #print("2/3 done")
 #sgpResultsDampedOscillator1d <- sfClusterApplyLB(1:numberOfRuns, makeSgpWorker(dfDampedOscillator1d))
 #print("DONE.")
+#stopClst()
 
 ## create fixed niche results
+initClst()
 print("starting fixed niche runs...")
 fngpResultsSalustowicz1d <- fngpRun(dfSalustowicz1d)
 print("1/3 done")
@@ -53,6 +62,7 @@ fngpResultsUnwrappedBall1d <- fngpRun(dfUnwrappedBall1d)
 print("2/3 done")
 fngpResultsDampedOscillator1d <- fngpRun(dfDampedOscillator1d)
 print("DONE.")
+stopClst()
 
 #srr1 <- multiNicheSymbolicRegression(y~x, df2, stopCondition=makeTimeStopCondition(10*60), passStopCondition=makeTimeStopCondition(30), individualSizeLimit=64, restartCondition=makeFitnessStagnationRestartCondition(), numberOfNiches=4)
 

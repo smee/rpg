@@ -77,8 +77,6 @@ NA
 ##'   parallel passes to CPUs in a compute cluster.
 ##' @param clusterExport A function that is used to export R variables to the nodes of
 ##'   a CPU cluster, defaults to \code{\link{sfExport}}.
-##' @param clusterLibrary A function that is used to load R package code into CPU cluster
-##'   nodes, defaults to \code{\link{sfLibrary}}.
 ##' @return A genetic programming result object that contains a GP population in the
 ##'   field \code{population}, as well as metadata describing the run parameters.
 ##'
@@ -105,8 +103,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                                          progressMonitor = NULL,
                                          verbose = TRUE,
                                          clusterApply = sfClusterApplyLB,
-                                         clusterExport = sfExport,
-                                         clusterLibrary = sfLibrary) {
+                                         clusterExport = sfExport) {
   ## Provide default parameters and initialize GP run...
   logmsg <- function(msg, ...) {
     if (verbose)
@@ -149,7 +146,6 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
   bestFitness <- Inf
 
   # Distribute multi-niche GP run to compute cluster...
-  clusterLibrary(rgp) # load RGP library on cluster
   clusterExport(list = variablesToExportToClusterNodes)
   passWorker <- function(niche)
     geneticProgramming(fitnessFunction,
@@ -266,8 +262,6 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
 ##'   parallel passes to CPUs in a compute cluster.
 ##' @param clusterExport A function that is used to export R variables to the nodes of
 ##'   a CPU cluster, defaults to \code{\link{sfExport}}.
-##' @param clusterLibrary A function that is used to load R package code into CPU cluster
-##'   nodes, defaults to \code{\link{sfLibrary}}.
 ##' @return An symbolic regression model that contains an untyped GP population.
 ##'
 ##' @seealso \code{\link{predict.symbolicRegressionModel}}, \code{\link{geneticProgramming}}
@@ -294,8 +288,7 @@ multiNicheSymbolicRegression <- function(formula, data,
                                          progressMonitor = NULL,
                                          verbose = TRUE,
                                          clusterApply = sfClusterApplyLB,
-                                         clusterExport = sfExport,
-                                         clusterLibrary = sfLibrary) {
+                                         clusterExport = sfExport) {
   ## Match variables in formula to those in data or parent.frame() and
   ## return them in a new data frame. This also expands any '.'
   ## arguments in the formula.  
@@ -314,7 +307,7 @@ multiNicheSymbolicRegression <- function(formula, data,
                                           crossoverFunction, mutationFunction,
                                           restartCondition, restartStrategy,
                                           progressMonitor, verbose,
-                                          clusterApply, clusterExport, clusterLibrary)
+                                          clusterApply, clusterExport)
   
   structure(append(gpModel, list(formula = formula(mf))),
                    class = c("symbolicRegressionModel", "geneticProgrammingResult"))
