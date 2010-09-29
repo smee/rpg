@@ -30,24 +30,22 @@ makeSgpWorker <- function(data) {
 
 fngpRun <- function(df, evaluationsPerPass = ceiling(evaluationsPerRun / 50),
                     nniches = 10, spop = 200) {
-  runRes <- c()
+  runRes <- rep(Inf, numberOfRuns)
   for (i in 1:numberOfRuns) {
     print(sprintf("starting run %i/%i...", i, numberOfRuns))
-    mngpRes <- multiNicheSymbolicRegression(y ~ x, data = df, stopCondition = makeEvaluationsStopCondition(evaluationsPerRun), passStopCondition = makeEvaluationsStopCondition(evaluationsPerPass), restartCondition = makeFitnessDistributionRestartCondition(), numberOfNiches = nniches, populationSize = spop)
-    print(sprintf("run %i/%i done", i, numberOfRuns))
-    runRes <- c(runRes, mngpRes$bestFitness)
+    runRes[i] <- (multiNicheSymbolicRegression(y ~ x, data = df, stopCondition = makeEvaluationsStopCondition(evaluationsPerRun), passStopCondition = makeEvaluationsStopCondition(evaluationsPerPass), restartCondition = makeFitnessDistributionRestartCondition(), numberOfNiches = nniches, populationSize = spop)
+    print(sprintf("run %i/%i done", i, numberOfRuns)))$bestFitness
   }
   runRes
 }
 
 cbngpRun <- function(df, evaluationsPerPass = ceiling(evaluationsPerRun / 10),
                      nniches = 10, spop = 200) {
-  runRes <- c()
+  runRes <- rep(Inf, numberOfRuns)
   for (i in 1:numberOfRuns) {
     print(sprintf("starting run %i/%i...", i, numberOfRuns))
-    mngpRes <- multiNicheSymbolicRegression(y ~ x, data = df, stopCondition = makeEvaluationsStopCondition(evaluationsPerRun), passStopCondition = makeEvaluationsStopCondition(evaluationsPerPass), clusterFunction = makeHierarchicalClusterFunction(minNicheSize = 10), restartCondition = makeFitnessDistributionRestartCondition(), numberOfNiches = nniches, populationSize = spop)
+    runRes[i] <- (multiNicheSymbolicRegression(y ~ x, data = df, stopCondition = makeEvaluationsStopCondition(evaluationsPerRun), passStopCondition = makeEvaluationsStopCondition(evaluationsPerPass), clusterFunction = makeHierarchicalClusterFunction(minNicheSize = 10), restartCondition = makeFitnessDistributionRestartCondition(), numberOfNiches = nniches, populationSize = spop))$bestFitness
     print(sprintf("run %i/%i done", i, numberOfRuns))
-    runRes <- c(runRes, mngpRes$bestFitness)
   }
   runRes
 }
