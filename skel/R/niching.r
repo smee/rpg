@@ -166,13 +166,14 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
   environment(passWorker) <- globalenv()
 
   ## Execute multi-niche GP run...
-  niches <- clusterFunction(pop, numberOfNiches) # cluster population into niches
-  for (i in 1:numberOfNiches) class(niches[[i]]) <- popClass # niches should be of class "gp population"
   logmsg("STARTING multi-niche genetic programming evolution run...")
   while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                         evaluationNumber = evaluationNumber, timeElapsed = timeElapsed)) {
+    logmsg("clustering population into % i niches", numberOfNiches)
+    niches <- clusterFunction(pop, numberOfNiches) # cluster population into niches
+    for (i in 1:length(niches)) class(niches[[i]]) <- popClass # niches should be of class "gp population"
     logmsg("multi-niche pass with %i niches, evolution steps %i, fitness evaluations: %i, best fitness: %f, time elapsed: %s",
-           numberOfNiches, stepNumber, evaluationNumber, bestFitness, formatSeconds(timeElapsed))
+           length(niches), stepNumber, evaluationNumber, bestFitness, formatSeconds(timeElapsed))
     passResults <- clusterApply(niches, passWorker)
     bestFitness <- min(c(as.numeric(Map(function(passResult) passResult$bestFitness, passResults)), bestFitness))
     timeElapsed <- proc.time()["elapsed"] - startTime
