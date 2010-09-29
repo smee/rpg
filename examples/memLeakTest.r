@@ -1,3 +1,6 @@
+# memleaktest.r
+#
+
 gcinfo(TRUE)
 
 leaks <- function(r, n, funs = NA) {
