@@ -33,8 +33,8 @@ fngpRun <- function(df, evaluationsPerPass = ceiling(evaluationsPerRun / 50),
   runRes <- rep(Inf, numberOfRuns)
   for (i in 1:numberOfRuns) {
     print(sprintf("starting run %i/%i...", i, numberOfRuns))
-    runRes[i] <- (multiNicheSymbolicRegression(y ~ x, data = df, stopCondition = makeEvaluationsStopCondition(evaluationsPerRun), passStopCondition = makeEvaluationsStopCondition(evaluationsPerPass), restartCondition = makeFitnessDistributionRestartCondition(), numberOfNiches = nniches, populationSize = spop)
-    print(sprintf("run %i/%i done", i, numberOfRuns)))$bestFitness
+    runRes[i] <- (multiNicheSymbolicRegression(y ~ x, data = df, stopCondition = makeEvaluationsStopCondition(evaluationsPerRun), passStopCondition = makeEvaluationsStopCondition(evaluationsPerPass), restartCondition = makeFitnessDistributionRestartCondition(), numberOfNiches = nniches, populationSize = spop))$bestFitness
+    print(sprintf("run %i/%i done", i, numberOfRuns))
   }
   runRes
 }
