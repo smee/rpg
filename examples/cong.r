@@ -14,11 +14,11 @@ congType <- function(m = 2,
 # The continous genotype (cong) of an R expression expr of max function arity m
 # consists of m ^ exprDepth(expr) - 1 codons. Each codon is of the following format:
 # |- function genes -|- inVar genes -|- const gene -|
-exprToCong <- function(expr, congType) {
+exprToCong <- function(expr, congType, d = exprDepth(expr)) {
   funcSetLen <- length(congType$funcSet)
   inSetLen <- length(congType$inSet)
   codonLen <- funcSetLen + inSetLen + 1
-  exprNodes <- congType$m ^ exprDepth(expr) - 1
+  exprNodes <- congType$m ^ d - 1
   cong <- rep(0, codonLen * exprNodes)
   buildCong <- function(subExpr, n) {
     codonStart <- n * codonLen
@@ -37,8 +37,15 @@ exprToCong <- function(expr, congType) {
   cong
 }
 
-congToExpr <- function(cong)
+congToExpr <- function(cong, congType, scale = `*`, join = sum) {
+  congLen <- length(cong)
+  funcSetLen <- length(congType$funcSet)
+  inSetLen <- length(congType$inSet)
+  codonLen <- funcSetLen + inSetLen + 1
+  codons <- congLen / codonLen
+  # TODO
   NULL
+}
 
 congToMatrix <- function(cong, congType) {
   congMatrix <- t(matrix(cong, nrow = length(congType$funcSet) + length(congType$inSet) + 1))
