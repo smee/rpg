@@ -10,8 +10,8 @@ require(twiddler)
 # cong implementation
 #
 congType <- function(m = 2,
-                     funcSet = c("+", "-", "*", "/", "exp", "log"),
-                     funcArities = c(2, 2, 2, 2, 1, 1),
+                     funcSet = c("+", "-", "*", "/", "exp"),
+                     funcArities = c(2, 2, 2, 2, 1),
                      inSet = c("x"))
   structure(list(m = m, funcSet = funcSet, funcArities = funcArities, inSet = inSet),
             class = c("congType", "list"))
