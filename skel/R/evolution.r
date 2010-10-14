@@ -146,7 +146,7 @@ geneticProgramming <- function(fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- selA$numberOfFitnessEvaluations + selB$numberOfFitnessEvaluations + evaluationNumber
-    progmon(pop = pop, fitnessFunction = Fitnessfunction, stepNumber = stepNumber,
+    progmon(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
             evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
   }
   elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
