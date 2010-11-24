@@ -17,7 +17,7 @@ generic <- function(defaultMethod = no.default.method) {
   generic <- new.function()
   formals(generic) <- formals(defaultMethod)
   body(generic) <- body(function(...) {
-    print(paste("methods:", attr(generic, "methods"))) # TODO
+    print(attr(sys.function(), "methods")) # TODO
   })
   class(generic) <- c("generic", "function")
   attr(generic, "methods") <- list(list(true.predicate, defaultMethod))
@@ -29,8 +29,8 @@ no.default.method <- function(...)
 
 add.method <- function(generic, predicate, methodFunction) {
   if (!inherits(generic, "generic")) stop("add.method: first argument must be a generic")
-  if (!inherits(generic, "predicate")) stop("add.method: second argument must be a predicate")
-  if (!inherits(generic, "function")) stop("add.method: third argument must be a function")
+  if (!inherits(predicate, "predicate")) stop("add.method: second argument must be a predicate")
+  if (!inherits(methodFunction, "function")) stop("add.method: third argument must be a function")
   # TODO add method precedence inference via the predicate implication relation
   attr(generic, "methods") <- c(list(predicate, methodFunction), attr(generic, "methods"))
   generic
@@ -42,17 +42,19 @@ dispatch.generic <- function(generic, ...) {
   NULL
 }
 
-predicate <- function(predicateFunction, predicateClass = NA) {
+predicate <- function(predicateFunction, predicateStructure) {
   if (!inherits(predicateFunction, "function")) stop("predicate: first argument must be a function")
   predicate <- predicateFunction
-  if (is.na(predicateClass))
-    class(predicate) <- c("predicate", "function")
-  else
-    class(predicate) <- c(predicateClass, "predicate", "function")
+  class(predicate) <- c("predicate", "function")
   predicate
 }
 
-true.predicate <- predicate(function(...) TRUE, "true.predicate")
-false.predicate <- predicate(function(...) FALSE, "false.predicate")
+true.predicate <- predicate(function(...) TRUE, quote(true.predicate))
+false.predicate <- predicate(function(...) FALSE, quote(false.predicate))
+inherits.predicate <- predicate(function(x, whatClass) inherits(x, whatClass),
+                                list(quote(inherits.predicate), x, whatClass))
 
 # TODO add and.predicate, or.predicate, not.predicate
+and.predicate <- function(...) TRUE # TODO
+or.predicate <- function(...) FALSE # TODO
+not.predicate <- function(predicate) FALSE # TODO
