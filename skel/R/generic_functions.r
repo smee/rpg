@@ -12,16 +12,23 @@ NA
 
 ##' Generic functions with predicate dispatch
 ##'
-##' TODO
-generic <- function(defaultMethod = no.default.method) {
-  generic <- new.function()
-  formals(generic) <- formals(defaultMethod)
-  body(generic) <- body(function(...) {
-    print(attr(sys.function(), "methods")) # TODO
+##' TODO add possibility to add methods directly in the generic definition
+generic <- function(defaultMethodFunction = no.default.method) {
+  genericFunction <- new.function()
+  formals(genericFunction) <- formals(defaultMethodFunction)
+  body(genericFunction) <- body(function(...) {
+    methods <- attr(sys.function(), "methods")
+    for (method in methods) {
+	  if (eval(body(method$predicateFunction))) { # method predicate is true
+		return(eval(body(method$methodFunction)))
+	  }
+	}
+	stop("generic: no matching method") # this should never happen
   })
-  class(generic) <- c("generic", "function")
-  attr(generic, "methods") <- list(list(true.predicate, defaultMethod))
-  generic
+  class(genericFunction) <- c("generic", "function")
+  defaultMethod <- list(predicateFunction = function(...) TRUE, methodFunction = defaultMethodFunction)
+  attr(genericFunction, "methods") <- list(defaultMethod)
+  genericFunction
 }
 
 no.default.method <- function(...)
@@ -29,10 +36,17 @@ no.default.method <- function(...)
 
 add.method <- function(generic, predicate, methodFunction) {
   if (!inherits(generic, "generic")) stop("add.method: first argument must be a generic")
-  if (!inherits(predicate, "predicate")) stop("add.method: second argument must be a predicate")
   if (!inherits(methodFunction, "function")) stop("add.method: third argument must be a function")
+  #if (formals(generic) != formals(methodFunction)) stop("add.method: formal parameters of methodFunction must match the formal parameters of the generic")
+  predicateExpression <- substitute(predicate)
+  predicateFunction <- new.function()
+  formals(predicateFunction) <- formals(generic)
+  body(predicateFunction) <- predicateExpression
   # TODO add method precedence inference via the predicate implication relation
-  attr(generic, "methods") <- c(list(predicate, methodFunction), attr(generic, "methods"))
+  # TODO bug?: this leaves the attributes of generic unchanged, because generic is a copy!!!
+  method <- list(predicateFunction = predicateFunction, methodFunction = methodFunction)
+  attr(generic, "methods") <- c(list(method), # second "list" because c() flattens its arguments
+                                attr(generic, "methods"))
   generic
 }
 
@@ -41,20 +55,3 @@ list.methods <- NULL
 dispatch.generic <- function(generic, ...) {
   NULL
 }
-
-predicate <- function(predicateFunction, predicateStructure) {
-  if (!inherits(predicateFunction, "function")) stop("predicate: first argument must be a function")
-  predicate <- predicateFunction
-  class(predicate) <- c("predicate", "function")
-  predicate
-}
-
-true.predicate <- predicate(function(...) TRUE, quote(true.predicate))
-false.predicate <- predicate(function(...) FALSE, quote(false.predicate))
-inherits.predicate <- predicate(function(x, whatClass) inherits(x, whatClass),
-                                list(quote(inherits.predicate), x, whatClass))
-
-# TODO add and.predicate, or.predicate, not.predicate
-and.predicate <- function(...) TRUE # TODO
-or.predicate <- function(...) FALSE # TODO
-not.predicate <- function(predicate) FALSE # TODO
