@@ -94,13 +94,15 @@ inversePermutation <- function(x) {
 ##' Returns a unformly random chosen element of the vector or list \code{x}.
 ##'
 ##' @param x The vector or list to chose an element from.
+##' @param prob A vector of probability weights for obtaining the elements of the
+##'   vector or list being sampled.
 ##' @return A uniformly random element of \code{x}.
-randelt <- function(x) {
+randelt <- function(x, prob = NULL) {
   l <- length(x)
   if (l == 0)
     NULL
   else
-    sample(x, 1)[[1]] # sample(x, 1) always yields a list of exactly one element
+    sample(x, 1, prob = prob)[[1]] # sample(x, 1) always yields a list of exactly one element
 }
 
 ##' Splitting and grouping of lists

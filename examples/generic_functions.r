@@ -23,7 +23,7 @@ generic <- function(defaultMethodFunction = no.default.method) {
 		return(eval(body(method$methodFunction)))
 	  }
 	}
-	stop("generic: no matching method") # this should never happen
+	stop("generic: internal error (no matching method)") # this should never happen
   })
   class(genericFunction) <- c("generic", "function")
   defaultMethod <- list(predicateFunction = function(...) TRUE, methodFunction = defaultMethodFunction)
@@ -34,10 +34,12 @@ generic <- function(defaultMethodFunction = no.default.method) {
 no.default.method <- function(...)
   stop("no applicable method for arguments (", paste(..., sep = ","), ")")
 
-add.method <- function(generic, predicate, methodFunction) {
+add.method <- function(generic, predicate, methodFunction, m) {
   if (!inherits(generic, "generic")) stop("add.method: first argument must be a generic")
   if (!inherits(methodFunction, "function")) stop("add.method: third argument must be a function")
-  #if (formals(generic) != formals(methodFunction)) stop("add.method: formal parameters of methodFunction must match the formal parameters of the generic")
+  if (!length(formals(generic)) != length(formals(methodFunction))
+      || !all(names(formals(generic)) == names(formals(methodFunction))))
+    stop("add.method: methodFunction must have the same formal parameters as the generic's default function")
   predicateExpression <- substitute(predicate)
   predicateFunction <- new.function()
   formals(predicateFunction) <- formals(generic)
