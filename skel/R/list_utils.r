@@ -75,6 +75,39 @@ sortByRanking <- function(xs, ranking = rank(xs)) {
   sorted
 }
 
+##' Sorting algorithms for vectors and lists
+##'
+##' These algorithms sort a list or vector by a given order relation (which
+##' defaults to \code{<=}).
+##' \code{insertionSort} is a stable O(n^2) sorting algorithm that is quite efficient
+##' for very small sets (less than around 20 elements). Use an O(n*log(n)) algorithm
+##' for larger sets.
+##'
+##' @param xs The vector or list to sort.
+##' @param orderRelation The orderRelation to sort \code{xs} by (defaults to \code{`<=`}).
+##' This relation by should reflexive, antisymetric, and transitive.
+##' @return The vector or list \code{xs} sorted by the order relation \code{orderRelation}.
+##'
+##' @rdname sortingAlgorithms
+insertionSort <- function(xs, orderRelation = `<=`) {
+  sorted <- xs
+  l <- length(sorted)
+  if (l <= 1) {
+    sorted
+  } else {
+    for (i in 2:l) {
+      xi <- xs[[i]]
+      j <- i
+      while (j > 1 &&  sorted[[j - 1]] > xi) {
+        sorted[[j]] <- sorted[[j - 1]]
+        j <- j - 1
+      }
+      sorted[[j]] <- xi
+    }
+    sorted
+  }
+}
+
 ##' Calculate the inverse of a permutation
 ##'
 ##' Returns the inverse of a permutation \code{x} given as an integer vector.
