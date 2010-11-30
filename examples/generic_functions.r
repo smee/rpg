@@ -8,6 +8,7 @@
 ##
 
 ##' @include function_utils.r
+##' @include list_utils.r
 NA
 
 ##' Generic functions with predicate dispatch
@@ -19,11 +20,11 @@ generic <- function(defaultMethodFunction = no.default.method) {
   body(genericFunction) <- body(function(...) {
     methods <- attr(sys.function(), "methods")
     for (method in methods) {
-	  if (eval(body(method$predicateFunction))) { # method predicate is true
-		return(eval(body(method$methodFunction)))
-	  }
-	}
-	stop("generic: internal error (no matching method)") # this should never happen
+      if (eval(body(method$predicateFunction))) { # method predicate is true
+        return(eval(body(method$methodFunction)))
+      }
+    }
+    stop("generic: internal error (no matching method)") # this should never happen
   })
   class(genericFunction) <- c("generic", "function")
   defaultMethod <- list(predicateFunction = function(...) TRUE, methodFunction = defaultMethodFunction)
@@ -37,23 +38,29 @@ no.default.method <- function(...)
 add.method <- function(generic, predicate, methodFunction, m) {
   if (!inherits(generic, "generic")) stop("add.method: first argument must be a generic")
   if (!inherits(methodFunction, "function")) stop("add.method: third argument must be a function")
-  if (!length(formals(generic)) != length(formals(methodFunction))
+  if (length(formals(generic)) != length(formals(methodFunction))
       || !all(names(formals(generic)) == names(formals(methodFunction))))
-    stop("add.method: methodFunction must have the same formal parameters as the generic's default function")
+    stop("add.method: methodFunction must have the same formal parameters as the generic's default function (",
+         "has '", names(formals(methodFunction)),
+         "' but expected '", names(formals(generic)), "')")
   predicateExpression <- substitute(predicate)
   predicateFunction <- new.function()
   formals(predicateFunction) <- formals(generic)
   body(predicateFunction) <- predicateExpression
-  # TODO add method precedence inference via the predicate implication relation
-  # TODO bug?: this leaves the attributes of generic unchanged, because generic is a copy!!!
   method <- list(predicateFunction = predicateFunction, methodFunction = methodFunction)
-  attr(generic, "methods") <- c(list(method), # second "list" because c() flattens its arguments
-                                attr(generic, "methods"))
+  methods <- c(list(method), # second "list" because c() flattens its arguments
+               attr(generic, "methods"))
+  sortedMethods <- insertionSort(methods, methodImplication)
+  # note that this assignment leaves the attributes of the formal parameter generic unchanged,
+  # because generic is a copy
+  attr(generic, "methods") <- sortedMethods
   generic
 }
 
-list.methods <- NULL
+methodImplication <- NULL # TODO
+
+list.methods <- NULL # TODO
 
 dispatch.generic <- function(generic, ...) {
   NULL
-}
+} # TODO
