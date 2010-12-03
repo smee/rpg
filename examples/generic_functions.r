@@ -50,14 +50,17 @@ add.method <- function(generic, predicate, methodFunction, m) {
   method <- list(predicateFunction = predicateFunction, methodFunction = methodFunction)
   methods <- c(list(method), # second "list" because c() flattens its arguments
                attr(generic, "methods"))
-  sortedMethods <- insertionSort(methods, methodImplication)
+  sortedMethods <- tryCatch(insertionSort(methods, predicateImplication),
+                            error = function(e) stop("add.method: TODO")) # TODO
   # note that this assignment leaves the attributes of the formal parameter generic unchanged,
   # because generic is a copy
   attr(generic, "methods") <- sortedMethods
   generic
 }
 
-methodImplication <- NULL # TODO
+predicateImplication <- function(predicateA, predicateB) {
+  stop("methodImplication: TODO") # TODO
+}
 
 list.methods <- NULL # TODO
 
