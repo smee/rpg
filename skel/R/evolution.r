@@ -12,19 +12,20 @@
 ##' @include time_utils.r
 NA
 
-##' Standard genetic programming
+##' Standard typed and untyped genetic programming
 ##'
-##' Perform a standard genetic programming (GP) run. The required argument
-##' \code{fitnessFunction} must be supplied with an objective function that assigns a
-##' numerical fitness value to an R function. Fitness values are minimized, i.e. smaller
-##' values denote higher/better fitness. If a multi-objective \code{selectionFunction} is
-##' used, \code{fitnessFunction} return a numerical vector of fitness values.
-##' The result of the GP run is a GP result object containing a GP population of R
-##' functions. \code{summary.geneticProgrammingResult} can be used to create summary views
-##' of a GP result object. During the run, restarts are triggered by the
-##' \code{restartCondition}. When a restart is triggered, the restartStrategy is executed,
-##' which returns a new population to replace the current one as well as a list of elite
-##' individuals. These are added to the runs elite list, where fitter individuals replace
+##' Perform a standard genetic programming (GP) run. Use \code{geneticProgramming} for
+##' untyped genetic programming or \code{typedGeneticProgramming} for typed genetic
+##' programming runs. The required argument \code{fitnessFunction} must be supplied with
+##' an objective function that assigns a numerical fitness value to an R function. Fitness
+##' values are minimized, i.e. smaller values denote higher/better fitness. If a
+##' multi-objective \code{selectionFunction} is used, \code{fitnessFunction} return a
+##' numerical vector of fitness values. The result of the GP run is a GP result object
+##' containing a GP population of R functions. \code{summary.geneticProgrammingResult} can
+##' be used to create summary views of a GP result object. During the run, restarts are
+##' triggered by the \code{restartCondition}. When a restart is triggered, the restartStrategy
+##' is executed, which returns a new population to replace the current one as well as a list of
+##' elite individuals. These are added to the runs elite list, where fitter individuals replace
 ##' individuals with lesser fittness. The runs elite list is always sorted by fitness in
 ##' ascending order. Only the first component of a multi-criterial fitness counts in this
 ##' sorting. After a GP run, the population is inserted into the elite list. The elite list
@@ -36,6 +37,8 @@ NA
 ##'   Smaller fitness values mean higher/better fitness. If a multi-objective
 ##'   selection function is used, \code{fitnessFunction} must return a numerical
 ##'   vector of fitness values.
+##' @param type The range type of the individual functions. This parameter
+##'   only applies to \code{typedGeneticProgramming}.
 ##' @param stopCondition The stop condition for the evolution main loop. See
 ##'   \link{makeStepsStopCondition} For details.
 ##' @param population The GP population to start the run with. If this parameter
@@ -66,6 +69,7 @@ NA
 ##'   field \code{population}, as well as metadata describing the run parameters.
 ##'
 ##' @seealso \code{\link{summary.geneticProgrammingResult}}, \code{\link{symbolicRegression}}
+##' @rdname geneticProgramming
 ##' @export
 geneticProgramming <- function(fitnessFunction,
                                stopCondition = makeTimeStopCondition(5),
@@ -168,6 +172,47 @@ geneticProgramming <- function(fitnessFunction,
                  mutationFunction = mutatefunc,
                  restartCondition = restartCondition,
                  restartStrategy = restartStrategy), class = "geneticProgrammingResult")
+}
+
+##' @rdname geneticProgramming
+##' @export
+typedGeneticProgramming <- function(fitnessFunction,
+                                    type,
+                                    stopCondition = makeTimeStopCondition(5),
+                                    population = NULL,
+                                    populationSize = 100,
+                                    eliteSize = ceiling(0.1 * populationSize),
+                                    elite = list(),
+                                    functionSet = typedMathLogicalFuncset,
+                                    inputVariables = inputVariableSet("x" %::% st("numeric")),
+                                    constantSet = typedNumericLogicalConstantSet,
+                                    selectionFunction = makeTournamentSelection(),
+                                    crossoverFunction = crossoverTyped,
+                                    mutationFunction = NULL,
+                                    restartCondition = makeEmptyRestartCondition(),
+                                    restartStrategy = makeLocalRestartStrategy(populationType = type),
+                                    progressMonitor = NULL,
+                                    verbose = TRUE) {
+  pop <-
+    if (is.null(population))
+      makeTypedPopulation(populationSize, type, functionSet, inputVariables, constantSet)
+    else
+      population
+  mutatefunc <-
+    if (is.null(mutationFunction)) {
+      function(ind) mutateSubtreeTyped(mutateFuncTyped(mutateNumericConstTyped(ind),
+                                                       functionSet, mutatefuncprob = 0.01),
+                                       functionSet, inputVariables, constantSet,
+                                       mutatesubtreeprob = 0.01)
+    } else mutationFunction
+  geneticProgramming(fitnessFunction, stopCondition = stopCondition, population = pop,
+                     populationSize = populationSize, eliteSize = eliteSize, elite = elite,
+                     functionSet = functionSet,
+                     inputVariables = inputVariables,
+                     constantSet = constantSet, selectionFunction = selectionFunction,
+                     crossoverFunction = crossoverFunction, mutationFunction = mutatefunc,
+                     restartCondition = restartCondition, restartStrategy = restartStrategy,
+                     progressMonitor = progressMonitor, verbose = verbose)
 }
 
 ##' Join elite lists
@@ -445,13 +490,20 @@ makeFitnessDistributionRestartCondition <- function(testFrequency = 100,
 ##' new individuals. The single best individual is returned as the elite. When using a
 ##' multi-criterial fitness function, only the first component counts in the fitness sorting.
 ##'
+##' @param populationType The sType of the replacement individuals, defaults to \code{NULL} for
+##'   creating untyped populations.
+##'
 ##' @rdname evolutionRestartStrategies
 ##' @export
-makeLocalRestartStrategy <- function() {
+makeLocalRestartStrategy <- function(populationType = NULL) {
   restartStrategy <- function(fitnessFunction, population, populationSize, functionSet, inputVariables, constantSet) {
     fitnessValues <- as.numeric(Map(function(ind) fitnessFunction(ind)[1], population))
     bestInd <- population[[which.min(fitnessValues)]]
-    restartedPopulation <- makePopulation(populationSize, functionSet, inputVariables, constantSet)
+    restartedPopulation <-
+      if (is.null(populationType))
+        makePopulation(populationSize, functionSet, inputVariables, constantSet)
+      else
+        makeTypedPopulation(populationSize, populationType, functionSet, inputVariables, constantSet)
     list(population = restartedPopulation, elite = list(bestInd))
   }
   class(restartStrategy) <- c("restartStrategy", "function")
@@ -601,6 +653,9 @@ ifThenElse <- function(x, thenbranch, elsebranch) ifelse(x, thenbranch, elsebran
 ##'
 ##' \code{numericConstantSet} is an untyped constant factory set containing a single
 ##' constant factory that creates numeric constants via calls to \code{runif(1, -1, 1)}.
+##' \code{typedNumericLogicalConstantSet} is a typed constant factory set containing
+##' a constant factory for \code{runif(1, -1, 1)}-created numerical and another for
+##' \code{runif(1) > .5}-created logical constants.
 ##'
 ##' \code{typedArithmeticFuncset} is a typed function set containing the functions
 ##' "+", "-", "*", and "/".
@@ -637,6 +692,11 @@ mathFunctionSet <- c(arithmeticFunctionSet, expLogFunctionSet, trigonometricFunc
 ##' @rdname defaultGPFunctionAndConstantSets
 ##' @export
 numericConstantSet <- constantFactorySet(function() runif(1, -1, 1))
+
+##' @rdname defaultGPFunctionAndConstantSets
+##' @export
+typedNumericLogicalConstantSet <- constantFactorySet((function() runif(1, -1, 1)) %::% (list() %->% st("numeric")),
+                                                     (function() runif(1) > .5) %::% (list() %->% st("logical")))
 
 ##' @rdname defaultGPFunctionAndConstantSets
 ##' @export

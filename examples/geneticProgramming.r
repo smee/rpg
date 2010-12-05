@@ -3,7 +3,7 @@
 # 2010 Oliver Flasch
 #
 
-require(rgp)
+library(rgp)
 
 
 functionSet1 <- functionSet("+", "*", "-", "/", "exp", "log")

@@ -44,7 +44,7 @@ randomCall <- function(type, funcset, conset, inset = inputVariableSet(), maxdep
   if (inherits(type, "sFunctionType")) { # create a random function expression...
     if (runif(1) > subtreeprob || curdepth >= maxdepth) { # select an existing function...
       funcname <- randelt(funcset$byType[[type$string]])
-      if (is.null(funcname)) stop("Could not find a function of type ", type$string, ".")
+      if (is.null(funcname)) stop("randomCall: Could not find a function of type ", type$string, ".")
       funcname
     } else { # create a random function expression...
       newinset <- inputVariableSet(list=Map(function(pIdx, pType) paste("x", pIdx, sep="") %::% pType,
@@ -62,14 +62,14 @@ randomCall <- function(type, funcset, conset, inset = inputVariableSet(), maxdep
     if (runif(1) > subtreeprob || curdepth >= maxdepth) { # create a terminal expression...
       if (runif(1) <= constprob || is.empty(inset$byType[[type$string]])) { # create a constant...
         constfactory <- randelt(conset$byType[[type$string]])
-        if (is.null(constfactory)) stop("Could not find a constant factory for type ", type$string, ".")
+        if (is.null(constfactory)) stop("randomCall: Could not find a constant factory for type ", type$string, ".")
         constfactory() %::% type
       } else { # select an existing formal parameter...
         randelt(inset$byType[[type$string]])
       }
     } else { # create a nested expression...
       funcname <- randelt(funcset$byRange[[type$string]])
-      if (is.null(funcname)) stop("Could not find a function of range type ", type$string, ".")
+      if (is.null(funcname)) stop("randomCall: Could not find a function of range type ", type$string, ".")
       functype <- sType(funcname)
       funcdomaintypes <- functype$domain
       newvexpr <-
@@ -79,7 +79,7 @@ randomCall <- function(type, funcset, conset, inset = inputVariableSet(), maxdep
                            funcdomaintypes)))
       newvexpr %::% type
     }
-  } else stop("Invalid type requested: ", type, ".")
+  } else stop("randomCall: Invalid type requested: ", type, ".")
 }
 
 ##' Creates an R expression by random growth
@@ -203,6 +203,7 @@ randexprTypedGrow <- function(type, funcset, inset, conset,
                               maxdepth = 16,
                               constprob = 0.5, subtreeprob = 0.5,
                               curdepth = 1) {
+  if (is.null(type)) stop("randexprTypedGrow: Type must not be NULL.")
   constprob <- if (is.empty(conset$all)) 0.0 else constprob
   typeString <- type$string
   insetTypes <- Map(sType, inset$all)
@@ -211,7 +212,7 @@ randexprTypedGrow <- function(type, funcset, inset, conset,
   } else { # maximum depth not reached, create subtree or terminal
   	if (runif(1) <= subtreeprob) { # create subtree of correct type
       funcname <- randelt(funcset$byRange[[typeString]])
-      if (is.null(funcname)) stop("Could not find a function of range type ", typeString, ".")
+      if (is.null(funcname)) stop("randexprTypedGrow: Could not find a function of range type ", typeString, ".")
       functype <- sType(funcname)
       funcdomaintypes <- functype$domain
       newSubtree <-
@@ -273,13 +274,13 @@ randfuncTypedRampedHalfAndHalf <- function(type, funcset, inset, conset, maxdept
 randterminalTyped <- function(typeString, inset, conset, constprob) {
   if (runif(1) <= constprob) { # create constant of correct type
     constfactory <- randelt(conset$byRange[[typeString]])
-    if (is.null(constfactory)) stop("Could not find a constant factory for type ", typeString, ".")
+    if (is.null(constfactory)) stop("randterminalTyped: Could not find a constant factory for type ", typeString, ".")
     constfactory()
   } else { # create input variable of correct type
     invar <- randelt(inset$byRange[[typeString]])
     if (is.null(invar)) { # there are no input variables of the requested type, try to create a contant instead
       constfactory <- randelt(conset$byRange[[typeString]])
-      if (is.null(constfactory)) stop("Could not find a constant factory for type ", typeString, ".")
+      if (is.null(constfactory)) stop("randterminalTyped: Could not find a constant factory for type ", typeString, ".")
       constfactory()
     } else {
       invar
