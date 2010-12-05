@@ -58,8 +58,8 @@ add.method <- function(generic, predicate, methodFunction, m) {
   generic
 }
 
-predicateImplication <- function(predicateA, predicateB) {
-  stop("methodImplication: TODO") # TODO
+`%implies%` <- function(predicateA, predicateB) {
+  stop("`%implies%`": TODO") # TODO
 }
 
 list.methods <- NULL # TODO
