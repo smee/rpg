@@ -85,11 +85,13 @@ sortByRanking <- function(xs, ranking = rank(xs)) {
 ##'
 ##' @param xs The vector or list to sort.
 ##' @param orderRelation The orderRelation to sort \code{xs} by (defaults to \code{`<=`}).
-##' This relation by should reflexive, antisymetric, and transitive.
+##'   This relation by should reflexive, antisymetric, and transitive.
 ##' @return The vector or list \code{xs} sorted by the order relation \code{orderRelation}.
 ##'
 ##' @rdname sortingAlgorithms
-insertionSort <- function(xs, orderRelation = `<=`) {
+##' @export
+insertionSort <- function(xs, orderRelation = NULL) {
+  orderRelation <- if (is.null(orderRelation)) `<=` else orderRelation
   sorted <- xs
   l <- length(sorted)
   if (l <= 1) {
