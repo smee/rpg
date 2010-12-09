@@ -26,13 +26,15 @@ typedTrigonometricFunctionSet <- functionSet("sin" %::% (list(st("numeric")) %->
 
 typedMathFunctionSet <- c(typedArithmeticFunctionSet, typedExpLogFunctionSet, typedTrigonometricFunctionSet)
 
-typedLogicalFunctionSet <- functionSet("<" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
-                                       ">" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
-                                       "==" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
-                                       "ifThenElse" %::% (list(st("logical"), st("numeric"), st("numeric")) %->% st("numeric")),
-                                       "&" %::% (list(st("logical"), st("logical")) %->% st("logical")),
+typedBooleanFunctionSet <- functionSet("&" %::% (list(st("logical"), st("logical")) %->% st("logical")),
                                        "|" %::% (list(st("logical"), st("logical")) %->% st("logical")),
                                        "!" %::% (list(st("logical")) %->% st("logical")))
+
+typedLogicalFunctionSet <- c(typedBooleanFunctionSet,
+                             functionSet("<" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
+                                         ">" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
+                                         "==" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
+                                         "ifThenElse" %::% (list(st("logical"), st("numeric"), st("numeric")) %->% st("numeric"))))
 
 typedMathLogicalFunctionSet <- c(typedMathFunctionSet, typedLogicalFunctionSet)
 
@@ -79,10 +81,54 @@ typedSvmKernelFunctionSet <- functionSet("exp" %::% (list(st("numeric")) %->% st
                                          "%v^%" %::% (list(st("numericVector"), st("numeric")) %->% st("numericVector")))
 
 
-# Evolution wrapper functions...
+# Fitness functions...
 # ---
 sizeFitnessFunction <- function(f) 0 - funcSize(f) # grow large functions for testing
 
+# integerToBoolean
+# convert a scalar positive integer (or zero) to its binary representation as list of logicals
+integerToLogicals <- function(i, width = floor(log(base = 2, i) + 1)) {
+  k <- i
+  result <- list()
+  l <- 0
+  while (k != 0) {
+    bit <- as.logical(k %% 2)
+    result <- c(bit, result)
+    k <- k %/% 2
+    l <- l + 1
+  }
+  if (width - l < 0) stop("integerToLogicals: width to small")
+  c(replicate(width - l, FALSE), result) # prefix with zeros
+}
+
+# booleanFunctionVector
+# given a boolean function f, returns the boolean vector of result values of f
+booleanFunctionAsList <- function(f) {
+  fArity <- length(formals(f))
+  inputs <- Map(function(i) integerToLogicals(i, width = fArity), 0:(2 ^ fArity - 1))
+  Map(function(input) do.call(f, input), inputs)
+}
+
+# numberOfDifferentBits
+# given two lists of booleans of equal length, returns the number of differing bits
+numberOfDifferentBits <- function(a, b) {
+  Reduce(`+`, Map(function(ai, bi) if (ai != bi) 1 else 0, a, b))
+}
+
+# makeBooleanFitnessFunction:
+# given a boolean target function, returns a fitness function that returns the number of
+# different places in the output of a given boolean function and the target function
+makeBooleanFitnessFunction <- function(targetFunction) {
+  targetFunctionList <- booleanFunctionAsList(targetFunction)
+  function(f) {
+    fList <- booleanFunctionAsList(f)
+    numberOfDifferentBits(fList, targetFunctionList)
+  }
+}
+
+
+# Evolution wrapper functions...
+# ---
 evolveFeaturePairs <- function(fitnessFunction, stopCondition = makeTimeStopCondition(5))
   typedGeneticProgramming(fitnessFunction, st("numericPair"),
                           functionSet = typedMathPairFunctionSet,
