@@ -203,42 +203,28 @@ SEXP mutate_constant_sexps(const SEXP f) {
 }
 
 typedef struct SEXP_PAIR {
-  const SEXP first;
-  const SEXP second;
+    SEXP first;
+    SEXP second;
 } SEXP_PAIR;
 
 // TODO make this "static R_INLINE"
 SEXP_PAIR choose_crossover_point(const SEXP e, const SEXP selected_point) {
-  if (selected_point == NULL) { // no point selected yet
-    const SEXP_PAIR result = { e, selected_point }; // TODO
+    SEXP_PAIR result = { e, selected_point };
+    if (selected_point != NULL) {
+        if (TYPEOF(e) == LANGSXP || TYPEOF(e) == LISTSXP) {
+            result.first = LCONS((choose_crossover_point(CAR(e), selected_point)).first,
+                                 (choose_crossover_point(CDR(e), selected_point)).second);
+        }
+    }
     return result;
-  } else { // point selected, just copy the tree from now on
-    switch (TYPEOF(e)) { // switch for speed
-    case NILSXP: {
-       const SEXP_PAIR result = { e, selected_point };
-       return result;
-    }
-    case LANGSXP: // fall-through to next case
-    case LISTSXP: {
-      const SEXP_PAIR result = {  LCONS((choose_crossover_point(CAR(e), selected_point)).first,
-                                        (choose_crossover_point(CDR(e), selected_point)).second),
-                                  selected_point };
-      return result;
-    }
-    default: { // base case
-      const SEXP_PAIR result = { e, selected_point };
-      return result;
-    }
-    }
-  }
 }
 
 // TODO
-static R_INLINE SEXP_PAIR uniform_one_point_crossover_strategy(const SEXP e0, const SEXP e1) {
-  // TODO
-  Rprintf("in uniform_one_point_crossover_strategy...\n"); // TODO
-  const SEXP_PAIR result = { e0, e1 };
-  return result;
+static R_INLINE SEXP_PAIR uniform_one_point_crossover_strategy(const SEXP e0, 
+                                                               const SEXP e1) {
+    Rprintf("in uniform_one_point_crossover_strategy...\n"); // TODO
+    const SEXP_PAIR result = { e0, e1 };
+    return result;
 }
 
 SEXP crossover_functions(const SEXP f, const SEXP g, SEXP_PAIR (*const crossover_strategy)(SEXP, SEXP)) {
