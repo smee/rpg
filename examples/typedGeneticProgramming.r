@@ -51,6 +51,7 @@ typedNumericPairConstantSet <- constantFactorySet((function() runif(1, -1, 1)) %
 typedNumericPairFunctionSet <- functionSet("numericPair" %::% (list(st("numeric"), st("numeric")) %->% st("numericPair")))
 typedMathPairFunctionSet <- c(typedMathFunctionSet, typedNumericPairFunctionSet)
 typedNumericInputVariableSet <- inputVariableSet("x" %::% st("numeric"))
+typedBooleanInputVariableSet <- inputVariableSet("a" %::% st("logical"), "b" %::% st("logical"), "c" %::% st("logical"),"d" %::% st("logical"),"e" %::% st("logical"))
 
 
 # Function-, input-, and constant sets for SVM kernels...
@@ -136,6 +137,13 @@ evolveFeaturePairs <- function(fitnessFunction, stopCondition = makeTimeStopCond
                           constantSet = typedNumericPairConstantSet,
                           stopCondition = stopCondition)
 
+evolveBooleanFunction <- function(fitnessFunction, stopCondition = makeTimeStopCondition(30))
+  typedGeneticProgramming(fitnessFunction, st("logical"),
+			  functionSet = typedBooleanFunctionSet,
+			  inputVariables = typedBooleanInputVariableSet,
+			  constantSet = typedNumericLogicalConstantSet,
+			  stopCondition = stopCondition)
+
 evolveSvmKernels <- function(fitnessFunction, stopCondition = makeTimeStopCondition(5))
   typedGeneticProgramming(fitnessFunction, st("numeric"),
                           functionSet = typedSvmKernelFunctionSet,
@@ -145,3 +153,14 @@ evolveSvmKernels <- function(fitnessFunction, stopCondition = makeTimeStopCondit
                             typedSvmKernelFunctionSet, typedSvmKernelInputVariableSet, typedSvmKernelConstantSet,
                             maxfuncdepth = 3, constprob = 0.1),
                           stopCondition = stopCondition)
+
+# Test - Function
+parity <- function(x) {
+  numberOfOnes <- sum(sapply(x, function(bit) if (bit) 1 else 0))
+  numberOfOnes %% 2 != 0 
+}
+
+
+# Wrapper
+
+parity3 <- function(x1,x2,x3) parity(c(x1,x2,x3))
