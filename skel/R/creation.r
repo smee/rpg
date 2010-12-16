@@ -8,6 +8,7 @@
 ##
 
 ##' @include stypes.r
+##' @include breeding.r
 NA
 
 ##' Creates a random R call object of a given type
@@ -155,24 +156,36 @@ randexprFull <- function(funcset, inset, conset,
 ##' @param constprob The probability of generating a constant in a step of growth, if no subtree
 ##'   is generated. If neither a subtree nor a constant is generated, a randomly chosen input variable
 ##'   will be generated. Defaults to \code{0.2}.
+##' @param breedingFitness A breeding function. See the documentation for
+##'   \code{\link{geneticProgramming}} for details.
+##' @param breedingTries The number of breeding steps.
 ##' @return A randomly generated R function.
 ##' @rdname randomFunctionCreation
 ##' @export
 randfunc <- function(funcset, inset, conset, maxdepth = 8,
-                     constprob = 0.2, exprfactory = randexprGrow) {
-  newf <- new.function()
-  formals(newf) <- new.alist(inset$all)
-  body(newf) <- exprfactory(funcset, inset, conset, maxdepth, constprob = constprob)
-  newf
+                     constprob = 0.2, exprfactory = randexprGrow,
+                     breedingFitness = function(individual) TRUE,
+                     breedingTries = 50) {
+  funcFactory <- function() {
+    newf <- new.function()
+    formals(newf) <- new.alist(inset$all)
+    body(newf) <- exprfactory(funcset, inset, conset, maxdepth, constprob = constprob)
+    newf
+  }
+  breed(funcFactory, breedingFitness, breedingTries)
 }
 
 ##' @rdname randomFunctionCreation
 ##' @export
-randfuncRampedHalfAndHalf <- function(funcset, inset, conset, maxdepth = 8, constprob = 0.2) {
+randfuncRampedHalfAndHalf <- function(funcset, inset, conset, maxdepth = 8, constprob = 0.2,
+                                      breedingFitness = function(individual) TRUE,
+                                      breedingTries = 50) {
   if (runif(1) > 0.5)
-    randfunc(funcset, inset, conset, maxdepth, exprfactory = randexprFull, constprob = constprob)
+    randfunc(funcset, inset, conset, maxdepth, exprfactory = randexprFull, constprob = constprob,
+             breedingFitness = breedingFitness, breedingTries = breedingTries)
   else
-    randfunc(funcset, inset, conset, maxdepth, exprfactory = randexprGrow, constprob = constprob)
+    randfunc(funcset, inset, conset, maxdepth, exprfactory = randexprGrow, constprob = constprob,
+             breedingFitness = breedingFitness, breedingTries = breedingTries)
 }
 
 ##' Creates an R expression by random growth respecting type constraints
@@ -252,24 +265,36 @@ randexprTypedFull <- function(type, funcset, inset, conset,
 ##'   is generated. If neither a subtree nor a constant is generated, a randomly chosen input variable
 ##'   will be generated. Defaults to \code{0.2}.
 ##' @param exprfactory The function to use for randomly creating the function's body.
+##' @param breedingFitness A breeding function. See the documentation for
+##'   \code{\link{geneticProgramming}} for details.
+##' @param breedingTries The number of breeding steps.
 ##' @return A randomly generated well-typed R function.
 ##' @rdname randomFunctionCreationTyped
 ##' @export
 randfuncTyped <- function(type, funcset, inset, conset, maxdepth = 8,
-                          constprob = 0.2, exprfactory = randexprTypedGrow) {
-  newf <- new.function()
-  formals(newf) <- new.alist(inset$all)
-  body(newf) <- exprfactory(type, funcset, inset, conset, maxdepth, constprob = constprob)
-  newf
+                          constprob = 0.2, exprfactory = randexprTypedGrow,
+                          breedingFitness = function(individual) TRUE,
+                          breedingTries = 50) {
+  funcFactory <- function() {
+    newf <- new.function()
+    formals(newf) <- new.alist(inset$all)
+    body(newf) <- exprfactory(type, funcset, inset, conset, maxdepth, constprob = constprob)
+    newf
+  }
+  breed(funcFactory, breedingFitness, breedingTries)
 }
 
 ##' @rdname randomFunctionCreationTyped
 ##' @export
-randfuncTypedRampedHalfAndHalf <- function(type, funcset, inset, conset, maxdepth = 8, constprob = 0.2) {
+randfuncTypedRampedHalfAndHalf <- function(type, funcset, inset, conset, maxdepth = 8, constprob = 0.2,
+                                           breedingFitness = function(individual) TRUE,
+                                           breedingTries = 50) {
   if (runif(1) > 0.5)
-    randfuncTyped(type, funcset, inset, conset, maxdepth, exprfactory = randexprTypedFull, constprob = constprob)
+    randfuncTyped(type, funcset, inset, conset, maxdepth, exprfactory = randexprTypedFull, constprob = constprob,
+                  breedingFitness = breedingFitness, breedingTries = breedingTries)
   else
-    randfuncTyped(type, funcset, inset, conset, maxdepth, exprfactory = randexprTypedGrow, constprob = constprob)
+    randfuncTyped(type, funcset, inset, conset, maxdepth, exprfactory = randexprTypedGrow, constprob = constprob,
+                  breedingFitness = breedingFitness, breedingTries = breedingTries)
 }
 
 ##' Create a random terminal node

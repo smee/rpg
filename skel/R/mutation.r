@@ -8,6 +8,7 @@
 ##
 
 ##' @include stypes.r
+##' @include breeding.r
 NA
 
 ##' Random mutation of functions and expressions
@@ -30,11 +31,16 @@ NA
 ##'   at each node.
 ##' @param maxsubtreedepth The maximum depth of newly grown subtrees.
 ##' @param mutateconstprob The probability of mutating a constant by adding \code{rnorm(1)} to it.
+##' @param breedingFitness A breeding function. See the documentation for
+##'   \code{\link{geneticProgramming}} for details.
+##' @param breedingTries The number of breeding steps.
 ##' @return The randomly mutated function.
 ##'
 ##' @rdname expressionMutation
 ##' @export
-mutateFunc <- function(func, funcset, mutatefuncprob = 0.01) {
+mutateFunc <- function(func, funcset, mutatefuncprob = 0.01,
+                       breedingFitness = function(individual) TRUE,
+                       breedingTries = 50) {
   mutatefuncexpr <- function(expr, funcset, mutatefuncprob) {
     if (is.call(expr)) {
       oldfunc <- expr[[1]]
@@ -43,15 +49,20 @@ mutateFunc <- function(func, funcset, mutatefuncprob = 0.01) {
       as.call(append(newfunc, Map(function(e) mutatefuncexpr(e, funcset, mutatefuncprob), rest(expr))))
     } else expr
   }
-  mutant <- new.function()
-  formals(mutant) <- formals(func)
-  body(mutant) <- mutatefuncexpr(body(func), funcset, mutatefuncprob)
-  mutant
+  doMutation <- function() {
+    mutant <- new.function()
+    formals(mutant) <- formals(func)
+    body(mutant) <- mutatefuncexpr(body(func), funcset, mutatefuncprob)
+    mutant
+  }
+  breed(doMutation, breedingFitness, breedingTries)
 }
 
 ##' @rdname expressionMutation
 ##' @export
-mutateSubtree <- function(func, funcset, inset, conset, mutatesubtreeprob = 0.1, maxsubtreedepth = 5) {
+mutateSubtree <- function(func, funcset, inset, conset, mutatesubtreeprob = 0.1, maxsubtreedepth = 5,
+                          breedingFitness = function(individual) TRUE,
+                          breedingTries = 50) {
   mutatesubtreeexpr <- function(expr, funcset, inset, conset, mutatesubtreeprob, maxsubtreedepth) {
     if (runif(1) <= mutatesubtreeprob) { # replace current node with new random subtree
       randexprGrow(funcset, inset, conset, maxdepth = maxsubtreedepth)
@@ -62,15 +73,20 @@ mutateSubtree <- function(func, funcset, inset, conset, mutatesubtreeprob = 0.1,
                          rest(expr))))
     } else expr
   }
-  mutant <- new.function()
-  formals(mutant) <- formals(func)
-  body(mutant) <- mutatesubtreeexpr(body(func), funcset, inset, conset, mutatesubtreeprob, maxsubtreedepth)
-  mutant
+  doMutation <- function() {
+    mutant <- new.function()
+    formals(mutant) <- formals(func)
+    body(mutant) <- mutatesubtreeexpr(body(func), funcset, inset, conset, mutatesubtreeprob, maxsubtreedepth)
+    mutant
+  }
+  breed(doMutation, breedingFitness, breedingTries)
 }
 
 ##' @rdname expressionMutation
 ##' @export
-mutateNumericConst <- function(func, mutateconstprob = 0.1) {
+mutateNumericConst <- function(func, mutateconstprob = 0.1,
+                               breedingFitness = function(individual) TRUE,
+                               breedingTries = 50) {
   mutateconstexpr <- function(expr, mutateconstprob) {
     if (is.call(expr)) {
       as.call(append(expr[[1]], Map(function(e) mutateconstexpr(e, mutateconstprob), rest(expr))))
@@ -78,15 +94,20 @@ mutateNumericConst <- function(func, mutateconstprob = 0.1) {
       expr + rnorm(1)
     } else expr
   }
-  mutant <- new.function()
-  formals(mutant) <- formals(func)
-  body(mutant) <- mutateconstexpr(body(func), mutateconstprob)
-  mutant
+  doMutation <- function() {
+    mutant <- new.function()
+    formals(mutant) <- formals(func)
+    body(mutant) <- mutateconstexpr(body(func), mutateconstprob)
+    mutant
+  }
+  breed(doMutation, breedingFitness, breedingTries)
 }
 
 ##' @rdname expressionMutation
 ##' @export
-mutateFuncTyped <- function(func, funcset, mutatefuncprob = 0.01) {
+mutateFuncTyped <- function(func, funcset, mutatefuncprob = 0.01,
+                            breedingFitness = function(individual) TRUE,
+                            breedingTries = 50) {
   mutatefuncexprTyped <- function(expr, funcset, mutatefuncprob) {
     if (is.call(expr)) { # only look at calls, this mutation ignores terminal nodes...
       oldfunc <- expr[[1]]
@@ -102,15 +123,20 @@ mutateFuncTyped <- function(func, funcset, mutatefuncprob = 0.01) {
       newcall %::% sType(expr) # tag the mutated expression with the correct type
     } else expr
   }
-  mutant <- new.function()
-  formals(mutant) <- formals(func)
-  body(mutant) <- mutatefuncexprTyped(body(func), funcset, mutatefuncprob)
-  mutant
+  doMutation <- function() {
+    mutant <- new.function()
+    formals(mutant) <- formals(func)
+    body(mutant) <- mutatefuncexprTyped(body(func), funcset, mutatefuncprob)
+    mutant
+  }
+  breed(doMutation, breedingFitness, breedingTries)
 }
 
 ##' @rdname expressionMutation
 ##' @export
-mutateSubtreeTyped <- function(func, funcset, inset, conset, mutatesubtreeprob = 0.1, maxsubtreedepth = 5) {
+mutateSubtreeTyped <- function(func, funcset, inset, conset, mutatesubtreeprob = 0.1, maxsubtreedepth = 5,
+                               breedingFitness = function(individual) TRUE,
+                               breedingTries = 50) {
   mutatesubtreeexprTyped <- function(expr, funcset, inset, conset, mutatesubtreeprob, maxsubtreedepth) {
     if (runif(1) <= mutatesubtreeprob) { # replace current node with new random subtree of correct type
       type <- rangeTypeOfType(sType(expr))
@@ -124,15 +150,20 @@ mutateSubtreeTyped <- function(func, funcset, inset, conset, mutatesubtreeprob =
       mutatedExpr %::% sType(expr) # tag the mutated expression with the correct type
     } else expr
   }
-  mutant <- new.function()
-  formals(mutant) <- formals(func)
-  body(mutant) <- mutatesubtreeexprTyped(body(func), funcset, inset, conset, mutatesubtreeprob, maxsubtreedepth)
-  mutant
+  doMutation <- function() {
+    mutant <- new.function()
+    formals(mutant) <- formals(func)
+    body(mutant) <- mutatesubtreeexprTyped(body(func), funcset, inset, conset, mutatesubtreeprob, maxsubtreedepth)
+    mutant
+  }
+  breed(doMutation, breedingFitness, breedingTries)
 }
 
 ##' @rdname expressionMutation
 ##' @export
-mutateNumericConstTyped <- function(func, mutateconstprob = 0.1) {
+mutateNumericConstTyped <- function(func, mutateconstprob = 0.1,
+                                    breedingFitness = function(individual) TRUE,
+                                    breedingTries = 50) {
   mutateconstexprTyped <- function(expr, mutateconstprob) {
     if (is.call(expr)) {
       mutatedExpr <- as.call(append(expr[[1]], Map(function(e) mutateconstexprTyped(e, mutateconstprob), rest(expr))))
@@ -142,8 +173,11 @@ mutateNumericConstTyped <- function(func, mutateconstprob = 0.1) {
       mutatedExpr %::% sType(expr)
     } else expr
   }
-  mutant <- new.function()
-  formals(mutant) <- formals(func)
-  body(mutant) <- mutateconstexprTyped(body(func), mutateconstprob)
-  mutant
+  doMutation <- function() {
+    mutant <- new.function()
+    formals(mutant) <- formals(func)
+    body(mutant) <- mutateconstexprTyped(body(func), mutateconstprob)
+    mutant
+  }
+  breed(doMutation, breedingFitness, breedingTries)
 }

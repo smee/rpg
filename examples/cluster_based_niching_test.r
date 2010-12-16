@@ -65,26 +65,26 @@ cbngpRun <- function(df, evaluationsPerPass = ceiling(evaluationsPerRun / 10),
 #stopClst()
 
 ## create fixed niche results
-initClst()
-print("starting fixed niching runs...")
-fngpResultsSalustowicz1d <- fngpRun(dfSalustowicz1d)
-print("1/3 done")
-fngpResultsUnwrappedBall1d <- fngpRun(dfUnwrappedBall1d)
-print("2/3 done")
-fngpResultsDampedOscillator1d <- fngpRun(dfDampedOscillator1d)
-stopClst()
-print("DONE.")
-
-## create cluster based niching results
 #initClst()
-#print("starting cluster based niching runs...")
-#cbngpResultsSalustowicz1d <- cbngpRun(dfSalustowicz1d)
+#print("starting fixed niching runs...")
+#fngpResultsSalustowicz1d <- fngpRun(dfSalustowicz1d)
 #print("1/3 done")
-#cbngpResultsUnwrappedBall1d <- cbngpRun(dfUnwrappedBall1d)
+#fngpResultsUnwrappedBall1d <- fngpRun(dfUnwrappedBall1d)
 #print("2/3 done")
-#cbngpResultsDampedOscillator1d <- cbngpRun(dfDampedOscillator1d)
+#fngpResultsDampedOscillator1d <- fngpRun(dfDampedOscillator1d)
 #stopClst()
 #print("DONE.")
+
+## create cluster based niching results
+initClst()
+print("starting cluster based niching runs...")
+cbngpResultsSalustowicz1d <- cbngpRun(dfSalustowicz1d)
+print("1/3 done")
+cbngpResultsUnwrappedBall1d <- cbngpRun(dfUnwrappedBall1d)
+print("2/3 done")
+cbngpResultsDampedOscillator1d <- cbngpRun(dfDampedOscillator1d)
+stopClst()
+print("DONE.")
 
 #srr1 <- multiNicheSymbolicRegression(y~x, df2, stopCondition=makeTimeStopCondition(10*60), passStopCondition=makeTimeStopCondition(30), individualSizeLimit=64, restartCondition=makeFitnessStagnationRestartCondition(), numberOfNiches=4)
 

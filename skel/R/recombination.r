@@ -7,6 +7,9 @@
 ## released under the GPL v2
 ##
 
+##' @include breeding.r
+NA
+
 ##' Select random childs or subtrees of an expression
 ##'
 ##' \code{randchild} returns a uniformly random direct child of an expression.
@@ -42,15 +45,23 @@ randsubtree <- function(expr, subtreeprob = 0.1)
 ##' @param func2 The second parent R function.
 ##' @param crossoverprob The probability of crossover at each node of the first parent
 ##'   function (expression).
+##' @param breedingFitness A breeding function. See the documentation for
+##'   \code{\link{geneticProgramming}} for details.
+##' @param breedingTries The number of breeding steps.
 ##' @return The child function (expression).
 ##'
 ##' @rdname expressionCrossover
 ##' @export
-crossover <- function(func1, func2, crossoverprob = 0.1) {
-  child <- new.function() 
-  formals(child) <- formals(func1)
-  body(child) <- crossoverexpr(body(func1), body(func2), crossoverprob)
-  child
+crossover <- function(func1, func2, crossoverprob = 0.1,
+                      breedingFitness = function(individual) TRUE,
+                      breedingTries = 50) {
+  doCrossover <- function() {
+    child <- new.function() 
+    formals(child) <- formals(func1)
+    body(child) <- crossoverexpr(body(func1), body(func2), crossoverprob)
+    child
+  }
+  breed(doCrossover, breedingFitness, breedingTries)
 }
 
 ##' @rdname expressionCrossover
@@ -70,11 +81,16 @@ crossoverexpr <- function(expr1, expr2, crossoverprob) {
 
 ##' @rdname expressionCrossover
 ##' @export
-crossoverTyped <- function(func1, func2, crossoverprob = 0.1) {
-  child <- new.function() 
-  formals(child) <- formals(func1)
-  body(child) <- crossoverexprTyped(body(func1), body(func2), crossoverprob)
-  child
+crossoverTyped <- function(func1, func2, crossoverprob = 0.1,
+                           breedingFitness = function(individual) TRUE,
+                           breedingTries = 50) {
+  doCrossoverTyped <- function() {
+    child <- new.function() 
+    formals(child) <- formals(func1)
+    body(child) <- crossoverexprTyped(body(func1), body(func2), crossoverprob)
+    child
+  }
+  breed(doCrossoverTyped, breedingFitness, breedingTries)
 }
 
 ##' @rdname expressionCrossover
