@@ -42,17 +42,17 @@ randexprGrow <- function(funcset, inset, conset,
                          curdepth = 1) {
   constprob <- if (is.empty(conset$all)) 0.0 else constprob
   if (runif(1) <= subtreeprob && curdepth < maxdepth) { # maybe create subtree if maximum depth not reached
-    funcname <- toName(randelt(funcset$all))
+    funcname <- toName(randelt(funcset$all, prob = attr(funcset$all, "probabilityWeight")))
     funcarity <- arity(funcname)
     as.call(append(funcname,
                    lapply(1:funcarity, function(i) randexprGrow(funcset, inset, conset, maxdepth,
                                                                 constprob, subtreeprob, curdepth + 1))))
   } else { # create terminal
     if (runif(1) <= constprob) { # create constant
-      constfactory <- randelt(conset$all)
+      constfactory <- randelt(conset$all, prob = attr(conset$all, "probabilityWeight"))
       constfactory()
     } else { # create input variable
-      toName(randelt(inset$all))
+      toName(randelt(inset$all, prob = attr(inset$all, "probabilityWeight")))
     }
   }
 }
@@ -144,7 +144,7 @@ randexprTypedGrow <- function(type, funcset, inset, conset,
   typeString <- type$string
   insetTypes <- Map(sType, inset$all)
   if (runif(1) <= subtreeprob && curdepth < maxdepth) { # maybe create subtree of correct type if maximum depth is not reached
-    funcname <- toName(randelt(funcset$byRange[[typeString]]))
+    funcname <- toName(randelt(funcset$byRange[[typeString]], prob = attr(funcset$byRange[[typeString]], "probabilityWeight")))
     if (is.null(funcname)) stop("randexprTypedGrow: Could not find a function of range type ", typeString, ".")
     functype <- sType(funcname)
     funcdomaintypes <- functype$domain
@@ -221,13 +221,13 @@ randfuncTypedRampedHalfAndHalf <- function(type, funcset, inset, conset, maxdept
 ##' @return A random terminal node, i.e. an input variable or a constant.
 randterminalTyped <- function(typeString, inset, conset, constprob) {
   if (runif(1) <= constprob) { # create constant of correct type
-    constfactory <- randelt(conset$byRange[[typeString]])
+    constfactory <- randelt(conset$byRange[[typeString]], prob = attr(conset$byRange[[typeString]], "probabilityWeight"))
     if (is.null(constfactory)) stop("randterminalTyped: Could not find a constant factory for type ", typeString, ".")
     constfactory()
   } else { # create input variable of correct type
-    invar <- toName(randelt(inset$byRange[[typeString]]))
+    invar <- toName(randelt(inset$byRange[[typeString]], prob = attr(inset$byRange[[typeString]], "probabilityWeight")))
     if (is.null(invar)) { # there are no input variables of the requested type, try to create a contant instead
-      constfactory <- randelt(conset$byRange[[typeString]])
+      constfactory <- randelt(conset$byRange[[typeString]], prob = attr(conset$byRange[[typeString]], "probabilityWeight"))
       if (is.null(constfactory)) stop("randterminalTyped: Could not find a constant factory for type ", typeString, ".")
       constfactory()
     } else {
