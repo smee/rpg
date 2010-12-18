@@ -100,8 +100,11 @@ subexpressions <- function(expr)
 ##'   result object.
 ##'
 ##' @rdname epressionNames
-toName <- function(x, copyAttributes = TRUE) {
-  xAsName <- as.name(x)
-  if (copyAttributes) mostattributes(xAsName) <- attributes(x)
-  xAsName
-}
+toName <- function(x, copyAttributes = TRUE)
+  if (is.null(x)) {
+    NULL
+  } else {
+    xAsName <- as.name(x)
+    if (copyAttributes) mostattributes(xAsName) <- attributes(x)
+    xAsName
+  }
