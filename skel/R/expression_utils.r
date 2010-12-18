@@ -89,3 +89,19 @@ subexpressions <- function(expr)
   if (is.call(expr)) {
     c(expr, Map(subexpressions, expr[-1]), recursive = TRUE)
   } else expr
+
+##' Functions for handling R symbols / names
+##'
+##' \code{toName} converts a character string \code{x} to an R symbol / name,
+##' while copying all attributes iff \code{copyAttributes} is \code{TRUE}.
+##'
+##' @param x The object to operate on.
+##' @param copyAttributes Whether to copy all attributes of \code{x} to the
+##'   result object.
+##'
+##' @rdname epressionNames
+toName <- function(x, copyAttributes = TRUE) {
+  xAsName <- as.name(x)
+  if (copyAttributes) mostattributes(xAsName) <- attributes(x)
+  xAsName
+}

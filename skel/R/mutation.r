@@ -44,7 +44,7 @@ mutateFunc <- function(func, funcset, mutatefuncprob = 0.01,
   mutatefuncexpr <- function(expr, funcset, mutatefuncprob) {
     if (is.call(expr)) {
       oldfunc <- expr[[1]]
-      newfunccandidate <- if (runif(1) <= mutatefuncprob) randelt(funcset$all) else oldfunc
+      newfunccandidate <- if (runif(1) <= mutatefuncprob) toName(randelt(funcset$all)) else oldfunc
       newfunc <- if(arity(newfunccandidate) == arity(oldfunc)) newfunccandidate else oldfunc
       as.call(append(newfunc, Map(function(e) mutatefuncexpr(e, funcset, mutatefuncprob), rest(expr))))
     } else expr
@@ -116,7 +116,7 @@ mutateFuncTyped <- function(func, funcset, mutatefuncprob = 0.01,
       ## Select a candidate for a new function of matching range type. This can of course result
       ## in a candidate function with a different domain type. If this happens the mutation is
       ## simply aborted, because searching again for a matching function costs too much time...
-      newfunccandidate <- if (runif(1) <= mutatefuncprob) randelt(funcset$byRange[[oldfuncRangeType$string]]) else oldfunc
+      newfunccandidate <- if (runif(1) <= mutatefuncprob) toName(randelt(funcset$byRange[[oldfuncRangeType$string]])) else oldfunc
       newfunccandidateType <- sType(newfunccandidate)
       newfunc <- if(identical(newfunccandidateType, oldfuncType)) newfunccandidate else oldfunc
       newcall <- as.call(append(newfunc, Map(function(e) mutatefuncexprTyped(e, funcset, mutatefuncprob), rest(expr))))
