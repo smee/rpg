@@ -62,15 +62,15 @@ NA
 ##' @param restartStrategy The strategy for doing restarts. See
 ##'   \link{makeLocalRestartStrategy} for details.
 ##' @param breedingFitness A "breeding" function. This function is applied after
-##'   every stochastic operation \em{Op} that creates or modifies an individal
-##'   (typically, \em{Op} is a initialization, mutation, or crossover operation). If
-##'   the breeding function returns \code{TRUE} on the given individual, \em{Op} is
-##'   considered a success. If the breeding function returns \code{FALSE}, \em{Op}
+##'   every stochastic operation \emph{Op} that creates or modifies an individal
+##'   (typically, \emph{Op} is a initialization, mutation, or crossover operation). If
+##'   the breeding function returns \code{TRUE} on the given individual, \emph{Op} is
+##'   considered a success. If the breeding function returns \code{FALSE}, \emph{Op}
 ##'   is retried a maximum of \code{breedingTries} times. If this maximum number of
 ##'   retries is exceeded, the result of the last try is considered as the result of
-##'   \em{Op}. In the case the breeding function returns a numeric value, the breeding
+##'   \emph{Op}. In the case the breeding function returns a numeric value, the breeding
 ##'   is repeated \code{breedingTries} times and the individual with the lowest breeding
-##'   fitness is considered the result of \em{Op}.
+##'   fitness is considered the result of \emph{Op}.
 ##' @param breedingTries In case of a boolean \code{breedingFitness} function, the
 ##'   maximum number of retries. In case of a numerical \code{breedingFitness} function,
 ##'   the number of breeding steps. Also see the documentation for the \code{breedingFitness}
@@ -347,15 +347,15 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
 ##' @param restartStrategy The strategy for doing restarts. See
 ##'   \link{makeLocalRestartStrategy} for details.
 ##' @param breedingFitness A "breeding" function. This function is applied after
-##'   every stochastic operation \em{Op} that creates or modifies an individal
-##'   (typically, \em{Op} is a initialization, mutation, or crossover operation). If
-##'   the breeding function returns \code{TRUE} on the given individual, \em{Op} is
-##'   considered a success. If the breeding function returns \code{FALSE}, \em{Op}
+##'   every stochastic operation \emph{Op} that creates or modifies an individal
+##'   (typically, \emph{Op} is a initialization, mutation, or crossover operation). If
+##'   the breeding function returns \code{TRUE} on the given individual, \emph{Op} is
+##'   considered a success. If the breeding function returns \code{FALSE}, \emph{Op}
 ##'   is retried a maximum of \code{breedingTries} times. If this maximum number of
 ##'   retries is exceeded, the result of the last try is considered as the result of
-##'   \em{Op}. In the case the breeding function returns a numeric value, the breeding
+##'   \emph{Op}. In the case the breeding function returns a numeric value, the breeding
 ##'   is repeated \code{breedingTries} times and the individual with the lowest breeding
-##'   fitness is considered the result of \em{Op}.
+##'   fitness is considered the result of \emph{Op}.
 ##' @param breedingTries In case of a boolean \code{breedingFitness} function, the
 ##'   maximum number of retries. In case of a numerical \code{breedingFitness} function,
 ##'   the number of breeding steps. Also see the documentation for the \code{breedingFitness}
