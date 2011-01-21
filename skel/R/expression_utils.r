@@ -12,6 +12,9 @@
 ##' \code{MapExpressionNodes} transforms an expression \code{expr} by
 ##' replacing every node in the tree with the result of applying a function
 ##' \code{f}. It is a variant of \code{\link{Map}} for expression trees.
+##' \code{MapExpressionLeafs} transforms an expression \code{expr} by
+##' replacing every leaf in the tree with the result of applying a function
+##' \code{f}.
 ##  \code{FlattenExpression} returns a list of all nodes in an expression
 ##' \code{expr}.
 ##' \code{AllExpressionNodes} checks if all nodes in the tree of \code{expr}
@@ -24,7 +27,8 @@
 ##'
 ##' @param f The function to apply.
 ##' @param p The predicate to check.
-##' @param expr The expression to transformed.
+##' @param expr The expression to transform.
+##' @return The transformed expression.
 ##'
 ##' @rdname expressionTransformation
 MapExpressionNodes <- function(f, expr) {
@@ -32,6 +36,16 @@ MapExpressionNodes <- function(f, expr) {
     oldfunc <- expr[[1]]
     newfunc <- f(oldfunc)
     as.call(append(newfunc, Map(function(e) MapExpressionNodes(f, e), expr[-1])))
+  } else {
+    f(expr)
+  }
+}
+
+##' @rdname expressionTransformation
+MapExpressionLeafs <- function(f, expr) {
+  if (is.call(expr)) {
+    oldfunc <- expr[[1]]
+    as.call(append(oldfunc, Map(function(e) MapExpressionLeafs(f, e), expr[-1])))
   } else {
     f(expr)
   }
@@ -83,6 +97,7 @@ AnyExpressionNode <- function(p, expr) {
 ##' expression \code{expr}.
 ##'
 ##' @param expr An R expression.
+##' @return The decomposed or recombined expression.
 ##'
 ##' @rdname expressionComposing
 subexpressions <- function(expr)
@@ -94,17 +109,24 @@ subexpressions <- function(expr)
 ##'
 ##' \code{toName} converts a character string \code{x} to an R symbol / name,
 ##' while copying all attributes iff \code{copyAttributes} is \code{TRUE}.
+##' In the case that \code{x} is not a character string, a copy of the object
+##' is returned as-is.
 ##'
 ##' @param x The object to operate on.
 ##' @param copyAttributes Whether to copy all attributes of \code{x} to the
 ##'   result object.
+##' @return The result.
 ##'
 ##' @rdname epressionNames
 toName <- function(x, copyAttributes = TRUE)
   if (is.null(x)) {
     NULL
-  } else {
+  } else if (is.character(x)) {
     xAsName <- as.name(x)
     if (copyAttributes) mostattributes(xAsName) <- attributes(x)
     xAsName
+  } else {
+    xCopy <- x
+    if (copyAttributes) mostattributes(xCopy) <- attributes(x)
+    xCopy
   }
