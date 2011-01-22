@@ -18,8 +18,8 @@ constantVectorDimension <- 1 # the dimension of vector-valued kernel constants
 
 typedSvmKernelConstantSet <- constantFactorySet((function() t(runif(1, -1, 1))) %::% (list() %->% st("numeric")),
                                                 (function() runif(constantVectorDimension, -1, 1)) %::% (list() %->% st("numericVector")))
-typedSvmKernelInputVariableSet <- inputVariableSet("x" %::% st("numericVector"),
-                                                   "y" %::% st("numericVector"))
+typedSvmKernelInputVariableSet <- inputVariableSet(quote((x %+% y) %^% 2) %::% st("numericVector"),
+                                                   quote(x %*% y) %::% st("numericVector"))
 typedSvmKernelFunctionSet <- functionSet("exp" %::% (list(st("numeric")) %->% st("numeric")),
                                          "+" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")),
                                          "*" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")),

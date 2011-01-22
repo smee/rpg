@@ -150,6 +150,9 @@ randelt <- function(x, prob = NULL) {
 ##' sublists (or groups).
 ##' \code{groupListDistributed} distributes \code{l} into \code{numberOfGroups}
 ##' sublists (or groups).
+##' \code{Flatten} flattens a list \code{l} of lists into a flat list by concatenation. If
+##' \code{recursive} is \code{TRUE} (defaults to \code{FALSE}), flatten will be recursively
+##' called on each argument first.
 ##'
 ##' @param l A list.
 ##' @param groupAssignment A vector of group assignment indices.
@@ -184,3 +187,10 @@ groupListDistributed <- function(l, numberOfGroups) {
   splitList(l, gassign)
 }
 
+##' @rdname listSplittingAndGrouping
+Flatten <- function(l, recursive = FALSE)
+  if (recursive && !is.atom(l)) {
+    Reduce(function(a, b) c(Flatten(a, recursive = TRUE), Flatten(b, recursive = TRUE)), l, init = list()) 
+  } else {
+    Reduce(c, l, init = list())
+  }

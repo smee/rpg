@@ -87,7 +87,7 @@ randfunc <- function(funcset, inset, conset, maxdepth = 8,
                      breedingTries = 50) {
   funcFactory <- function() {
     newf <- new.function()
-    formals(newf) <- new.alist(inset$all)
+    formals(newf) <- new.alist(inset$allFormals)
     body(newf) <- exprfactory(funcset, inset, conset, maxdepth, constprob = constprob)
     newf
   }
@@ -192,7 +192,7 @@ randfuncTyped <- function(type, funcset, inset, conset, maxdepth = 8,
                           breedingTries = 50) {
   funcFactory <- function() {
     newf <- new.function()
-    formals(newf) <- new.alist(inset$all)
+    formals(newf) <- new.alist(inset$allFormals)
     body(newf) <- exprfactory(type, funcset, inset, conset, maxdepth, constprob = constprob)
     newf
   }

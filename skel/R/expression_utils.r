@@ -111,13 +111,15 @@ subexpressions <- function(expr)
 ##' while copying all attributes iff \code{copyAttributes} is \code{TRUE}.
 ##' In the case that \code{x} is not a character string, a copy of the object
 ##' is returned as-is.
+##' \code{extractLeafSymbols} returns the set of symbols (names) at the leafs
+##' of an expression \code{expr}. The symbols are returned as character strings.
 ##'
 ##' @param x The object to operate on.
 ##' @param copyAttributes Whether to copy all attributes of \code{x} to the
 ##'   result object.
 ##' @return The result.
 ##'
-##' @rdname epressionNames
+##' @rdname expressionNames
 toName <- function(x, copyAttributes = TRUE)
   if (is.null(x)) {
     NULL
@@ -130,3 +132,12 @@ toName <- function(x, copyAttributes = TRUE)
     if (copyAttributes) mostattributes(xCopy) <- attributes(x)
     xCopy
   }
+
+##' @rdname expressionNames
+extractLeafSymbols <- function(expr) {
+  leafSymbols <- list()
+  MapExpressionLeafs(function(n)
+                       if (is.symbol(n)) leafSymbols <<- c(leafSymbols, as.character(n)),
+                     expr)
+  unique(leafSymbols)
+}
