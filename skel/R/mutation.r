@@ -44,11 +44,13 @@ mutateFunc <- function(func, funcset, mutatefuncprob = 0.01,
   mutatefuncexpr <- function(expr, funcset, mutatefuncprob) {
     if (is.call(expr)) {
       oldfunc <- expr[[1]]
-      newfunccandidate <- if (runif(1) <= mutatefuncprob)
-        toName(randelt(funcset$all, prob = attr(funcset$all, "probabilityWeight")))
-      else oldfunc
-      newfunc <- if(arity(newfunccandidate) == arity(oldfunc)) newfunccandidate else oldfunc
-      as.call(append(newfunc, Map(function(e) mutatefuncexpr(e, funcset, mutatefuncprob), rest(expr))))
+      if (runif(1) > buildingBlockTag(oldfunc)) {
+        newfunccandidate <- if (runif(1) <= mutatefuncprob)
+            toName(randelt(funcset$all, prob = attr(funcset$all, "probabilityWeight")))
+          else oldfunc
+        newfunc <- if(arity(newfunccandidate) == arity(oldfunc)) newfunccandidate else oldfunc
+        as.call(append(newfunc, Map(function(e) mutatefuncexpr(e, funcset, mutatefuncprob), rest(expr))))
+      } else expr
     } else expr
   }
   doMutation <- function() {
@@ -67,7 +69,9 @@ mutateSubtree <- function(func, funcset, inset, conset, mutatesubtreeprob = 0.1,
                           breedingTries = 50) {
   mutatesubtreeexpr <- function(expr, funcset, inset, conset, mutatesubtreeprob, maxsubtreedepth) {
     if (runif(1) <= mutatesubtreeprob) { # replace current node with new random subtree
-      randexprGrow(funcset, inset, conset, maxdepth = maxsubtreedepth)
+      if (runif(1) > buildingBlockTag(expr)) {
+        randexprGrow(funcset, inset, conset, maxdepth = maxsubtreedepth)
+      } else expr
     } else if (is.call(expr)) {
       as.call(append(expr[[1]],
                      Map(function(e) mutatesubtreeexpr(e, funcset, inset, conset,
@@ -93,7 +97,11 @@ mutateNumericConst <- function(func, mutateconstprob = 0.1,
     if (is.call(expr)) {
       as.call(append(expr[[1]], Map(function(e) mutateconstexpr(e, mutateconstprob), rest(expr))))
     } else if (runif(1) <= mutateconstprob && is.numeric(expr)) {
-      expr + rnorm(1)
+      if (runif(1) > buildingBlockTag(expr)) {
+        mutatedExpr <- expr + rnorm(1)
+        mostattributes(mutatedExpr) <- attributes(expr) # transfer attributes
+        mutatedExpr
+      } else expr
     } else expr
   }
   doMutation <- function() {
@@ -113,19 +121,22 @@ mutateFuncTyped <- function(func, funcset, mutatefuncprob = 0.01,
   mutatefuncexprTyped <- function(expr, funcset, mutatefuncprob) {
     if (is.call(expr)) { # only look at calls, this mutation ignores terminal nodes...
       oldfunc <- expr[[1]]
-      oldfuncType <- sType(oldfunc)
-      oldfuncRangeType <- rangeTypeOfType(oldfuncType)
-      ## Select a candidate for a new function of matching range type. This can of course result
-      ## in a candidate function with a different domain type. If this happens the mutation is
-      ## simply aborted, because searching again for a matching function would cost too much time...
-      newfunccandidate <- if (runif(1) <= mutatefuncprob)
-        toName(randelt(funcset$byRange[[oldfuncRangeType$string]],
-                       prob = attr(funcset$byRange[[oldfuncRangeType$string]], "probabilityWeight")))
-      else oldfunc
-      newfunccandidateType <- sType(newfunccandidate)
-      newfunc <- if(identical(newfunccandidateType, oldfuncType)) newfunccandidate else oldfunc
-      newcall <- as.call(append(newfunc, Map(function(e) mutatefuncexprTyped(e, funcset, mutatefuncprob), rest(expr))))
-      newcall %::% sType(expr) # tag the mutated expression with the correct type
+      if (runif(1) > buildingBlockTag(oldfunc)) {
+        oldfuncType <- sType(oldfunc)
+        oldfuncRangeType <- rangeTypeOfType(oldfuncType)
+        ## Select a candidate for a new function of matching range type. This can of course result
+        ## in a candidate function with a different domain type. If this happens the mutation is
+        ## simply aborted, because searching again for a matching function would cost too much time...
+        newfunccandidate <- if (runif(1) <= mutatefuncprob)
+          toName(randelt(funcset$byRange[[oldfuncRangeType$string]],
+                         prob = attr(funcset$byRange[[oldfuncRangeType$string]], "probabilityWeight")))
+        else oldfunc
+        newfunccandidateType <- sType(newfunccandidate)
+        newfunc <- if(identical(newfunccandidateType, oldfuncType)) newfunccandidate else oldfunc
+        newcall <- as.call(append(newfunc, Map(function(e) mutatefuncexprTyped(e, funcset, mutatefuncprob), rest(expr))))
+        mostattributes(newcall) <- attributes(expr) # transfer attributes
+        newcall %::% sType(expr) # tag the mutated expression with the correct type
+      } else expr
     } else expr
   }
   doMutation <- function() {
@@ -144,14 +155,17 @@ mutateSubtreeTyped <- function(func, funcset, inset, conset, mutatesubtreeprob =
                                breedingTries = 50) {
   mutatesubtreeexprTyped <- function(expr, funcset, inset, conset, mutatesubtreeprob, maxsubtreedepth) {
     if (runif(1) <= mutatesubtreeprob) { # replace current node with new random subtree of correct type
-      type <- rangeTypeOfType(sType(expr))
-      randexprTypedGrow(type, funcset, inset, conset, maxdepth = maxsubtreedepth)
+      if (runif(1) > buildingBlockTag(expr)) {
+        type <- rangeTypeOfType(sType(expr))
+        randexprTypedGrow(type, funcset, inset, conset, maxdepth = maxsubtreedepth)
+      } else expr
     } else if (is.call(expr)) {
       mutatedExpr <-
         as.call(append(expr[[1]],
                        Map(function(e) mutatesubtreeexprTyped(e, funcset, inset, conset,
                                                               mutatesubtreeprob, maxsubtreedepth),
                            rest(expr))))
+      mostattributes(mutatedExpr) <- attributes(expr) # transfer attributes 
       mutatedExpr %::% sType(expr) # tag the mutated expression with the correct type
     } else expr
   }
@@ -172,10 +186,13 @@ mutateNumericConstTyped <- function(func, mutateconstprob = 0.1,
   mutateconstexprTyped <- function(expr, mutateconstprob) {
     if (is.call(expr)) {
       mutatedExpr <- as.call(append(expr[[1]], Map(function(e) mutateconstexprTyped(e, mutateconstprob), rest(expr))))
+      mostattributes(mutatedExpr) <- attributes(expr) # transfer attributes
       mutatedExpr %::% sType(expr)
     } else if (runif(1) <= mutateconstprob && is.numeric(expr)) {
-      mutatedExpr <- expr + rnorm(1)
-      mutatedExpr %::% sType(expr)
+      if (runif(1) > buildingBlockTag(expr)) {
+        mutatedExpr <- expr + rnorm(1)
+        mutatedExpr %::% sType(expr)
+      } else expr
     } else expr
   }
   doMutation <- function() {

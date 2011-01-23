@@ -11,10 +11,11 @@
 ##'
 ##' \code{MapExpressionNodes} transforms an expression \code{expr} by
 ##' replacing every node in the tree with the result of applying a function
-##' \code{f}. It is a variant of \code{\link{Map}} for expression trees.
-##' \code{MapExpressionLeafs} transforms an expression \code{expr} by
-##' replacing every leaf in the tree with the result of applying a function
-##' \code{f}.
+##' \code{f}. The parameters \code{functions}, \code{inners}, and \code{leafs}
+##' control if \code{f} should be applied to the function symbols, inner
+##' subtrees, and leafs of \code{expr}, respectively.
+##' \code{MapExpressionLeafs} and \code{MapExpressionSubtrees} are shorthands
+##' for calls to \code{MapExpressionNodes}.
 ##  \code{FlattenExpression} returns a list of all nodes in an expression
 ##' \code{expr}.
 ##' \code{AllExpressionNodes} checks if all nodes in the tree of \code{expr}
@@ -26,30 +27,33 @@
 ##' \code{TRUE} as soon as a node that satisfies \code{p} is encountered.
 ##'
 ##' @param f The function to apply.
+##' @param functions Whether to apply \code{f} to the function symbols
+##'   of \code{expr}. Defaults to \code{TRUE}.
+##' @param inners Whether to apply \code{f} to the inner subtrees of
+##'   \code{expr}. Defaults to \code{FALSE}.
+##' @param leafs Wheter to apply \code{f} to the leafs of \code{expr}.
+##'   Defaults to \code{TRUE}.
 ##' @param p The predicate to check.
 ##' @param expr The expression to transform.
 ##' @return The transformed expression.
 ##'
 ##' @rdname expressionTransformation
-MapExpressionNodes <- function(f, expr) {
+MapExpressionNodes <- function(f, expr, functions = TRUE, inners = FALSE, leafs = TRUE) {
   if (is.call(expr)) {
     oldfunc <- expr[[1]]
-    newfunc <- f(oldfunc)
-    as.call(append(newfunc, Map(function(e) MapExpressionNodes(f, e), expr[-1])))
+    newfunc <- if (functions) f(oldfunc) else oldfunc
+    newcall <- as.call(append(newfunc, Map(function(e) MapExpressionNodes(f, e, functions, inners, leafs), expr[-1])))
+    if (inners) f(newcall) else newcall
   } else {
-    f(expr)
+    if (leafs) f(expr) else expr
   }
 }
 
 ##' @rdname expressionTransformation
-MapExpressionLeafs <- function(f, expr) {
-  if (is.call(expr)) {
-    oldfunc <- expr[[1]]
-    as.call(append(oldfunc, Map(function(e) MapExpressionLeafs(f, e), expr[-1])))
-  } else {
-    f(expr)
-  }
-}
+MapExpressionLeafs <- function(f, expr) MapExpressionNodes(f, expr, FALSE, FALSE, TRUE)
+
+##' @rdname expressionTransformation
+MapExpressionSubtrees <- function(f, expr) MapExpressionNodes(f, expr, TRUE, TRUE, TRUE)
 
 ##' @rdname expressionTransformation
 FlattenExpression <- function(expr) {

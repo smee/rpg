@@ -70,8 +70,9 @@ crossoverexpr <- function(expr1, expr2, crossoverprob) {
   newexpr1 <- expr1
   if (is.call(expr1)) {
     crossoverindex <- ceiling(runif(1, 1, length(expr1)))
-    if (runif(1) <= crossoverprob) { # do crossover here
-      newexpr1[[crossoverindex]] <- randsubtree(expr2, crossoverprob)
+    if (runif(1) <= crossoverprob) { # try to do crossover here
+      if (runif(1) > buildingBlockTag(newexpr1[[crossoverindex]]))
+        newexpr1[[crossoverindex]] <- randsubtree(expr2, crossoverprob)
     } else { # try to do crossover somewhere below in this tree
       newexpr1[[crossoverindex]] <- crossoverexpr(expr1[[crossoverindex]], expr2, crossoverprob)
     }
@@ -99,15 +100,17 @@ crossoverexprTyped <- function(expr1, expr2, crossoverprob) {
   newexpr1 <- expr1
   if (is.call(expr1)) {
     crossoverindex <- ceiling(runif(1, 1, length(expr1)))
-    if (runif(1) <= crossoverprob) { # do crossover here
-      ## select a random subtree of expr2 as a replacement expression...
-      replacementExpression <- randsubtree(expr2, crossoverprob)
-      ## collect the range types of the crossover points...
-      crossoverExpressionRangeType <- rangeTypeOfType(sType(newexpr1[[crossoverindex]]))
-      replacementExpressionRangeType <- rangeTypeOfType(sType(replacementExpression))
-      ## only do crossover if the range types of the crossover points match...
-      if (identical(replacementExpressionRangeType, crossoverExpressionRangeType)) {
-        newexpr1[[crossoverindex]] <- replacementExpression
+    if (runif(1) <= crossoverprob) { # try to do crossover here
+      if (runif(1) > buildingBlockTag(newexpr1[[crossoverindex]])) {
+        ## select a random subtree of expr2 as a replacement expression...
+        replacementExpression <- randsubtree(expr2, crossoverprob)
+        ## collect the range types of the crossover points...
+        crossoverExpressionRangeType <- rangeTypeOfType(sType(newexpr1[[crossoverindex]]))
+        replacementExpressionRangeType <- rangeTypeOfType(sType(replacementExpression))
+        ## only do crossover if the range types of the crossover points match...
+        if (identical(replacementExpressionRangeType, crossoverExpressionRangeType)) {
+          newexpr1[[crossoverindex]] <- replacementExpression
+        }
       }
     } else { # try to do crossover somewhere below in this tree
       newexpr1[[crossoverindex]] <- crossoverexprTyped(expr1[[crossoverindex]], expr2, crossoverprob)

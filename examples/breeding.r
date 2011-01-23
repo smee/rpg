@@ -18,8 +18,8 @@ constantVectorDimension <- 1 # the dimension of vector-valued kernel constants
 
 typedSvmKernelConstantSet <- constantFactorySet((function() t(runif(1, -1, 1))) %::% (list() %->% st("numeric")),
                                                 (function() runif(constantVectorDimension, -1, 1)) %::% (list() %->% st("numericVector")))
-typedSvmKernelInputVariableSet <- inputVariableSet(quote((x %+% y) %^% 2) %::% st("numericVector"),
-                                                   quote(x %*% y) %::% st("numericVector"))
+typedSvmKernelInputVariableSet <- inputVariableSet(buildingBlockq((x %+% y) %^% 2) %::% st("numericVector"),
+                                                   buildingBlockq(x %*% y) %::% st("numericVector"))
 typedSvmKernelFunctionSet <- functionSet("exp" %::% (list(st("numeric")) %->% st("numeric")),
                                          "+" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")),
                                          "*" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")),
@@ -43,8 +43,9 @@ sizeFitnessFunction <- function(f) 0 - funcSize(f) # grow large functions for te
 # ---
 
 breed <- function(ind) {
-  message("Breeding...")
-  if (runif(1) > 0.5) { message("   ...TRUE."); TRUE } else { message("   ...FALSE."); FALSE } 
+  #message("Breeding...")
+  #if (runif(1) > 0.5) { message("   ...TRUE."); TRUE } else { message("   ...FALSE."); FALSE } 
+  TRUE
 }
 
 evolveSvmKernels <- function(fitnessFunction, stopCondition = makeTimeStopCondition(5),
