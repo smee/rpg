@@ -16,7 +16,8 @@
 ##' iff the list \code{x} is of length 0. \code{is.atom} returns
 ##' \code{TRUE} iff the list \code{x} is of length 1.
 ##' \code{is.composite} returns \code{TRUE} iff the list \code{x} is
-##' of length > 1.
+##' of length > 1. \code{contains} return \code{TRUE} iff the list
+##' \code{x} contains an element identical to \code{elt}.
 ##'
 ##' @param x A list or vector.
 ##'
@@ -46,6 +47,12 @@ is.atom <- function(x) length(x) == 1
 
 ##' @rdname lispLists
 is.composite <- function(x) length(x) > 1
+
+##' @rdname lispLists
+contains <- function(x, elt) {
+  for (candidate in x) if (identical(candidate, elt)) return(TRUE)
+  FALSE
+}
 
 ##' Sort a vector or list by the result of applying a function
 ##'

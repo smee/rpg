@@ -75,6 +75,10 @@ NA
 ##'   maximum number of retries. In case of a numerical \code{breedingFitness} function,
 ##'   the number of breeding steps. Also see the documentation for the \code{breedingFitness}
 ##'   parameter. Defaults to \code{50}.
+##' @param extinctionPrevention When set to \code{TRUE}, the initialization and
+##'   selection steps will try to prevent duplicate individuals
+##'   from occurring in the population. Defaults to \code{FALSE}, as this
+##'   operation might be expensive with larger population sizes.
 ##' @param progressMonitor A function of signature
 ##'   \code{function(population, fitnessfunction, stepNumber, evaluationNumber,
 ##'   bestFitness, timeElapsed)} to be called with each evolution step.
@@ -101,6 +105,7 @@ geneticProgramming <- function(fitnessFunction,
                                restartStrategy = makeLocalRestartStrategy(),
                                breedingFitness = function(individual) TRUE,
                                breedingTries = 50,
+                               extinctionPrevention = FALSE,
                                progressMonitor = NULL,
                                verbose = TRUE) {
   ## Provide default parameters and initialize GP run...
@@ -131,6 +136,7 @@ geneticProgramming <- function(fitnessFunction,
   pop <-
     if (is.null(population))
       makePopulation(populationSize, functionSet, inputVariables, constantSet,
+                     extinctionPrevention = extinctionPrevention,
                      breedingFitness = breedingFitness, breedingTries = breedingTries)
     else
       population
@@ -150,15 +156,28 @@ geneticProgramming <- function(fitnessFunction,
     bestFitness <- min(c(bestFitness, selA$selected[, 2], selB$selected[, 2]))
     losersA <- selA$discarded[, 1]; losersB <- selB$discarded[, 1]
     losers <- c(losersA, losersB)
-    # Create winner children...
-    winnerChildren <- Map(function(winnerA, winnerB)
-                            mutatefunc(crossoverFunction(pop[[winnerA]], pop[[winnerB]],
-                                                         breedingFitness = breedingFitness,
-                                                         breedingTries = breedingTries)),
-                          winnersA, winnersB)
-    # Replace losers by winner children (cycling the list of winner children if too short)...
-    suppressWarnings(pop[losers] <- winnerChildren)
-    # Apply restart strategy
+    # Create winner children through crossover and mutation...
+    winnerChildrenA <- Map(function(winnerA, winnerB)
+                             mutatefunc(crossoverFunction(pop[[winnerA]], pop[[winnerB]],
+                                                          breedingFitness = breedingFitness,
+                                                          breedingTries = breedingTries)),
+                           winnersA, winnersB)
+    winnerChildrenB <- Map(function(winnerA, winnerB)
+                             mutatefunc(crossoverFunction(pop[[winnerA]], pop[[winnerB]],
+                                                          breedingFitness = breedingFitness,
+                                                          breedingTries = breedingTries)),
+                           winnersA, winnersB)
+    winnerChildren <- c(winnerChildrenA, winnerChildrenB)
+    # Replace losers with winner children...
+    if (extinctionPrevention) {
+      winnerChildrenAndLosers <- c(winnerChildren, pop[losers])
+      uniqueWinnerChildrenAndLosers <- unique(winnerChildrenAndLosers) # unique() does not change the order of it's argument...
+      uniqueChildren <- uniqueWinnerChildrenAndLosers[1:length(losers)] # ...so we can fill up duplicated winner children with losers.
+      pop[losers] <- uniqueChildren
+    } else {
+      pop[losers] <- winnerChildren
+    }
+    # Apply restart strategy...
     if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                          evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
       restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
@@ -193,6 +212,7 @@ geneticProgramming <- function(fitnessFunction,
                  restartCondition = restartCondition,
                  breedingFitness = breedingFitness,
                  breedingTries = breedingTries,
+                 extinctionPrevention = extinctionPrevention,
                  restartStrategy = restartStrategy), class = "geneticProgrammingResult")
 }
 
@@ -215,12 +235,14 @@ typedGeneticProgramming <- function(fitnessFunction,
                                     restartStrategy = makeLocalRestartStrategy(populationType = type),
                                     breedingFitness = function(individual) TRUE,
                                     breedingTries = 50,
+                                    extinctionPrevention = FALSE,
                                     progressMonitor = NULL,
                                     verbose = TRUE) {
   if (is.null(type)) stop("typedGeneticProgramming: Type must not be NULL.")
   pop <-
     if (is.null(population))
       makeTypedPopulation(populationSize, type, functionSet, inputVariables, constantSet,
+                          extinctionPrevention = extinctionPrevention,
                           breedingFitness = breedingFitness, breedingTries = breedingTries)
     else
       population
@@ -240,6 +262,7 @@ typedGeneticProgramming <- function(fitnessFunction,
                      crossoverFunction = crossoverFunction, mutationFunction = mutatefunc,
                      restartCondition = restartCondition, restartStrategy = restartStrategy,
                      breedingFitness = breedingFitness, breedingTries = breedingTries,
+                     extinctionPrevention = extinctionPrevention,
                      progressMonitor = progressMonitor, verbose = verbose)
 }
 
@@ -332,6 +355,10 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
 ##'  \code{ceiling(0.1 * populationSize)}.
 ##' @param elite The elite list, must be alist of individuals sorted in ascending
 ##'   order by their first fitness component.
+##' @param extinctionPrevention When set to \code{TRUE}, the initialization and
+##'   selection steps will try to prevent duplicate individuals
+##'   from occurring in the population. Defaults to \code{FALSE}, as this
+##'   operation might be expensive with larger population sizes.
 ##' @param individualSizeLimit Individuals with a number of tree nodes that
 ##'   exceeds this size limit will get a fitness of \code{Inf}.
 ##' @param penalizeGenotypeConstantIndividuals Individuals that do not contain
@@ -374,6 +401,7 @@ symbolicRegression <- function(formula, data,
                                populationSize = 100,
                                eliteSize = ceiling(0.1 * populationSize),
                                elite = list(),
+                               extinctionPrevention = FALSE,
                                individualSizeLimit = 64,
                                penalizeGenotypeConstantIndividuals = FALSE,
                                functionSet = mathFunctionSet,
@@ -402,7 +430,7 @@ symbolicRegression <- function(formula, data,
                                 functionSet, inVarSet, constantSet, selectionFunction,
                                 crossoverFunction, mutationFunction,
                                 restartCondition, restartStrategy,
-                                breedingFitness, breedingTries,
+                                breedingFitness, breedingTries, extinctionPrevention,
                                 progressMonitor, verbose)
   
   structure(append(gpModel, list(formula = formula(mf))),
@@ -537,6 +565,8 @@ makeFitnessDistributionRestartCondition <- function(testFrequency = 100,
 ##'
 ##' @param populationType The sType of the replacement individuals, defaults to \code{NULL} for
 ##'   creating untyped populations.
+##' @param extinctionPrevention Whether to surpress duplicate individuals in newly initialized
+##'   populations. See \code{\link{geneticProgramming}} for details.
 ##' @param breedingFitness A breeding function. See the documentation for
 ##'   \code{\link{geneticProgramming}} for details.
 ##' @param breedingTries The number of breeding steps.
@@ -544,6 +574,7 @@ makeFitnessDistributionRestartCondition <- function(testFrequency = 100,
 ##' @rdname evolutionRestartStrategies
 ##' @export
 makeLocalRestartStrategy <- function(populationType = NULL,
+                                     extinctionPrevention = FALSE,
                                      breedingFitness = function(individual) TRUE,
                                      breedingTries = 50) {
   restartStrategy <- function(fitnessFunction, population, populationSize, functionSet, inputVariables, constantSet) {
@@ -552,9 +583,11 @@ makeLocalRestartStrategy <- function(populationType = NULL,
     restartedPopulation <-
       if (is.null(populationType))
         makePopulation(populationSize, functionSet, inputVariables, constantSet,
+                       extinctionPrevention = extinctionPrevention,
                        breedingFitness = breedingFitness, breedingTries = breedingTries)
       else
         makeTypedPopulation(populationSize, populationType, functionSet, inputVariables, constantSet,
+                            extinctionPrevention = extinctionPrevention,
                             breedingFitness = breedingFitness, breedingTries = breedingTries)
     list(population = restartedPopulation, elite = list(bestInd))
   }

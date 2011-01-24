@@ -18,7 +18,7 @@ constantVectorDimension <- 1 # the dimension of vector-valued kernel constants
 
 typedSvmKernelConstantSet <- constantFactorySet((function() t(runif(1, -1, 1))) %::% (list() %->% st("numeric")),
                                                 (function() runif(constantVectorDimension, -1, 1)) %::% (list() %->% st("numericVector")))
-typedSvmKernelInputVariableSet <- inputVariableSet(buildingBlockq((x %+% y) %^% 2) %::% st("numericVector"),
+typedSvmKernelInputVariableSet <- inputVariableSet(buildingBlockq((x %+% y) %v^% 2) %::% st("numericVector"),
                                                    buildingBlockq(x %*% y) %::% st("numericVector"))
 typedSvmKernelFunctionSet <- functionSet("exp" %::% (list(st("numeric")) %->% st("numeric")),
                                          "+" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")),
@@ -56,11 +56,10 @@ evolveSvmKernels <- function(fitnessFunction, stopCondition = makeTimeStopCondit
                           constantSet = typedSvmKernelConstantSet,
                           population = makeTypedPopulation(100, st("numeric"),
                             typedSvmKernelFunctionSet, typedSvmKernelInputVariableSet, typedSvmKernelConstantSet,
-                            maxfuncdepth = 3, constprob = 0.1),
+                            maxfuncdepth = 3, constprob = 0.1, extinctionPrevention = TRUE),
                           stopCondition = stopCondition,
-                          breedingFitness = breedingFitness, breedingTries = breedingTries)
+                          breedingFitness = breedingFitness, breedingTries = breedingTries,
+                          extinctionPrevention = TRUE)
 
 # evolveSvmKernels(sizeFitnessFunction)
-
-
 
