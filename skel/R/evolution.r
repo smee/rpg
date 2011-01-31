@@ -708,7 +708,7 @@ safeSqroot <- function(a) sqrt(ifelse(a < 0, 0, a))
 
 ##' @rdname safeGPfunctions
 ##' @export
-safeLn <- function(a) ifelse(a < 0, 0, log(a)))
+safeLn <- function(a) ifelse(a < 0, 0, log(a))
 
 ##' @rdname safeGPfunctions
 ##' @export
