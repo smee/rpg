@@ -92,7 +92,14 @@ inputVariableSet <- function(..., list = NULL) {
   inset.byType <- sortByType(inset.all)
   inset.byRange <- sortByRange(inset.all) # TODO remove this field
   inset$all <- extractAttributes(inset.all, "probabilityWeight", default = 1.0)
-  inset$allFormals <- unique(Flatten(Map(extractLeafSymbols, inset$all)))
+  collectFormals <- function(inputVariable) {
+    if (is.character(inputVariable)) {
+      list(as.symbol(inputVariable)) 
+    } else {
+      extractLeafSymbols(inputVariable)
+    }
+  }
+  inset$allFormals <- unique(Flatten(Map(collectFormals, inset$all)))
   inset$byType <- Map(function(set) extractAttributes(set, "probabilityWeight", default = 1.0),
                       inset.byType)
   inset$byRange <- Map(function(set) extractAttributes(set, "probabilityWeight", default = 1.0),
