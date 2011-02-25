@@ -286,6 +286,7 @@ joinElites <- function(individuals, elite, eliteSize, fitnessFunction) {
     allIndividualsSorted[1:eliteSize]
   else
     allIndividualsSorted
+  newElite
 }
 
 ##' Summary reports of genetic programming run result objects
