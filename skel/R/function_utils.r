@@ -19,9 +19,9 @@ new.function <- function() {
   # environment, which would cause a hard to find memory leak:
   fun <- function() NULL
   # If you use the last line outside of this function, by shure to initialize the
-  # environment of the generated function object to the global environment, like so:
-  # environment(fun) <- globalenv() 
-  fun  
+  # environment of the generated function object to the global environment, like done here:
+  environment(fun) <- globalenv() 
+  fun 
 }
 
 ##' Create a new function argument list from a list or vector of strings
