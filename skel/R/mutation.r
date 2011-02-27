@@ -17,8 +17,9 @@ NA
 ##'   \eqn{f} with probability \code{mutatefuncprob}.
 ##' \code{mutateSubtree} mutates a function by recursively replacing inner nodes with
 ##'   newly grown subtrees of maximum depth \code{maxsubtreedepth}.
-##' \code{mutateNumericConst} mutates a function by perturbing each numeric constant \eqn{c}
-##'   with probability \code{mutateconstprob} by setting \eqn{c := c + rnorm(1)}.
+##' \code{mutateNumericConst} mutates a function by perturbing each numeric (double) constant \eqn{c}
+##'   with probability \code{mutateconstprob} by setting \eqn{c := c + rnorm(1)}. Note that constants
+##'   of other typed than \code{double} (e.g \code{integer}s) are not affected.
 ##' \code{mutateFuncTyped}, \code{mutateSubtreeTyped}, and \code{mutateNumericConstTyped} are
 ##' variants of the above functions that respect sType tags and only create well-typed results.
 ##'
@@ -96,7 +97,7 @@ mutateNumericConst <- function(func, mutateconstprob = 0.1,
   mutateconstexpr <- function(expr, mutateconstprob) {
     if (is.call(expr)) {
       as.call(append(expr[[1]], Map(function(e) mutateconstexpr(e, mutateconstprob), rest(expr))))
-    } else if (runif(1) <= mutateconstprob && is.numeric(expr)) {
+    } else if (runif(1) <= mutateconstprob && is.double(expr)) {
       if (runif(1) > buildingBlockTag(expr)) {
         mutatedExpr <- expr + rnorm(1)
         mostattributes(mutatedExpr) <- attributes(expr) # transfer attributes
@@ -188,7 +189,7 @@ mutateNumericConstTyped <- function(func, mutateconstprob = 0.1,
       mutatedExpr <- as.call(append(expr[[1]], Map(function(e) mutateconstexprTyped(e, mutateconstprob), rest(expr))))
       mostattributes(mutatedExpr) <- attributes(expr) # transfer attributes
       mutatedExpr %::% sType(expr)
-    } else if (runif(1) <= mutateconstprob && is.numeric(expr)) {
+    } else if (runif(1) <= mutateconstprob && is.double(expr)) {
       if (runif(1) > buildingBlockTag(expr)) {
         mutatedExpr <- expr + rnorm(1)
         mutatedExpr %::% sType(expr)
