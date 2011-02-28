@@ -12,9 +12,7 @@ fi
 
 # bump version in skel/DESCRIPTION using sed...
 VERSION=$1
-sed -i "" "
-s/^Version:.*$/Version: $VERSION/
-" skel/DESCRIPTION
+sed -i "" "s/^Version:.*$/Version: $VERSION/" skel/DESCRIPTION
 
 # tag git release with version...
 git tag $VERSION
