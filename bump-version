@@ -15,4 +15,8 @@ VERSION=$1
 sed -i "" "
 s/^Version:.*$/Version: $VERSION/
 " skel/DESCRIPTION
+
+# tag git release with version...
+git tag $VERSION
+
 echo "Bumped version to $VERSION."
