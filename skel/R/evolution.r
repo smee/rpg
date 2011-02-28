@@ -170,9 +170,18 @@ geneticProgramming <- function(fitnessFunction,
     winnerChildren <- c(winnerChildrenA, winnerChildrenB)
     # Replace losers with winner children...
     if (extinctionPrevention) {
+      numberOfLosers <- length(losers)
       winnerChildrenAndLosers <- c(winnerChildren, pop[losers])
-      uniqueWinnerChildrenAndLosers <- unique(winnerChildrenAndLosers) # unique() does not change the order of it's argument...
-      uniqueChildren <- uniqueWinnerChildrenAndLosers[1:length(losers)] # ...so we can fill up duplicated winner children with losers.
+      uniqueWinnerChildrenAndLosers <- unique(winnerChildrenAndLosers) # unique() does not change the order of it's argument
+      numberOfUniqueWinnerChildrenAndLosers <- length(uniqueWinnerChildrenAndLosers)
+      if (numberOfUniqueWinnerChildrenAndLosers < numberOfLosers) { # not enough unique individuals...
+
+        numberMissing <- numberOfLosers - numberOfUniqueWinnerChildrenAndLosers
+        warning(sprintf("not enough unique individuals for extinction prevention (%d individuals missing)", numberMissing))
+        # we have to fill up with duplicates...
+        uniqueWinnerChildrenAndLosers <- c(uniqueWinnerChildrenAndLosers, winnerChildrenAndLosers[1:numberMissing])
+      }
+      uniqueChildren <- uniqueWinnerChildrenAndLosers[1:numberOfLosers] # fill up duplicated winner children with losers
       pop[losers] <- uniqueChildren
     } else {
       pop[losers] <- winnerChildren
