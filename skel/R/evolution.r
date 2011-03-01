@@ -79,6 +79,9 @@ NA
 ##'   selection steps will try to prevent duplicate individuals
 ##'   from occurring in the population. Defaults to \code{FALSE}, as this
 ##'   operation might be expensive with larger population sizes.
+##' @param genealogy If set to true, the parent(s) of each indiviudal is stored in the
+##'   attribute \code{"rgpParents"}, enabling the reconstruction of the complete genealogy of
+##'   a result population. Note that this might use a large amount of memory.
 ##' @param progressMonitor A function of signature
 ##'   \code{function(population, fitnessfunction, stepNumber, evaluationNumber,
 ##'   bestFitness, timeElapsed)} to be called with each evolution step.
@@ -106,6 +109,7 @@ geneticProgramming <- function(fitnessFunction,
                                breedingFitness = function(individual) TRUE,
                                breedingTries = 50,
                                extinctionPrevention = FALSE,
+                               genealogy = FALSE,
                                progressMonitor = NULL,
                                verbose = TRUE) {
   ## Provide default parameters and initialize GP run...
@@ -158,10 +162,13 @@ geneticProgramming <- function(fitnessFunction,
     losers <- c(losersA, losersB)
     # Create winner children through crossover and mutation...
     makeWinnerChildren <- function(winnersA, winnersB)
-                            Map(function(winnerA, winnerB)
-                                  mutatefunc(crossoverFunction(pop[[winnerA]], pop[[winnerB]],
-                                                               breedingFitness = breedingFitness,
-                                                               breedingTries = breedingTries)),
+                            Map(function(winnerA, winnerB) {
+                                  child <- mutatefunc(crossoverFunction(pop[[winnerA]], pop[[winnerB]],
+                                                                        breedingFitness = breedingFitness,
+                                                                        breedingTries = breedingTries))
+                                  if (genealogy) attr(child, "rgpParents") <- list(pop[[winnerA]], pop[[winnerB]])
+                                  child
+                                },
                                 winnersA, winnersB)
     winnerChildrenA <- makeWinnerChildren(winnersA, winnersB) 
     winnerChildrenB <- makeWinnerChildren(winnersA, winnersB) 
@@ -173,7 +180,6 @@ geneticProgramming <- function(fitnessFunction,
       uniqueWinnerChildrenAndLosers <- unique(winnerChildrenAndLosers) # unique() does not change the order of it's argument
       numberOfUniqueWinnerChildrenAndLosers <- length(uniqueWinnerChildrenAndLosers)
       if (numberOfUniqueWinnerChildrenAndLosers < numberOfLosers) { # not enough unique individuals...
-
         numberMissing <- numberOfLosers - numberOfUniqueWinnerChildrenAndLosers
         warning(sprintf("not enough unique individuals for extinction prevention (%d individuals missing)", numberMissing))
         # we have to fill up with duplicates...
@@ -220,6 +226,7 @@ geneticProgramming <- function(fitnessFunction,
                  breedingFitness = breedingFitness,
                  breedingTries = breedingTries,
                  extinctionPrevention = extinctionPrevention,
+                 genealogy = genealogy,
                  restartStrategy = restartStrategy), class = "geneticProgrammingResult")
 }
 
@@ -243,6 +250,7 @@ typedGeneticProgramming <- function(fitnessFunction,
                                     breedingFitness = function(individual) TRUE,
                                     breedingTries = 50,
                                     extinctionPrevention = FALSE,
+                                    genealogy = FALSE,
                                     progressMonitor = NULL,
                                     verbose = TRUE) {
   if (is.null(type)) stop("typedGeneticProgramming: Type must not be NULL.")
@@ -269,7 +277,7 @@ typedGeneticProgramming <- function(fitnessFunction,
                      crossoverFunction = crossoverFunction, mutationFunction = mutatefunc,
                      restartCondition = restartCondition, restartStrategy = restartStrategy,
                      breedingFitness = breedingFitness, breedingTries = breedingTries,
-                     extinctionPrevention = extinctionPrevention,
+                     extinctionPrevention = extinctionPrevention, genealogy = genealogy,
                      progressMonitor = progressMonitor, verbose = verbose)
 }
 
@@ -367,6 +375,9 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
 ##'   selection steps will try to prevent duplicate individuals
 ##'   from occurring in the population. Defaults to \code{FALSE}, as this
 ##'   operation might be expensive with larger population sizes.
+##' @param genealogy If set to true, the parent(s) of each indiviudal is stored in the
+##'   attribute \code{"rgpParents"}, enabling the reconstruction of the complete genealogy of
+##'   a result population. Note that this might use a large amount of memory.
 ##' @param individualSizeLimit Individuals with a number of tree nodes that
 ##'   exceeds this size limit will get a fitness of \code{Inf}.
 ##' @param penalizeGenotypeConstantIndividuals Individuals that do not contain
@@ -410,6 +421,7 @@ symbolicRegression <- function(formula, data,
                                eliteSize = ceiling(0.1 * populationSize),
                                elite = list(),
                                extinctionPrevention = FALSE,
+                               genealogy = FALSE,
                                individualSizeLimit = 64,
                                penalizeGenotypeConstantIndividuals = FALSE,
                                functionSet = mathFunctionSet,
@@ -438,7 +450,8 @@ symbolicRegression <- function(formula, data,
                                 functionSet, inVarSet, constantSet, selectionFunction,
                                 crossoverFunction, mutationFunction,
                                 restartCondition, restartStrategy,
-                                breedingFitness, breedingTries, extinctionPrevention,
+                                breedingFitness, breedingTries,
+                                extinctionPrevention, genealogy,
                                 progressMonitor, verbose)
   
   structure(append(gpModel, list(formula = formula(mf))),
