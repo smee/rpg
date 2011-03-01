@@ -79,9 +79,12 @@ NA
 ##'   selection steps will try to prevent duplicate individuals
 ##'   from occurring in the population. Defaults to \code{FALSE}, as this
 ##'   operation might be expensive with larger population sizes.
-##' @param genealogy If set to true, the parent(s) of each indiviudal is stored in the
-##'   attribute \code{"rgpParents"}, enabling the reconstruction of the complete genealogy of
-##'   a result population. Note that this might use a large amount of memory.
+##' @param archive If set to \code{TRUE}, all GP individuals evaluated are stored in an
+##'   archive list \code{archiveList} that is returned as part of the result of this function. 
+##' @param genealogy If set to \code{TRUE}, the parent(s) of each indiviudal is stored in
+##'   an archive \code{genealogyMatrix} as part of the result of this function, enabling
+##'   the reconstruction of the complete genealogy of the result population. This
+##'   parameter implies \code{archive = TRUE}.
 ##' @param progressMonitor A function of signature
 ##'   \code{function(population, fitnessfunction, stepNumber, evaluationNumber,
 ##'   bestFitness, timeElapsed)} to be called with each evolution step.
@@ -109,9 +112,12 @@ geneticProgramming <- function(fitnessFunction,
                                breedingFitness = function(individual) TRUE,
                                breedingTries = 50,
                                extinctionPrevention = FALSE,
+                               archive = FALSE,
                                genealogy = FALSE,
                                progressMonitor = NULL,
                                verbose = TRUE) {
+  ## Check parameters...
+  if (genealogy && !archive) stop("geneticProgramming: genealogy == TRUE implies archive == TRUE")
   ## Provide default parameters and initialize GP run...
   logmsg <- function(msg, ...) {
     if (verbose)
@@ -148,6 +154,7 @@ geneticProgramming <- function(fitnessFunction,
   evaluationNumber <- 0
   startTime <- proc.time()["elapsed"]
   timeElapsed <- 0
+  archiveList <- list() # the archive of all individuals selected in this run, only used if archive == TRUE
   bestFitness <- Inf # best fitness value seen in this run, if multi-criterial, only the first component counts
 
   ## Execute GP run...
@@ -156,6 +163,13 @@ geneticProgramming <- function(fitnessFunction,
                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
     # Select two sets of individuals and divide each into winners and losers...
     selA <- selectionFunction(pop, fitnessFunction); selB <- selectionFunction(pop, fitnessFunction)
+    if (archive) { # add the evaluated individuals to the archive...
+      evaluatedIndices <- c(selA$selected[, 1], selB$selected[, 1], selA$discarded[, 1], selB$discarded[, 1])
+      evaluatedFitnesses <- c(selA$selected[, 2], selB$selected[, 2], selA$discarded[, 2], selB$discarded[, 2])
+      for (i in 1:length(evaluatedIndices))
+        archiveList[[length(archiveList) + 1]] <- list(individual = pop[[evaluatedIndices[i]]],
+                                                       fitness = evaluatedFitnesses[i])
+    }
     winnersA <- selA$selected[, 1]; winnersB <- selB$selected[, 1]
     bestFitness <- min(c(bestFitness, selA$selected[, 2], selB$selected[, 2]))
     losersA <- selA$discarded[, 1]; losersB <- selB$discarded[, 1]
@@ -166,7 +180,7 @@ geneticProgramming <- function(fitnessFunction,
                                   child <- mutatefunc(crossoverFunction(pop[[winnerA]], pop[[winnerB]],
                                                                         breedingFitness = breedingFitness,
                                                                         breedingTries = breedingTries))
-                                  if (genealogy) attr(child, "rgpParents") <- list(pop[[winnerA]], pop[[winnerB]])
+                                  if (genealogy) stop("geneticProgramming: genealogy not implemented") # TODO
                                   child
                                 },
                                 winnersA, winnersB)
@@ -181,7 +195,7 @@ geneticProgramming <- function(fitnessFunction,
       numberOfUniqueWinnerChildrenAndLosers <- length(uniqueWinnerChildrenAndLosers)
       if (numberOfUniqueWinnerChildrenAndLosers < numberOfLosers) { # not enough unique individuals...
         numberMissing <- numberOfLosers - numberOfUniqueWinnerChildrenAndLosers
-        warning(sprintf("not enough unique individuals for extinction prevention (%d individuals missing)", numberMissing))
+        warning(sprintf("geneticProgramming: not enough unique individuals for extinction prevention (%d individuals missing)", numberMissing))
         # we have to fill up with duplicates...
         uniqueWinnerChildrenAndLosers <- c(uniqueWinnerChildrenAndLosers, winnerChildrenAndLosers[1:numberMissing])
       }
@@ -226,7 +240,9 @@ geneticProgramming <- function(fitnessFunction,
                  breedingFitness = breedingFitness,
                  breedingTries = breedingTries,
                  extinctionPrevention = extinctionPrevention,
+                 archive = archive,
                  genealogy = genealogy,
+                 archiveList = archiveList,
                  restartStrategy = restartStrategy), class = "geneticProgrammingResult")
 }
 
@@ -250,6 +266,7 @@ typedGeneticProgramming <- function(fitnessFunction,
                                     breedingFitness = function(individual) TRUE,
                                     breedingTries = 50,
                                     extinctionPrevention = FALSE,
+                                    archive = FALSE,
                                     genealogy = FALSE,
                                     progressMonitor = NULL,
                                     verbose = TRUE) {
@@ -277,7 +294,8 @@ typedGeneticProgramming <- function(fitnessFunction,
                      crossoverFunction = crossoverFunction, mutationFunction = mutatefunc,
                      restartCondition = restartCondition, restartStrategy = restartStrategy,
                      breedingFitness = breedingFitness, breedingTries = breedingTries,
-                     extinctionPrevention = extinctionPrevention, genealogy = genealogy,
+                     extinctionPrevention = extinctionPrevention,
+                     archive = archive, genealogy = genealogy,
                      progressMonitor = progressMonitor, verbose = verbose)
 }
 
@@ -375,9 +393,12 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
 ##'   selection steps will try to prevent duplicate individuals
 ##'   from occurring in the population. Defaults to \code{FALSE}, as this
 ##'   operation might be expensive with larger population sizes.
-##' @param genealogy If set to true, the parent(s) of each indiviudal is stored in the
-##'   attribute \code{"rgpParents"}, enabling the reconstruction of the complete genealogy of
-##'   a result population. Note that this might use a large amount of memory.
+##' @param archive If set to \code{TRUE}, all GP individuals evaluated are stored in an
+##'   archive list \code{archiveList} that is returned as part of the result of this function. 
+##' @param genealogy If set to \code{TRUE}, the parent(s) of each indiviudal is stored in
+##'   an archive \code{genealogyMatrix} as part of the result of this function, enabling
+##'   the reconstruction of the complete genealogy of the result population. This
+##'   parameter implies \code{archive = TRUE}.
 ##' @param individualSizeLimit Individuals with a number of tree nodes that
 ##'   exceeds this size limit will get a fitness of \code{Inf}.
 ##' @param penalizeGenotypeConstantIndividuals Individuals that do not contain
@@ -421,6 +442,7 @@ symbolicRegression <- function(formula, data,
                                eliteSize = ceiling(0.1 * populationSize),
                                elite = list(),
                                extinctionPrevention = FALSE,
+                               archive = FALSE,
                                genealogy = FALSE,
                                individualSizeLimit = 64,
                                penalizeGenotypeConstantIndividuals = FALSE,
@@ -446,13 +468,27 @@ symbolicRegression <- function(formula, data,
   fitFunc <- makeRegressionFitnessFunction(formula(mf), mf, errormeasure = rmse,
                                            penalizeGenotypeConstantIndividuals = penalizeGenotypeConstantIndividuals,
                                            indsizelimit = individualSizeLimit)
-  gpModel <- geneticProgramming(fitFunc, stopCondition, population, populationSize, eliteSize, elite,
-                                functionSet, inVarSet, constantSet, selectionFunction,
-                                crossoverFunction, mutationFunction,
-                                restartCondition, restartStrategy,
-                                breedingFitness, breedingTries,
-                                extinctionPrevention, genealogy,
-                                progressMonitor, verbose)
+  gpModel <- geneticProgramming(fitFunc,
+                                stopCondition = stopCondition,
+                                population = population,
+                                populationSize = populationSize,
+                                eliteSize = eliteSize,
+                                elite = elite,
+                                functionSet = functionSet,
+                                inputVariables = inVarSet,
+                                constantSet = constantSet,
+                                selectionFunction = selectionFunction,
+                                crossoverFunction = crossoverFunction,
+                                mutationFunction = mutationFunction,
+                                restartCondition = restartCondition,
+                                restartStrategy = restartStrategy,
+                                breedingFitness = breedingFitness,
+                                breedingTries = breedingTries,
+                                extinctionPrevention = extinctionPrevention,
+                                archive = archive,
+                                genealogy = genealogy,
+                                progressMonitor = progressMonitor,
+                                verbose = verbose)
   
   structure(append(gpModel, list(formula = formula(mf))),
                    class = c("symbolicRegressionModel", "geneticProgrammingResult"))
