@@ -157,16 +157,14 @@ geneticProgramming <- function(fitnessFunction,
     losersA <- selA$discarded[, 1]; losersB <- selB$discarded[, 1]
     losers <- c(losersA, losersB)
     # Create winner children through crossover and mutation...
-    winnerChildrenA <- Map(function(winnerA, winnerB)
-                             mutatefunc(crossoverFunction(pop[[winnerA]], pop[[winnerB]],
-                                                          breedingFitness = breedingFitness,
-                                                          breedingTries = breedingTries)),
-                           winnersA, winnersB)
-    winnerChildrenB <- Map(function(winnerA, winnerB)
-                             mutatefunc(crossoverFunction(pop[[winnerA]], pop[[winnerB]],
-                                                          breedingFitness = breedingFitness,
-                                                          breedingTries = breedingTries)),
-                           winnersA, winnersB)
+    makeWinnerChildren <- function(winnersA, winnersB)
+                            Map(function(winnerA, winnerB)
+                                  mutatefunc(crossoverFunction(pop[[winnerA]], pop[[winnerB]],
+                                                               breedingFitness = breedingFitness,
+                                                               breedingTries = breedingTries)),
+                                winnersA, winnersB)
+    winnerChildrenA <- makeWinnerChildren(winnersA, winnersB) 
+    winnerChildrenB <- makeWinnerChildren(winnersA, winnersB) 
     winnerChildren <- c(winnerChildrenA, winnerChildrenB)
     # Replace losers with winner children...
     if (extinctionPrevention) {
