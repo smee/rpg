@@ -82,7 +82,7 @@ NA
 ##' @param archive If set to \code{TRUE}, all GP individuals evaluated are stored in an
 ##'   archive list \code{archiveList} that is returned as part of the result of this function. 
 ##' @param genealogy If set to \code{TRUE}, the parent(s) of each indiviudal is stored in
-##'   an archive \code{genealogyMatrix} as part of the result of this function, enabling
+##'   an archive \code{genealogyList} as part of the result of this function, enabling
 ##'   the reconstruction of the complete genealogy of the result population. This
 ##'   parameter implies \code{archive = TRUE}.
 ##' @param progressMonitor A function of signature
@@ -118,6 +118,7 @@ geneticProgramming <- function(fitnessFunction,
                                verbose = TRUE) {
   ## Check parameters...
   if (genealogy && !archive) stop("geneticProgramming: genealogy == TRUE implies archive == TRUE")
+  if (genealogy) stop("geneticProgramming: genealogy tracking not implemented.") # TODO
   ## Provide default parameters and initialize GP run...
   logmsg <- function(msg, ...) {
     if (verbose)
@@ -155,6 +156,9 @@ geneticProgramming <- function(fitnessFunction,
   startTime <- proc.time()["elapsed"]
   timeElapsed <- 0
   archiveList <- list() # the archive of all individuals selected in this run, only used if archive == TRUE
+  archiveIndexOf <- function(archive, individual)
+    Position(function(a) identical(body(a$individual), body(individual)), archive)
+  genealogyList <- list() # an adjacency list of representing the genealogy of all individuals in the archive
   bestFitness <- Inf # best fitness value seen in this run, if multi-criterial, only the first component counts
 
   ## Execute GP run...
@@ -176,13 +180,10 @@ geneticProgramming <- function(fitnessFunction,
     losers <- c(losersA, losersB)
     # Create winner children through crossover and mutation...
     makeWinnerChildren <- function(winnersA, winnersB)
-                            Map(function(winnerA, winnerB) {
-                                  child <- mutatefunc(crossoverFunction(pop[[winnerA]], pop[[winnerB]],
-                                                                        breedingFitness = breedingFitness,
-                                                                        breedingTries = breedingTries))
-                                  if (genealogy) stop("geneticProgramming: genealogy not implemented") # TODO
-                                  child
-                                },
+                            Map(function(winnerA, winnerB)
+                                  mutatefunc(crossoverFunction(pop[[winnerA]], pop[[winnerB]],
+                                                               breedingFitness = breedingFitness,
+                                                               breedingTries = breedingTries)),
                                 winnersA, winnersB)
     winnerChildrenA <- makeWinnerChildren(winnersA, winnersB) 
     winnerChildrenB <- makeWinnerChildren(winnersA, winnersB) 
@@ -243,6 +244,7 @@ geneticProgramming <- function(fitnessFunction,
                  archive = archive,
                  genealogy = genealogy,
                  archiveList = archiveList,
+                 genealogyList = genealogyList,
                  restartStrategy = restartStrategy), class = "geneticProgrammingResult")
 }
 
@@ -396,7 +398,7 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
 ##' @param archive If set to \code{TRUE}, all GP individuals evaluated are stored in an
 ##'   archive list \code{archiveList} that is returned as part of the result of this function. 
 ##' @param genealogy If set to \code{TRUE}, the parent(s) of each indiviudal is stored in
-##'   an archive \code{genealogyMatrix} as part of the result of this function, enabling
+##'   an archive \code{genealogyList} as part of the result of this function, enabling
 ##'   the reconstruction of the complete genealogy of the result population. This
 ##'   parameter implies \code{archive = TRUE}.
 ##' @param individualSizeLimit Individuals with a number of tree nodes that
