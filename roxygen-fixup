@@ -2,7 +2,7 @@
 
 for F in pkg/man/*.Rd ; do
     echo "Fixing up $F..."
-    sed -i e '
+    sed -i -e '
 s/\([^\]\)%/\1\\%/g 
 s/^\([&!|]\..*\)(/`\1`(/g 
 s/^\(.*<-\)(/`\1`(/g' $F
