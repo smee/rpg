@@ -128,7 +128,7 @@ constantFactorySet <- function(..., list = NULL) {
 ##' @export
 pw <- function(x, pw) {
   if (hasPw(x))
-    stop("pw: Object ", x, " also has an probability weight (of ", pw, ")")
+    stop("pw: Object ", x, " already has an probability weight (of ", pw, ").")
   attr(x, "probabilityWeight") <- pw
   x
 }

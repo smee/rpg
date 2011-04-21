@@ -7,6 +7,9 @@
 ## released under the GPL v2
 ##
 
+## The global type environment for RGP
+rgpSTypeEnvironment <- new.env(parent = emptyenv())
+
 ##' Type constructors for types in the Rsymbolic type system
 ##'
 ##' These functions create types for the Rsymbolic type system, called \emph{sTypes}
@@ -20,6 +23,7 @@
 ##' Every sType has a \code{string} field containing a unambiguous string representation
 ##' that can serve as a hash table key.
 ##' STypes can be checked for equality via \code{\link{identical}}.
+##' \code{sObject} is the root of the sType hierarchy, i.e. the most general type.
 ##'
 ##' @param baseTypeName The name of the base sType to create.
 ##' @return The created sType.
@@ -27,6 +31,7 @@
 ##' @examples
 ##' st("numeric")
 ##' list(st("numeric"), st("numeric")) \%->\% st("logical")
+##' is.sType(st("logical"))
 ##' 
 ##' @seealso sTypeTags
 ##' @rdname sTypeConstructors
@@ -50,6 +55,19 @@ st <- function(baseTypeName) {
   class(sFunctionType) <- c("sFunctionType", "sType")
   sFunctionType
 }
+
+##' @rdname sTypeConstructors
+##' @export
+sObject <- st("sObject")
+
+##' Check if an object is an sType
+##'
+##' Returns \code{TRUE} iff its argument is an sType.
+##'
+##' @param x The object to check.
+##' @return \code{TRUE} iff \code{x} is an sType.
+##' @export
+is.sType <- function(x) inherits(x, "sType")
 
 ##' Prints a sType and returns it invisible.
 ##'
@@ -84,6 +102,99 @@ print.sType <- function(x, ...) {
 ##' @export
 sType <- function(x) attr(x, "sType", exact = TRUE)
 
+# TODO remove old sType function and rename this one to "sType"
+calculateSType <- function(x, typeEnvir = rgpSTypeEnvironment)
+  calculateSTypeRecursive(x, typeEnvir = typeEnvir)$type
+
+calculateSTypeq <- function(x, typeEnvir = rgpSTypeEnvironment)
+  calculateSType(substitute(x), typeEnvir = typeEnvir)
+
+calculateSTypeRecursive <- function(x, typeEnvir = rgpSTypeEnvironment, formalsStack = list()) {
+  if (!is.language(x)) {
+    ## a constant: get type from the constant' R class
+    list(type = st(as.character(class(x))),
+         formalsStack = formalsStack)
+  } else if (is.symbol(x)) {
+    ## a symbol: get type from formals Stack or from type environment
+    sTypeFromFormalsStack <- getSTypeFromFormalsStack(as.character(x), formalsStack)
+    if (!is.null(sTypeFromFormalsStack)) {
+      list(type = sTypeFromFormalsStack,
+           formalsStack = formalsStack)
+    } else if (exists(as.character(x), envir = rgpSTypeEnvironment)) {
+      list(type = get(as.character(x), envir = rgpSTypeEnvironment),
+           formalsStack = formalsStack)
+    } else stop("sType: Could not determine sType of object ", x, ".")
+  } else if (is.call(x) && identical(x[[1]], as.symbol("function"))) {
+    ## a function definition: calculate function type
+    formalNames <- names(x[[2]])
+    formalsFrame <- Map(function(formal) list(formal, sObject), formalNames)
+    typeAndStackOfBody <- calculateSTypeRecursive(x[[3]], typeEnvir = rgpSTypeEnvironment,
+                                                  formalsStack = c(list(formalsFrame), formalsStack))
+    bodyFormalsStack <- typeAndStackOfBody$formalsStack
+    domainTypes <- Map(function(formalName) {
+                         getSTypeFromFormalsStack(as.character(formalName), bodyFormalsStack)
+                       }, formalNames)
+    rangeType <- typeAndStackOfBody$type
+    functionType <- domainTypes %->% rangeType
+    list(type = functionType,
+         formalsStack = bodyFormalsStack[-1])
+  } else if (is.call(x) && exists(as.character(x[[1]]), envir = rgpSTypeEnvironment)) {
+    ## a function application: get range (result) type from type environment
+    if (identical(formalsStack, list())) {
+      ## use shortcut if no formal variable types have to be inferred
+      list(type = calculateSTypeRecursive(x[[1]], typeEnvir = rgpSTypeEnvironment,
+                                          formalsStack = formalsStack)$type$range,
+           formalsStack = formalsStack)
+    } else {
+      functionType <- calculateSTypeRecursive(x[[1]], typeEnvir = rgpSTypeEnvironment,
+                                              formalsStack = formalsStack)$type
+      updatedFormalsStack <- formalsStack
+      for (i in 1:length(functionType$domain)) {
+        actualArgument <- x[[i + 1]]
+        expectedArgumentType <- functionType$domain[[i]]
+        actualArgumentTypeAndStack <- calculateSTypeRecursive(actualArgument, typeEnvir = rgpSTypeEnvironment,
+                                                              formalsStack = updatedFormalsStack)
+        actualArgumentType <- actualArgumentTypeAndStack$type
+        updatedFormalsStack <- actualArgumentTypeAndStack$formalsStack
+        if (!is.null(getSTypeFromFormalsStack(as.character(actualArgument), updatedFormalsStack))) {
+          ## the current argument is a formal argument, update its type on the formal argument stack
+          updatedFormalsStack <- setSTypeOnFormalsStack(as.character(actualArgument),
+                                                        expectedArgumentType, updatedFormalsStack)
+        }
+      }
+      list(type = functionType$range,
+           formalsStack = updatedFormalsStack)
+    }
+  } else stop("sType: Could not determine sType of object ", x, ".")
+}
+
+getSTypeFromFormalsStack <- function(x, formalsStack) {
+  for (frame in formalsStack) {
+    for (pair in frame) {
+      if (identical(x, pair[[1]])) return(pair[[2]])
+    }
+  }
+  NULL
+}
+
+setSTypeOnFormalsStack <- function(x, value, formalsStack) {
+  for (frameNum in 1:length(formalsStack)) {
+    for (pairNum in 1:length(formalsStack[[frameNum]])) {
+      if (identical(x, formalsStack[[frameNum]][[pairNum]][[1]])) {
+        if (identical(formalsStack[[frameNum]][[pairNum]][[2]], sObject)
+            || identical(formalsStack[[frameNum]][[pairNum]][[2]], value)) {
+          formalsStack[[frameNum]][[pairNum]][[2]] <- value
+          return(formalsStack)
+        } else stop("sType: Type error at formal argument ", x, ", expected type ",
+                    value$string, " but got argument of type ",
+                    formalsStack[[frameNum]][[pairNum]][[2]]$string, ".")
+      }
+    }
+  }
+  formalsStack
+}
+
+## TODO remove this
 ##' @rdname sTypeTags
 ##' @export `sType<-`
 `sType<-` <- function(x, value) {
@@ -91,6 +202,7 @@ sType <- function(x) attr(x, "sType", exact = TRUE)
   x
 }
 
+## TODO remove this
 ##' @rdname sTypeTags
 ##' @export
 hasStype <- function(x) !is.null(sType(x))
@@ -98,7 +210,17 @@ hasStype <- function(x) !is.null(sType(x))
 ##' @rdname sTypeTags
 ##' @export `%::%`
 `%::%` <- function(x, value) {
-  attr(x, "sType") <- value
+  if (!is.sType(value)) stop("%::%: ", value, " is not an sType.")
+  xString <- as.character(x)
+  if (exists(xString, envir = rgpSTypeEnvironment) &&
+      !identical(get(xString, envir = rgpSTypeEnvironment), value)) {
+    stop("%::%: The symbol ", xString, " already has an sType of ",
+         get(xString, envir = rgpSTypeEnvironment)$string, ".")
+  }
+  ## TODO remove the sType attribute entirely ...
+  assign(xString, value, envir = rgpSTypeEnvironment)
+  attr(x, "sType") <- value # TODO
+  ## ... .
   x
 }
 
