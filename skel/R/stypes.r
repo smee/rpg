@@ -109,6 +109,24 @@ calculateSType <- function(x, typeEnvir = rgpSTypeEnvironment)
 calculateSTypeq <- function(x, typeEnvir = rgpSTypeEnvironment)
   calculateSType(substitute(x), typeEnvir = typeEnvir)
 
+##' Inference of sTypes
+##'
+##' RGP internally infers the sTypes of compound expressions like function applications
+##' and function definitions from the sTypes of atomic expressions. The sTypes of building
+##' blocks are defined by the user via the \code{\%::\%} operator and are stored in the
+##' package-internal global variable \code{rgpSTypeEnvironment}.
+##' \code{calculateSTypeRecursive} calculates the sType of the R expression \code{x}.
+##' SType inference of function definitions relies on a typed stack of formal arguments of
+##' the function definition to infer the sType for.
+##' \code{getSTypeFromFormalsStack} and \code{setSTypeOnFormalsStack} get or set the sType
+##' of a formal argument \code{x} and a \code{formalsStack}, respectively.
+##'
+##' @param x The object to operate on.
+##' @param typeEnvir The type environment, containing user-supplied sTypes of building blocks.
+##' @param formalsStack A stack of formal arguments with their sTypes.
+##'
+##' @seealso sTypeConstructors, sTypeTags
+##' @rdname sTypeInference
 calculateSTypeRecursive <- function(x, typeEnvir = rgpSTypeEnvironment, formalsStack = list()) {
   if (!is.language(x)) {
     ## a constant: get type from the constant' R class
@@ -168,6 +186,7 @@ calculateSTypeRecursive <- function(x, typeEnvir = rgpSTypeEnvironment, formalsS
   } else stop("sType: Could not determine sType of object ", x, ".")
 }
 
+##' @rdname sTypeInference
 getSTypeFromFormalsStack <- function(x, formalsStack) {
   for (frame in formalsStack) {
     for (pair in frame) {
@@ -177,6 +196,7 @@ getSTypeFromFormalsStack <- function(x, formalsStack) {
   NULL
 }
 
+##' @rdname sTypeInference
 setSTypeOnFormalsStack <- function(x, value, formalsStack) {
   for (frameNum in 1:length(formalsStack)) {
     for (pairNum in 1:length(formalsStack[[frameNum]])) {
@@ -211,12 +231,12 @@ hasStype <- function(x) !is.null(sType(x))
 ##' @export `%::%`
 `%::%` <- function(x, value) {
   if (!is.sType(value)) stop("%::%: ", value, " is not an sType.")
-  xString <- as.character(x)
-  if (exists(xString, envir = rgpSTypeEnvironment) &&
-      !identical(get(xString, envir = rgpSTypeEnvironment), value)) {
-    stop("%::%: The symbol ", xString, " already has an sType of ",
-         get(xString, envir = rgpSTypeEnvironment)$string, ".")
-  }
+  #xString <- as.character(x)
+  #if (exists(xString, envir = rgpSTypeEnvironment) &&
+  #    !identical(get(xString, envir = rgpSTypeEnvironment), value)) {
+  #  stop("%::%: The symbol ", xString, " already has an sType of ",
+  #       get(xString, envir = rgpSTypeEnvironment)$string, ".")
+  #}
   ## TODO remove the sType attribute entirely ...
   assign(xString, value, envir = rgpSTypeEnvironment)
   attr(x, "sType") <- value # TODO
