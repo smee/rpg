@@ -251,3 +251,14 @@ hasStype <- function(x) !is.null(sType(x))
 ##' @export
 rangeTypeOfType <- function(t)
   if (inherits(t, "sFunctionType")) t$range else t
+
+##' Return expr with the attributes of sourceExpr
+##'
+##' @param expr The expression to receive the attributes of \code{sourceExpr}.
+##' @param sourceExpr The expression to provide the attributes for \code{expr}.
+##' @return A copy of \code{expr}, tagged with the attributes and sType of
+##'   \code{sourceExpr}.
+withAttributesOf <- function(expr, sourceExpr) {
+  mostattributes(expr) <- attributes(sourceExpr)
+  if (hasStype(sourceExpr)) expr %::% sType(sourceExpr) else expr
+}
