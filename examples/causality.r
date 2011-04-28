@@ -3,14 +3,15 @@
 # 2010 Oliver Flasch
 #
 
-require(rgp)
+require("rgp")
 
 
 makeRandomIndividual <- function(functions = arithmeticFunctionSet,
                                  inputVariables = inputVariableSet("x"),
                                  constantFactories = numericConstantSet,
                                  maxDepth = 5, expressionFactory = randexprFull)
-  randfunc(functions, inputVariables, constantFactories, maxDepth, expressionFactory)
+  randfunc(funcset = functions, inset = inputVariables, conset = constantFactories,
+           maxdepth = maxDepth, exprfactory = expressionFactory)
 
 univariateRmse <- function(f1, f2, xs = seq(1, 10, by = 0.1)) {
   ys1 <- Vectorize(f1)(xs)
