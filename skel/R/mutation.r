@@ -290,16 +290,56 @@ mutateChangeLabel <- function(func, funcset, inset, conset,
 ##' @export
 mutateInsertSubtree <- function(func, funcset, inset, conset,
                                 strength = 1,
+                                subtreeDepth = 2,
                                 breedingFitness = function(individual) TRUE,
                                 breedingTries = 50) {
-  NULL
+  # strength means depth of inserted trees, trees are inserted by replacing a random leaf
+  numberOfLeaves <- funcLeaves(func)
+  sampledMutationPoints <- sample.int(numberOfLeaves, replace = FALSE,
+                                      size = min(strength, numberOfLeaves))
+  currentLeaf <- 0 # here, local mutable state is more efficient than recursion
+  mutateExpressionInsertSubtree <- function(expr) {
+    if (is.call(expr)) {
+      if (identical(expr[[1]], as.symbol("function"))) {
+        stop("mutateInsertSubtree: Support for anonymous function nodes is not implemented.") # TODO
+      } else {
+        restExpr <- rest(expr)
+        mutatedExpr <- as.call(append(expr[[1]], Map(mutateExpressionInsertSubtree, restExpr)))
+        withAttributesOf(mutatedExpr, expr)
+      }
+    } else if (is.symbol(expr) || is.numeric(expr) || is.logical(expr)) {
+      currentLeaf <<- currentLeaf + 1
+      if (currentLeaf %in% sampledMutationPoints && runif(1) > buildingBlockTag(expr)) {
+        message("MUTATE at leaf#: ", currentLeaf, " -- ", expr) # TODO DEBUG
+        if (hasStype(expr)) {
+          type <- sType(expr)
+          newSubtree <- randexprTypedFull(type, funcset, inset, conset,
+                                          maxdepth = subtreeDepth, constprob = 0.2)
+          withAttributesOf(newSubtree, expr)
+        } else {
+          newSubtree <- randexprFull(funcset, inset, conset,
+                                     maxdepth = subtreeDepth, constprob = 0.2)
+          withAttributesOf(newSubtree, expr)
+        }
+      } else expr
+    } else stop("mutateInsertSubtree: Unsupported expression: ", expr, ".")
+  }
+  doMutation <- function() {
+    mutant <- new.function()
+    formals(mutant) <- formals(func)
+    body(mutant) <- mutateExpressionInsertSubtree(body(func))
+    mutant
+  }
+  breed(doMutation, breedingFitness, breedingTries)
 }
 
 ##' @rdname expressionMutation
 ##' @export
 mutateDeleteSubtree <- function(func, funcset, inset, conset,
                                 strength = 1,
+                                subtreeDepth = 2,
                                 breedingFitness = function(individual) TRUE,
                                 breedingTries = 50) {
+  # strength ist die baumtiefe
   NULL
 }
