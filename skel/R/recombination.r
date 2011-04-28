@@ -30,7 +30,7 @@ randchild <- function(expr)
 randsubtree <- function(expr, subtreeprob = 0.1)
   if (is.call(expr) && runif(1) > subtreeprob) randsubtree(randchild(expr), subtreeprob) else expr
 
-##' Random crossover of functions and expressions
+##' Random crossover (recombination) of functions and expressions
 ##'
 ##' Replace a random subtree of \code{func1} (\code{expr1}) with a random subtree of
 ##' \code{func2} (\code{expr2}) and return the resulting function (expression), i.e.
@@ -38,6 +38,9 @@ randsubtree <- function(expr, subtreeprob = 0.1)
 ##' \code{crossoverexpr} handles crossover of expressions instead of functions.
 ##' \code{crossoverTyped} and \code{crossoverexprTyped} only exchage replace subtress
 ##' if the sTypes of their root nodes match.
+##'
+##' All RGP recombination operators operating on functions have the S3 class
+##' \code{c("recombinationOperator", "function")}.
 ##'
 ##' @param expr1 The first parent R expression.
 ##' @param func1 The first parent R function.
@@ -63,6 +66,7 @@ crossover <- function(func1, func2, crossoverprob = 0.1,
   }
   breed(doCrossover, breedingFitness, breedingTries)
 }
+class(crossover) <- c("recombinationOperator", "function")
 
 ##' @rdname expressionCrossover
 ##' @export
@@ -93,6 +97,7 @@ crossoverTyped <- function(func1, func2, crossoverprob = 0.1,
   }
   breed(doCrossoverTyped, breedingFitness, breedingTries)
 }
+class(crossoverTyped) <- c("recombinationOperator", "function")
 
 ##' @rdname expressionCrossover
 ##' @export

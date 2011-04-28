@@ -31,11 +31,19 @@ NA
 ##' The second set of mutation operators features a more orthogonal design, with each individual
 ##' operator having a only a small effect on the genotype. Mutation strength is controlled by
 ##' the integral \code{strength} parameter.
-##' \code{mutateChangeLabel} TODO
-##' \code{mutateInsertSubtree} TODO
-##' \code{mutateDeleteSubtree} TODO
+##' \code{mutateChangeLabel} Selects a node (inner node or leaf) by uniform random sampling and replaces
+##'   the label of this node by a new label of matching type.
+##' \code{mutateInsertSubtree} Selects a leaf by uniform random sampling and replaces it with a matching
+##'   subtree of the exact depth of \code{subtreeDepth}.
+##' \code{mutateDeleteSubtree} Selects a subree of the exact depth of \code{subtreeDepth} by uniform random
+##'   sampling and replaces it with a matching leaf.
+##' \code{mutateChangeDeleteInsert} Either applies \code{mutateChangeLabel}, \code{mutateDeleteSubtree},
+##' or \code{mutateDeleteSubtree}. The probability weights for selecting an operator can be supplied
+##' via the ...Probability arguments (probability weights are normalized to a sum of 1). 
 ##' The above functions automatically create well-typed result expressions when used in a strongly
 ##' typed GP run.
+##'
+##' All RGP mutation operators have the S3 class \code{c("mutationOperator", "function")}.
 ##'
 ##' @param func The function to mutate randomly.
 ##' @param funcset The function set.
@@ -48,6 +56,14 @@ NA
 ##' @param mutateconstprob The probability of mutating a constant by adding \code{rnorm(1)} to it.
 ##' @param strength The number of individual point mutations (changes, insertions, deletions) to
 ##'   perform.
+##' @param subtreeDepth The depth of the subtrees to insert or delete.
+##' @param constprob The probability of creating a constant versus an input variable when inserting
+##'   a new subtree.
+##' @param iterations The number of times to apply a mutation operator to a GP individual. This
+##'   can be used as a generic way of controling the strength of the genotypic effect of mutation. 
+##' @param changeProbability The probability for selecting the \code{mutateChangeLabel} operator.
+##' @param deleteProbability The probability for selecting the \code{mutateDeleteSubtree} operator.
+##' @param insertProbability The probability for selecting the \code{mutateInsertSubtree} operator.
 ##' @param breedingFitness A breeding function. See the documentation for
 ##'   \code{\link{geneticProgramming}} for details.
 ##' @param breedingTries The number of breeding steps.
@@ -78,6 +94,7 @@ mutateFunc <- function(func, funcset, mutatefuncprob = 0.01,
   }
   breed(doMutation, breedingFitness, breedingTries)
 }
+class(mutateFunc) <- c("mutationOperator", "function")
 
 ##' @rdname expressionMutation
 ##' @export
@@ -104,6 +121,7 @@ mutateSubtree <- function(func, funcset, inset, conset, mutatesubtreeprob = 0.1,
   }
   breed(doMutation, breedingFitness, breedingTries)
 }
+class(mutateSubtree) <- c("mutationOperator", "function")
 
 ##' @rdname expressionMutation
 ##' @export
@@ -128,6 +146,7 @@ mutateNumericConst <- function(func, mutateconstprob = 0.1,
   }
   breed(doMutation, breedingFitness, breedingTries)
 }
+class(mutateNumericConst) <- c("mutationOperator", "function")
 
 ##' @rdname expressionMutation
 ##' @export
@@ -162,6 +181,7 @@ mutateFuncTyped <- function(func, funcset, mutatefuncprob = 0.01,
   }
   breed(doMutation, breedingFitness, breedingTries)
 }
+class(mutateFuncTyped) <- c("mutationOperator", "function")
 
 ##' @rdname expressionMutation
 ##' @export
@@ -191,6 +211,7 @@ mutateSubtreeTyped <- function(func, funcset, inset, conset, mutatesubtreeprob =
   }
   breed(doMutation, breedingFitness, breedingTries)
 }
+class(mutateSubtreeTyped) <- c("mutationOperator", "function")
 
 ##' @rdname expressionMutation
 ##' @export
@@ -216,6 +237,7 @@ mutateNumericConstTyped <- function(func, mutateconstprob = 0.1,
   }
   breed(doMutation, breedingFitness, breedingTries)
 }
+class(mutateNumericConstTyped) <- c("mutationOperator", "function")
 
 ##' @rdname expressionMutation
 ##' @export
@@ -243,6 +265,11 @@ mutateChangeLabel <- function(func, funcset, inset, conset,
     } else if (is.call(expr)) {
       if (identical(expr[[1]], as.symbol("function"))) {
         stop("mutateChnageLabel: Support for anonymous function nodes is not implemented.") # TODO
+      } else if (identical(expr[[1]], as.symbol("("))) {
+        ## Just skip parentheses in the expression tree...
+        restExpr <- rest(expr)
+        mutatedExpr <- as.call(append(expr[[1]], Map(mutateExpressionChangeLabel, restExpr)))
+        withAttributesOf(mutatedExpr, expr)
       } else {
         mutatedLabel <- if (currentNode %in% sampledMutationPoints && runif(1) > buildingBlockTag(expr)) {
           ## Select a candidate for a new function of matching range type. This can of course result
@@ -285,6 +312,7 @@ mutateChangeLabel <- function(func, funcset, inset, conset,
   }
   breed(doMutation, breedingFitness, breedingTries)
 }
+class(mutateChangeLabel) <- c("mutationOperator", "function")
 
 ##' @rdname expressionMutation
 ##' @export
@@ -293,7 +321,7 @@ mutateInsertSubtree <- function(func, funcset, inset, conset,
                                 subtreeDepth = 2,
                                 breedingFitness = function(individual) TRUE,
                                 breedingTries = 50) {
-  # strength means depth of inserted trees, trees are inserted by replacing a random leaf
+  ## Subtrees are inserted by replacing a random leaf...
   numberOfLeaves <- funcLeaves(func)
   sampledMutationPoints <- sample.int(numberOfLeaves, replace = FALSE,
                                       size = min(strength, numberOfLeaves))
@@ -310,7 +338,7 @@ mutateInsertSubtree <- function(func, funcset, inset, conset,
     } else if (is.symbol(expr) || is.numeric(expr) || is.logical(expr)) {
       currentLeaf <<- currentLeaf + 1
       if (currentLeaf %in% sampledMutationPoints && runif(1) > buildingBlockTag(expr)) {
-        message("MUTATE at leaf#: ", currentLeaf, " -- ", expr) # TODO DEBUG
+        #message("INSERT SUBTREE at leaf#: ", currentLeaf, " -- ", expr) # DEBUG
         if (hasStype(expr)) {
           type <- sType(expr)
           newSubtree <- randexprTypedFull(type, funcset, inset, conset,
@@ -332,14 +360,92 @@ mutateInsertSubtree <- function(func, funcset, inset, conset,
   }
   breed(doMutation, breedingFitness, breedingTries)
 }
+class(mutateInsertSubtree) <- c("mutationOperator", "function")
 
 ##' @rdname expressionMutation
 ##' @export
 mutateDeleteSubtree <- function(func, funcset, inset, conset,
                                 strength = 1,
                                 subtreeDepth = 2,
+                                constprob = 0.2,
                                 breedingFitness = function(individual) TRUE,
                                 breedingTries = 50) {
-  # strength ist die baumtiefe
-  NULL
+  ## Subtrees are deleted by deleting a random subtree of depth subtreeDepth...
+  numberOfSubtreesOfMatchingDepth <- funcCount(func, function(node) exprDepth(node) == subtreeDepth)
+  sampledMutationPoints <- sample.int(numberOfSubtreesOfMatchingDepth, replace = FALSE,
+                                      size = min(strength, numberOfSubtreesOfMatchingDepth))
+  currentMatchingSubtree <- 0 # here, local mutable state is more efficient than recursion
+  mutateExpressionDeleteSubtree <- function(expr) {
+    if (exprDepth(expr) == subtreeDepth) {
+      currentMatchingSubtree <<- currentMatchingSubtree + 1
+      if (currentMatchingSubtree %in% sampledMutationPoints && runif(1) > buildingBlockTag(expr)) {
+        #message("DELETE SUBTREE at node#: ", currentMatchingSubtree, " -- ", expr) # DEBUG
+        if (hasStype(expr)) {
+          typeString <- rangeTypeOfType(sType(expr))$string
+          newLeaf <- randterminalTyped(typeString, inset, conset, constprob)
+          withAttributesOf(newLeaf, expr)
+        } else {
+          newLeaf <- if (runif(1) <= constprob) { # create constant
+            constfactory <- randelt(conset$all, prob = attr(conset$all, "probabilityWeight"))
+            constfactory()
+          } else { # create input variable
+            toName(randelt(inset$all, prob = attr(inset$all, "probabilityWeight")))
+          }
+          withAttributesOf(newLeaf, expr)
+        }
+      } else expr
+    } else if (is.call(expr)) {
+      if (identical(expr[[1]], as.symbol("function"))) {
+        stop("mutateDeleteSubtree: Support for anonymous function nodes is not implemented.") # TODO
+      } else {
+        restExpr <- rest(expr)
+        mutatedExpr <- as.call(append(expr[[1]], Map(mutateExpressionDeleteSubtree, restExpr)))
+        withAttributesOf(mutatedExpr, expr)
+      }
+    } else if (is.symbol(expr) || is.numeric(expr) || is.logical(expr)) {
+      expr
+    } else stop("mutateDeleteSubtree: Unsupported expression: ", expr, ".")
+  }
+  doMutation <- function() {
+    mutant <- new.function()
+    formals(mutant) <- formals(func)
+    body(mutant) <- mutateExpressionDeleteSubtree(body(func))
+    mutant
+  }
+  breed(doMutation, breedingFitness, breedingTries)
 }
+class(mutateDeleteSubtree) <- c("mutationOperator", "function")
+
+##' @rdname expressionMutation
+##' @export
+mutateChangeDeleteInsert <- function(func, funcset, inset, conset,
+                                     strength = 1,
+                                     subtreeDepth = 2,
+                                     constprob = 0.2,
+                                     iterations = 1,
+                                     changeProbability = 1/3,
+                                     deleteProbability = 1/3,
+                                     insertProbability = 1/3,
+                                     breedingFitness = function(individual) TRUE,
+                                     breedingTries = 50) {
+  stopifnot(iterations >= 1)
+  if (iterations == 1) {
+    mutateOperator <- randelt(c(mutateChangeLabel, mutateDeleteSubtree, mutateInsertSubtree),
+                              prob = c(changeProbability, deleteProbability, insertProbability))
+    do.call.ignore.unused.arguments(mutateOperator,
+                                    list(func = func, funcset = funcset, inset = inset, conset = conset,
+                                         strength = strength, subtreeDepth = subtreeDepth, constprob = constprob,
+                                       breedingFitness = breedingFitness, breedingTries = breedingTries))
+  } else {
+    doMutate <- function(func) {
+      mutateOperator <- randelt(c(mutateChangeLabel, mutateDeleteSubtree, mutateInsertSubtree),
+                                prob = c(changeProbability, deleteProbability, insertProbability))
+      do.call.ignore.unused.arguments(mutateOperator,
+                                      list(func = func, funcset = funcset, inset = inset, conset = conset,
+                                           strength = strength, subtreeDepth = subtreeDepth, constprob = constprob,
+                                           breedingFitness = breedingFitness, breedingTries = breedingTries))
+    }
+    iterate(iterations, doMutate, func)
+  }
+}
+class(mutateChangeDeleteInsert) <- c("mutationOperator", "function")
