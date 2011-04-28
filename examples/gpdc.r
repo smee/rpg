@@ -94,8 +94,15 @@ gpdcExperiment <- function(samples = 100,
             main = "Phenotypic Distance vs. Genotypic Distance",
             xlab = "Genotypic Distance (Atomic Mutation Steps)", ylab = "Phenotypic Distance (RMSE)")
     mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
+  } else if (plotType == "medians") {
+    plot(x = genotypicDistances, y = medianPhenotypicDistances,
+         type = "b", pch = 1,
+         main = "Phenotypic Distance vs. Genotypic Distance",
+         xlab = "Genotypic Distance (Atomic Mutation Steps)", ylab = "Phenotypic Distance (RMSE)")
+    mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
   } else if (plotType == "none") {
-    ## draw no plot at all
+    plot.new()
+    mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
   } else stop("gpdcExperiment: Unvalid plotType: ", plotType, ".")
   list(genotypicDistances = genotypicDistances,
        phenotypicDistances = phenotypicDistances)
@@ -116,7 +123,7 @@ gpdcExperimentInteractive <- function(sfClusterInitializationFunction = initLoca
                       default = "1:3"),
                     rmseIntervalCode = entry(label = "RMSE Domain", length = 26,
                       default = "seq(1, 10, by = 0.1)"),
-                    plotType = combo("boxplot", "none", label = "Plot Type"),
+                    plotType = combo("boxplot", "medians", "none", label = "Plot Type"),
                     showOutliers = toggle(label = "Show Outliers",
                       default = FALSE),
                     randomSeed = entry(label = "Random Seed", length = 26,
