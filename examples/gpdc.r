@@ -57,6 +57,12 @@ multivariateRmse <- function(dimensions, f1, f2, xs = seq(1, 10, by = 1)) {
   rmse(ys1, ys2)
 }
 
+multivariateErrorCount <- function(dimensions, f1, f2) {
+  ys1 <- as.logical(sampleMultivariateFunction(dimensions, f1, xs = c(FALSE, TRUE)))
+  ys2 <- as.logical(sampleMultivariateFunction(dimensions, f2, xs = c(FALSE, TRUE)))
+  sum(ys1 != ys2) # sum() also counts the number of TRUEs in boolean vector
+}
+
 sampleIndividualDistances <- function(n, funcset, inset, conset,
                                       treeDepth = 5,
                                       mutationSteps = 1,
@@ -125,7 +131,7 @@ gpdcExperimentReal <- function(samples = 100,
                                functionNamesCode = 'c("+", "-", "*", "/", "sqrt", "exp", "log", "sin", "cos", "tan")',
                                inputVariableNamesCode = 'c("x1")',
                                treeDepth = 5,
-                               mutationStepsIntervalCode = "1:2",
+                               mutationStepsIntervalCode = "1:3",
                                rmseIntervalCode = "seq(1, 10, by = 0.1)", 
                                plotType = "boxplot",
                                showOutliers = FALSE,
@@ -172,6 +178,53 @@ gpdcExperimentReal <- function(samples = 100,
        phenotypicDistances = phenotypicDistances)
 }
 
+gpdcExperimentBoolean <- function(samples = 100,
+                                  functionNamesCode = 'c("&", "|", "!")',
+                                  inputDimension = 2,
+                                  treeDepth = 5,
+                                  mutationStepsIntervalCode = "1:3", 
+                                  plotType = "boxplot",
+                                  showOutliers = FALSE,
+                                  randomSeed = NA,
+                                  sfClusterInitializationFunction = initLocalCluster) {
+  sfClusterInitializationFunction()
+  if (!is.na(randomSeed))
+    sfClusterSetupRNG(seed = as.integer(randomSeed))
+  sfLibrary(rgp)
+  funcset <- do.call(functionSet, as.list(eval(parse(text = functionNamesCode))))
+  inset <- do.call(inputVariableSet, as.list(paste("x", 1:inputDimension, sep = "")))
+  conset <- typedLogicalConstantSet
+  sfExportAll()
+  phenotypicDistanceMeasure <- function(f1, f2) multivariateErrorCount(length(inset$all), f1, f2)
+  sfWorker <- function(mutationSteps) {
+    sampleIndividualDistances(samples, funcset, inset, conset,
+                              treeDepth = treeDepth, mutationSteps = mutationSteps,
+                              distanceMeasure = phenotypicDistanceMeasure)
+  }
+  genotypicDistances <- eval(parse(text = mutationStepsIntervalCode))
+  phenotypicDistances <- sfLapply(genotypicDistances, sfWorker)
+  sfStop()
+  medianPhenotypicDistances <- sapply(phenotypicDistances, median)
+  genotypicPhenotypicDistanceCorrelation <- cor(x = genotypicDistances, y = medianPhenotypicDistances)
+  if (plotType == "boxplot") {
+    boxplot(x = phenotypicDistances, outline = showOutliers,
+            main = "Phenotypic Distance vs. Genotypic Distance",
+            xlab = "Genotypic Distance (Atomic Mutation Steps)", ylab = "Phenotypic Distance (# Errors)")
+    mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
+  } else if (plotType == "medians") {
+    plot(x = genotypicDistances, y = medianPhenotypicDistances,
+         type = "b", pch = 1,
+         main = "Phenotypic Distance vs. Genotypic Distance",
+         xlab = "Genotypic Distance (Atomic Mutation Steps)", ylab = "Phenotypic Distance (# Errors)")
+    mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
+  } else if (plotType == "none") {
+    plot.new()
+    mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
+  } else stop("gpdcExperimentBoolean: Unvalid plotType: ", plotType, ".")
+  list(genotypicDistances = genotypicDistances,
+       phenotypicDistances = phenotypicDistances)
+}
+
 gpdcExperimentRealInteractive <- function(sfClusterInitializationFunction = initLocalCluster) {
   invisible(twiddle(gpdcExperimentReal(samples, functionNamesCode, inputVariableNamesCode, treeDepth,
                                        mutationStepsIntervalCode, rmseIntervalCode,
@@ -181,7 +234,7 @@ gpdcExperimentRealInteractive <- function(sfClusterInitializationFunction = init
                       default = 20),
                     functionNamesCode = entry(label = "Function Set", length = 26,
                       default = 'c("+", "-", "*", "/", "sqrt", "exp", "log", "sin", "cos", "tan")'),
-                    inputVariableNamesCode = entry(label = "Function Set", length = 26,
+                    inputVariableNamesCode = entry(label = "Input Variable Set", length = 26,
                       default = 'c("x1")'),
                     treeDepth = knob(label = "Tree Depth", lim = c(1, 10), res = 1, ticks = 0,
                       default = 5),
@@ -197,5 +250,30 @@ gpdcExperimentRealInteractive <- function(sfClusterInitializationFunction = init
                     eval = FALSE,
                     auto = FALSE))
 }
+
+gpdcExperimentBooleanInteractive <- function(sfClusterInitializationFunction = initLocalCluster) {
+  invisible(twiddle(gpdcExperimentBoolean(samples, functionNamesCode, inputDimensions, treeDepth,
+                                          mutationStepsIntervalCode,
+                                          plotType, showOutliers, randomSeed,
+                                          sfClusterInitializationFunction),
+                    samples = knob(label = "Samples", lim = c(1, 500), res = 1, ticks = 0,
+                      default = 20),
+                    functionNamesCode = entry(label = "Function Set", length = 26,
+                      default = 'c("&", "|", "!")'),
+                    inputDimensions = knob(label = "Input Dimension", lim = c(1, 10), res = 1, ticks = 0,
+                      default = 2),
+                    treeDepth = knob(label = "Tree Depth", lim = c(1, 10), res = 1, ticks = 0,
+                      default = 5),
+                    mutationStepsIntervalCode = entry(label = "Genotypic Dist.", length = 26,
+                      default = "1:3"),
+                    plotType = combo("boxplot", "medians", "none", label = "Plot Type"),
+                    showOutliers = toggle(label = "Show Outliers",
+                      default = FALSE),
+                    randomSeed = entry(label = "Random Seed", length = 26,
+                      default = "1"),
+                    eval = FALSE,
+                    auto = FALSE))
+}
+
 
 message("Type gpdcExperimentRealInteractive() or gpdcExperimentBooleanInteractive() to start...")
