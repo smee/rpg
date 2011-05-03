@@ -64,7 +64,11 @@ sampleIndividualDistances <- function(n, funcset, inset, conset,
                                         makeRandomIndividual(funcset, inset, conset, treeDepth = treeDepth),
                                       mutationFunction = function(ind)
                                         mutateChangeDeleteInsert(ind, funcset, inset, conset, iterations = mutationSteps),
-                                      distanceMeasure = univariateRmse) {
+                                      inputDimensions = length(inset$all),
+                                      distanceMeasure = if (inputDimensions == 1)
+                                                          univariateRmse
+                                                        else
+                                                          function(a, b) multivariateRmse(inputDimensions, a, b)) {
   rlen <- 0
   r <- c()
   while (rlen < n) {
@@ -119,6 +123,7 @@ typedLogicalFunctionSet <- c(typedBooleanFunctionSet,
 ## ---
 gpdcExperimentReal <- function(samples = 100,
                                functionNamesCode = 'c("+", "-", "*", "/", "sqrt", "exp", "log", "sin", "cos", "tan")',
+                               inputVariableNamesCode = 'c("x1")',
                                treeDepth = 5,
                                mutationStepsIntervalCode = "1:2",
                                rmseIntervalCode = "seq(1, 10, by = 0.1)", 
@@ -131,11 +136,13 @@ gpdcExperimentReal <- function(samples = 100,
     sfClusterSetupRNG(seed = as.integer(randomSeed))
   sfLibrary(rgp)
   funcset <- do.call(functionSet, as.list(eval(parse(text = functionNamesCode))))
-  inset <- inputVariableSet("x")
+  inset <- do.call(inputVariableSet, as.list(eval(parse(text = inputVariableNamesCode))))
   conset <- numericConstantSet
   rmseXs <- eval(parse(text = rmseIntervalCode))
   sfExportAll()
-  phenotypicDistanceMeasure <- function(f1, f2) univariateRmse(f1, f2, rmseXs)
+  phenotypicDistanceMeasure <- if (length(inset$all) > 1)
+    function(f1, f2) multivariateRmse(length(inset$all), f1, f2, rmseXs)
+  else function(f1, f2) univariateRmse(f1, f2, rmseXs)
   sfWorker <- function(mutationSteps) {
     sampleIndividualDistances(samples, funcset, inset, conset,
                               treeDepth = treeDepth, mutationSteps = mutationSteps,
@@ -166,7 +173,7 @@ gpdcExperimentReal <- function(samples = 100,
 }
 
 gpdcExperimentRealInteractive <- function(sfClusterInitializationFunction = initLocalCluster) {
-  invisible(twiddle(gpdcExperimentReal(samples, functionNamesCode, treeDepth,
+  invisible(twiddle(gpdcExperimentReal(samples, functionNamesCode, inputVariableNamesCode, treeDepth,
                                        mutationStepsIntervalCode, rmseIntervalCode,
                                        plotType, showOutliers, randomSeed,
                                        sfClusterInitializationFunction),
@@ -174,6 +181,8 @@ gpdcExperimentRealInteractive <- function(sfClusterInitializationFunction = init
                       default = 20),
                     functionNamesCode = entry(label = "Function Set", length = 26,
                       default = 'c("+", "-", "*", "/", "sqrt", "exp", "log", "sin", "cos", "tan")'),
+                    inputVariableNamesCode = entry(label = "Function Set", length = 26,
+                      default = 'c("x1")'),
                     treeDepth = knob(label = "Tree Depth", lim = c(1, 10), res = 1, ticks = 0,
                       default = 5),
                     mutationStepsIntervalCode = entry(label = "Genotypic Dist.", length = 26,
