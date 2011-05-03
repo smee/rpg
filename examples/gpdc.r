@@ -23,6 +23,7 @@ initMaanbsCluster <- function()
                          rep("maanbs03.gm.fh-koeln.de", 16),
                          rep("maanbs04.gm.fh-koeln.de", 16)))
 
+
 ## Sampling of Genotypic and Phenotypic Distances...
 ## ---
 makeRandomIndividual <- function(funcset, inset, conset,
@@ -30,9 +31,29 @@ makeRandomIndividual <- function(funcset, inset, conset,
   randfunc(funcset = funcset, inset = inset, conset = conset,
            maxdepth = treeDepth, exprfactory = expressionFactory)
 
+makeRandomIndividualTyped <- function(type, funcset, inset, conset,
+                                      treeDepth = 5, expressionFactory = randexprTypedFull)
+  randfuncTyped(type = type, funcset = funcset, inset = inset, conset = conset,
+                maxdepth = treeDepth, exprfactory = expressionFactory)
+# randfuncTyped(st("logical"), typedBooleanFunctionSet, inputVariableSet("x" %::% st("logical")), typedLogicalConstantSet)
+
 univariateRmse <- function(f1, f2, xs = seq(1, 10, by = 0.1)) {
   ys1 <- Vectorize(f1)(xs)
   ys2 <- Vectorize(f2)(xs)
+  rmse(ys1, ys2)
+}
+
+sampleMultivariateFunction <- function(dimensions, f, xs = seq(1, 10, by = 1)) {
+  # grid sample f at points xs in every dimension
+  enumerateArguments <- function(dimensions, xs)
+    if (dimensions <= 1) xs else rgp:::intersperse(xs, enumerateArguments(dimensions - 1, xs),
+                                                   pairConstructor = c)
+  Map(function(x) do.call(f, as.list(x)), enumerateArguments(dimensions, xs))
+}
+
+multivariateRmse <- function(dimensions, f1, f2, xs = seq(1, 10, by = 1)) {
+  ys1 <- as.numeric(sampleMultivariateFunction(dimensions, f1, xs = xs))
+  ys2 <- as.numeric(sampleMultivariateFunction(dimensions, f2, xs = xs))
   rmse(ys1, ys2)
 }
 
@@ -58,17 +79,53 @@ sampleIndividualDistances <- function(n, funcset, inset, conset,
   r
 }
 
+
+## Search space definitions...
+## ---
+
+# TODO
+typedNumericConstantSet <- constantFactorySet((function() runif(1, -1, 1)) %::% (list() %->% st("numeric")))
+
+typedLogicalConstantSet <- constantFactorySet((function() runif(1) > .5) %::% (list() %->% st("logical")))
+
+typedArithmeticFunctionSet <- functionSet("+" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")),
+                                          "-" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")),
+                                          "*" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")),
+                                          "/" %::% (list(st("numeric"), st("numeric")) %->% st("numeric")))
+
+typedExpLogFunctionSet <- functionSet("sqrt" %::% (list(st("numeric")) %->% st("numeric")),
+                                      "exp" %::% (list(st("numeric")) %->% st("numeric")),
+                                      "ln" %::% (list(st("numeric")) %->% st("numeric")))
+
+typedTrigonometricFunctionSet <- functionSet("sin" %::% (list(st("numeric")) %->% st("numeric")),
+                                             "cos" %::% (list(st("numeric")) %->% st("numeric")),
+                                             "tan" %::% (list(st("numeric")) %->% st("numeric")))
+
+typedMathFunctionSet <- c(typedArithmeticFunctionSet, typedExpLogFunctionSet, typedTrigonometricFunctionSet)
+
+typedBooleanFunctionSet <- functionSet("&" %::% (list(st("logical"), st("logical")) %->% st("logical")),
+                                       "|" %::% (list(st("logical"), st("logical")) %->% st("logical")),
+                                       "!" %::% (list(st("logical")) %->% st("logical")))
+
+typedLogicalFunctionSet <- c(typedBooleanFunctionSet,
+                             functionSet("<" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
+                                         ">" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
+                                         "==" %::% (list(st("numeric"), st("numeric")) %->% st("logical")),
+                                         "ifThenElse" %::% (list(st("logical"), st("numeric"), st("numeric")) %->% st("numeric"))))
+
+
+
 ## Experiments...
 ## ---
-gpdcExperiment <- function(samples = 100,
-                           functionNamesCode = 'c("+", "-", "*", "/", "sqrt", "exp", "log", "sin", "cos", "tan")',
-                           treeDepth = 5,
-                           mutationStepsIntervalCode = "1:2",
-                           rmseIntervalCode = "seq(1, 10, by = 0.1)", 
-                           plotType = "boxplot",
-                           showOutliers = FALSE,
-                           randomSeed = NA,
-                           sfClusterInitializationFunction = initLocalCluster) {
+gpdcExperimentReal <- function(samples = 100,
+                               functionNamesCode = 'c("+", "-", "*", "/", "sqrt", "exp", "log", "sin", "cos", "tan")',
+                               treeDepth = 5,
+                               mutationStepsIntervalCode = "1:2",
+                               rmseIntervalCode = "seq(1, 10, by = 0.1)", 
+                               plotType = "boxplot",
+                               showOutliers = FALSE,
+                               randomSeed = NA,
+                               sfClusterInitializationFunction = initLocalCluster) {
   sfClusterInitializationFunction()
   if (!is.na(randomSeed))
     sfClusterSetupRNG(seed = as.integer(randomSeed))
@@ -103,16 +160,16 @@ gpdcExperiment <- function(samples = 100,
   } else if (plotType == "none") {
     plot.new()
     mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
-  } else stop("gpdcExperiment: Unvalid plotType: ", plotType, ".")
+  } else stop("gpdcExperimentReal: Unvalid plotType: ", plotType, ".")
   list(genotypicDistances = genotypicDistances,
        phenotypicDistances = phenotypicDistances)
 }
 
-gpdcExperimentInteractive <- function(sfClusterInitializationFunction = initLocalCluster) {
-  invisible(twiddle(gpdcExperiment(samples, functionNamesCode, treeDepth,
-                                   mutationStepsIntervalCode, rmseIntervalCode,
-                                   plotType, showOutliers, randomSeed,
-                                   sfClusterInitializationFunction),
+gpdcExperimentRealInteractive <- function(sfClusterInitializationFunction = initLocalCluster) {
+  invisible(twiddle(gpdcExperimentReal(samples, functionNamesCode, treeDepth,
+                                       mutationStepsIntervalCode, rmseIntervalCode,
+                                       plotType, showOutliers, randomSeed,
+                                       sfClusterInitializationFunction),
                     samples = knob(label = "Samples", lim = c(1, 500), res = 1, ticks = 0,
                       default = 20),
                     functionNamesCode = entry(label = "Function Set", length = 26,
@@ -132,4 +189,4 @@ gpdcExperimentInteractive <- function(sfClusterInitializationFunction = initLoca
                     auto = FALSE))
 }
 
-message("Type gpdcExperimentInteractive() to start...")
+message("Type gpdcExperimentRealInteractive() or gpdcExperimentBooleanInteractive() to start...")

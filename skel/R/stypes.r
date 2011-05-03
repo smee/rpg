@@ -237,8 +237,8 @@ hasStype <- function(x) !is.null(sType(x))
   #  stop("%::%: The symbol ", xString, " already has an sType of ",
   #       get(xString, envir = rgpSTypeEnvironment)$string, ".")
   #}
+  #assign(xString, value, envir = rgpSTypeEnvironment)
   ## TODO remove the sType attribute entirely ...
-  assign(xString, value, envir = rgpSTypeEnvironment)
   attr(x, "sType") <- value # TODO
   ## ... .
   x

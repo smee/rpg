@@ -157,11 +157,18 @@ randelt <- function(x, prob = NULL) {
 ##' sublists (or groups).
 ##' \code{groupListDistributed} distributes \code{l} into \code{numberOfGroups}
 ##' sublists (or groups).
-##' \code{Flatten} flattens a list \code{l} of lists into a flat list by concatenation. If
+##' \code{flatten} flattens a list \code{l} of lists into a flat list by concatenation. If
 ##' \code{recursive} is \code{TRUE} (defaults to \code{FALSE}), flatten will be recursively
 ##' called on each argument first.
+##' \code{intersperse} joins two lists \code{xs} and \code{ys} into a list of pairs containig
+##' every possible pair, i.e. \code{intersperse(xs, ys)} equals the product list of \code{xs}
+##' and \code{ys}. The \code{pairConstructor} parameter can be used to change the type of pairs
+##' returned.
 ##'
 ##' @param l A list.
+##' @param xs A list.
+##' @param ys A list.
+##' @param pairConstructor The function to use for constructing pairs, defaults to \code{list}.
 ##' @param groupAssignment A vector of group assignment indices.
 ##' @param numberOfGroups The number of groups to create, must be <= length(l)
 ##' @return A list of lists, where each member represents a group.
@@ -195,9 +202,13 @@ groupListDistributed <- function(l, numberOfGroups) {
 }
 
 ##' @rdname listSplittingAndGrouping
-Flatten <- function(l, recursive = FALSE)
+flatten <- function(l, recursive = FALSE)
   if (recursive && !is.atom(l)) {
-    Reduce(function(a, b) c(Flatten(a, recursive = TRUE), Flatten(b, recursive = TRUE)), l, init = list()) 
+    Reduce(function(a, b) c(flatten(a, recursive = TRUE), flatten(b, recursive = TRUE)), l, init = list()) 
   } else {
     Reduce(c, l, init = list())
   }
+
+##' @rdname listSplittingAndGrouping
+intersperse <- function(xs, ys, pairConstructor = list)
+  Reduce(c, Map(function(x1) Map(function(x2) pairConstructor(x1, x2), ys), xs))

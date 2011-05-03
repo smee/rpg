@@ -99,7 +99,7 @@ inputVariableSet <- function(..., list = NULL) {
       extractLeafSymbols(inputVariable)
     }
   }
-  inset$allFormals <- unique(Flatten(Map(collectFormals, inset$all)))
+  inset$allFormals <- unique(flatten(Map(collectFormals, inset$all)))
   inset$byType <- Map(function(set) extractAttributes(set, "probabilityWeight", default = 1.0),
                       inset.byType)
   inset$byRange <- Map(function(set) extractAttributes(set, "probabilityWeight", default = 1.0),
