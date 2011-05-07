@@ -90,11 +90,42 @@ sampleIndividualDistances <- function(n, funcset, inset, conset,
   r
 }
 
+sampleMutations <- function(n, funcset, inset, conset,
+                            treeDepth = 5,
+                            mutationSteps = 1,
+                            individualFactory = function()
+                              makeRandomIndividual(funcset, inset, conset, treeDepth = treeDepth),
+                            mutationFunction = function(ind)
+                              mutateChangeDeleteInsert(ind, funcset, inset, conset, iterations = mutationSteps),
+                            inputDimensions = length(inset$all),
+                            distanceMeasure = if (inputDimensions == 1)
+                                                univariateRmse
+                                              else
+                                                function(a, b) multivariateRmse(inputDimensions, a, b)) {
+  population <- Map(function(i) individualFactory(), 1:n)
+  mutatedPopulation <- if (mutationSteps > 0) Map(mutationFunction, population) else population
+  distances <- Map(distanceMeasure, population, mutatedPopulation)
+  list(population = population,
+       mutatedPopulation = mutatedPopulation,
+       distances = distances)
+}
+
+plotIndividual <- function(individual, circular = FALSE, ...) {
+  ig <- funcToIgraph(individual)
+  vertexDepths <- shortest.paths(ig)[1,] + 1
+  edgeDepths <- vertexDepths[get.edges(ig, E(ig))[,2] + 1]
+  edgeWiths <- 20 / edgeDepths
+  edgeColors <- rainbow(max(edgeDepths))[edgeDepths]
+  plot(ig, layout = layout.reingold.tilford(ig, circular = circular),
+       vertex.shape = "none", vertex.size = 0, vertex.label = NA,
+       edge.color = edgeColors, edge.width = edgeWiths, edge.arrow.mode = "-",
+       ...)
+}
+
+
 
 ## Search space definitions...
 ## ---
-
-# TODO
 typedNumericConstantSet <- constantFactorySet((function() runif(1, -1, 1)) %::% (list() %->% st("numeric")))
 
 typedLogicalConstantSet <- constantFactorySet((function() runif(1) > .5) %::% (list() %->% st("logical")))
@@ -139,8 +170,10 @@ gpdcExperimentReal <- function(samples = 100,
                                randomSeed = NA,
                                sfClusterInitializationFunction = initLocalCluster) {
   sfClusterInitializationFunction()
-  if (!is.na(randomSeed))
+  if (!is.na(randomSeed)) {
+    set.seed(randomSeed)
     sfClusterSetupRNG(seed = as.integer(randomSeed))
+  }
   sfLibrary(rgp)
   funcset <- do.call(functionSet, as.list(eval(parse(text = functionNamesCode))))
   inset <- do.call(inputVariableSet, as.list(eval(parse(text = inputVariableNamesCode))))
@@ -156,10 +189,18 @@ gpdcExperimentReal <- function(samples = 100,
                               distanceMeasure = phenotypicDistanceMeasure)
   }
   genotypicDistances <- eval(parse(text = mutationStepsIntervalCode))
-  phenotypicDistances <- sfLapply(genotypicDistances, sfWorker)
+  if (plotType == "population") {
+    sampledMutations <- sampleMutations(samples, funcset, inset, conset,
+                                        treeDepth = treeDepth, mutationSteps = max(genotypicDistances),
+                                        distanceMeasure = phenotypicDistanceMeasure)
+    phenotypicDistances <- sampledMutations$distances
+    mutatedPopulation <- sampledMutations$mutatedPopulation
+  } else {
+    phenotypicDistances <- sfLapply(genotypicDistances, sfWorker)
+    medianPhenotypicDistances <- sapply(phenotypicDistances, median)
+    genotypicPhenotypicDistanceCorrelation <- cor(x = genotypicDistances, y = medianPhenotypicDistances)
+  }
   sfStop()
-  medianPhenotypicDistances <- sapply(phenotypicDistances, median)
-  genotypicPhenotypicDistanceCorrelation <- cor(x = genotypicDistances, y = medianPhenotypicDistances)
   if (plotType == "boxplot") {
     boxplot(x = phenotypicDistances, outline = showOutliers,
             main = "Phenotypic Distance vs. Genotypic Distance",
@@ -171,6 +212,16 @@ gpdcExperimentReal <- function(samples = 100,
          main = "Phenotypic Distance vs. Genotypic Distance",
          xlab = "Genotypic Distance (Atomic Mutation Steps)", ylab = "Phenotypic Distance (RMSE)")
     mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
+  } else if (plotType == "population") {
+    oldPar <- par(no.readonly = TRUE)
+    plotRows <- ceiling(sqrt(samples))
+    par(mfrow = c(plotRows, plotRows), mar = c(1, 1, 1, 1))
+    for (i in seq_along(mutatedPopulation)) {
+      mutatedIndividual <- mutatedPopulation[[i]]
+      mutationPhenotypicDistance <- phenotypicDistances[[i]]
+      plotIndividual(mutatedIndividual, main = mutationPhenotypicDistance)
+    }
+    par(oldPar)
   } else if (plotType == "none") {
     plot.new()
     mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
@@ -189,8 +240,10 @@ gpdcExperimentBoolean <- function(samples = 100,
                                   randomSeed = NA,
                                   sfClusterInitializationFunction = initLocalCluster) {
   sfClusterInitializationFunction()
-  if (!is.na(randomSeed))
+  if (!is.na(randomSeed)) {
+    set.seed(randomSeed)
     sfClusterSetupRNG(seed = as.integer(randomSeed))
+  }
   sfLibrary(rgp)
   funcset <- do.call(functionSet, as.list(eval(parse(text = functionNamesCode))))
   inset <- do.call(inputVariableSet, as.list(paste("x", 1:inputDimension, sep = "")))
@@ -203,10 +256,18 @@ gpdcExperimentBoolean <- function(samples = 100,
                               distanceMeasure = phenotypicDistanceMeasure)
   }
   genotypicDistances <- eval(parse(text = mutationStepsIntervalCode))
-  phenotypicDistances <- sfLapply(genotypicDistances, sfWorker)
+  if (plotType == "population") {
+    sampledMutations <- sampleMutations(samples, funcset, inset, conset,
+                                        treeDepth = treeDepth, mutationSteps = max(genotypicDistances),
+                                        distanceMeasure = phenotypicDistanceMeasure)
+    phenotypicDistances <- sampledMutations$distances
+    mutatedPopulation <- sampledMutations$mutatedPopulation
+  } else {
+    phenotypicDistances <- sfLapply(genotypicDistances, sfWorker)
+    medianPhenotypicDistances <- sapply(phenotypicDistances, median)
+    genotypicPhenotypicDistanceCorrelation <- cor(x = genotypicDistances, y = medianPhenotypicDistances)
+  }
   sfStop()
-  medianPhenotypicDistances <- sapply(phenotypicDistances, median)
-  genotypicPhenotypicDistanceCorrelation <- cor(x = genotypicDistances, y = medianPhenotypicDistances)
   if (plotType == "boxplot") {
     boxplot(x = phenotypicDistances, outline = showOutliers,
             main = "Phenotypic Distance vs. Genotypic Distance",
@@ -218,6 +279,16 @@ gpdcExperimentBoolean <- function(samples = 100,
          main = "Phenotypic Distance vs. Genotypic Distance",
          xlab = "Genotypic Distance (Atomic Mutation Steps)", ylab = "Phenotypic Distance (# Errors)")
     mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
+  } else if (plotType == "population") {
+    oldPar <- par(no.readonly = TRUE)
+    plotRows <- ceiling(sqrt(samples))
+    par(mfrow = c(plotRows, plotRows), mar = c(1, 1, 1, 1))
+    for (i in seq_along(mutatedPopulation)) {
+      mutatedIndividual <- mutatedPopulation[[i]]
+      mutationPhenotypicDistance <- phenotypicDistances[[i]]
+      plotIndividual(mutatedIndividual, main = mutationPhenotypicDistance)
+    }
+    par(oldPar)
   } else if (plotType == "none") {
     plot.new()
     mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
@@ -243,7 +314,7 @@ gpdcExperimentRealInteractive <- function(sfClusterInitializationFunction = init
                       default = "1:3"),
                     rmseIntervalCode = entry(label = "RMSE Domain", length = 26,
                       default = "seq(1, 10, by = 0.1)"),
-                    plotType = combo("boxplot", "medians", "none", label = "Plot Type"),
+                    plotType = combo("boxplot", "medians", "population", "none", label = "Plot Type"),
                     showOutliers = toggle(label = "Show Outliers",
                       default = FALSE),
                     randomSeed = entry(label = "Random Seed", length = 26,
@@ -267,7 +338,7 @@ gpdcExperimentBooleanInteractive <- function(sfClusterInitializationFunction = i
                       default = 5),
                     mutationStepsIntervalCode = entry(label = "Genotypic Dist.", length = 26,
                       default = "1:3"),
-                    plotType = combo("boxplot", "medians", "none", label = "Plot Type"),
+                    plotType = combo("boxplot", "medians", "population", "none", label = "Plot Type"),
                     showOutliers = toggle(label = "Show Outliers",
                       default = FALSE),
                     randomSeed = entry(label = "Random Seed", length = 26,
