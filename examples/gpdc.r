@@ -110,16 +110,36 @@ sampleMutations <- function(n, funcset, inset, conset,
        distances = distances)
 }
 
-plotIndividual <- function(individual, circular = FALSE, ...) {
+countIndividualFunctions <- function(individual) {
+  res <- numeric()
+  countExprFunctionsRec <- function(expr)
+    if (is.call(expr)) {
+      funcString <- as.character(expr[[1]])
+      res[funcString] <<- if (is.na(res[funcString])) 1 else res[funcString] + 1
+      Map(countExprFunctionsRec, expr[-1])
+    }
+  countExprFunctionsRec(body(individual))
+  res
+}
+
+plotIndividual <- function(individual, circular = FALSE, structureOnly = TRUE, ...) {
   ig <- funcToIgraph(individual)
   vertexDepths <- shortest.paths(ig)[1,] + 1
   edgeDepths <- vertexDepths[get.edges(ig, E(ig))[,2] + 1]
   edgeWiths <- 20 / edgeDepths
   edgeColors <- rainbow(max(edgeDepths))[edgeDepths]
-  plot(ig, layout = layout.reingold.tilford(ig, circular = circular),
-       vertex.shape = "none", vertex.size = 0, vertex.label = NA,
-       edge.color = edgeColors, edge.width = edgeWiths, edge.arrow.mode = "-",
-       ...)
+  if (structureOnly) {
+    plot(ig, layout = layout.reingold.tilford(ig, circular = circular),
+         vertex.shape = "none", vertex.size = 0, vertex.label = NA,
+         edge.color = edgeColors, edge.width = edgeWiths, edge.arrow.mode = "-",
+         ...)
+  } else {
+    plot(ig, layout = layout.reingold.tilford(ig, circular = circular),
+         vertex.shape = "rectangle", vertex.color = "lightgray",
+         vertex.label.color = "black", vertex.label.font = 1,
+         edge.color = "black", edge.width = edgeWiths, edge.arrow.mode = "-",
+         ...)
+  }
 }
 
 
@@ -166,6 +186,7 @@ gpdcExperimentReal <- function(samples = 100,
                                mutationStepsIntervalCode = "1:3",
                                rmseIntervalCode = "seq(1, 10, by = 0.1)", 
                                plotType = "boxplot",
+                               circular = FALSE, structureOnly = TRUE,
                                showOutliers = FALSE,
                                randomSeed = NA,
                                sfClusterInitializationFunction = initLocalCluster) {
@@ -219,7 +240,8 @@ gpdcExperimentReal <- function(samples = 100,
     for (i in seq_along(mutatedPopulation)) {
       mutatedIndividual <- mutatedPopulation[[i]]
       mutationPhenotypicDistance <- phenotypicDistances[[i]]
-      plotIndividual(mutatedIndividual, main = mutationPhenotypicDistance)
+      plotIndividual(mutatedIndividual, circular = circular, structureOnly = structureOnly,
+                     main = mutationPhenotypicDistance)
     }
     par(oldPar)
   } else if (plotType == "none") {
@@ -236,6 +258,7 @@ gpdcExperimentBoolean <- function(samples = 100,
                                   treeDepth = 5,
                                   mutationStepsIntervalCode = "1:3", 
                                   plotType = "boxplot",
+                                  circular = FALSE, structureOnly = TRUE,
                                   showOutliers = FALSE,
                                   randomSeed = NA,
                                   sfClusterInitializationFunction = initLocalCluster) {
@@ -286,7 +309,8 @@ gpdcExperimentBoolean <- function(samples = 100,
     for (i in seq_along(mutatedPopulation)) {
       mutatedIndividual <- mutatedPopulation[[i]]
       mutationPhenotypicDistance <- phenotypicDistances[[i]]
-      plotIndividual(mutatedIndividual, main = mutationPhenotypicDistance)
+      plotIndividual(mutatedIndividual, circular = circular, structureOnly = structureOnly,
+                     main = mutationPhenotypicDistance)
     }
     par(oldPar)
   } else if (plotType == "none") {
@@ -300,10 +324,10 @@ gpdcExperimentBoolean <- function(samples = 100,
 gpdcExperimentRealInteractive <- function(sfClusterInitializationFunction = initLocalCluster) {
   invisible(twiddle(gpdcExperimentReal(samples, functionNamesCode, inputVariableNamesCode, treeDepth,
                                        mutationStepsIntervalCode, rmseIntervalCode,
-                                       plotType, showOutliers, randomSeed,
+                                       plotType, circular, structureOnly, showOutliers, randomSeed,
                                        sfClusterInitializationFunction),
                     samples = knob(label = "Samples", lim = c(1, 500), res = 1, ticks = 0,
-                      default = 20),
+                      default = 25),
                     functionNamesCode = entry(label = "Function Set", length = 26,
                       default = 'c("+", "-", "*", "/", "sqrt", "exp", "log", "sin", "cos", "tan")'),
                     inputVariableNamesCode = entry(label = "Input Variable Set", length = 26,
@@ -315,6 +339,10 @@ gpdcExperimentRealInteractive <- function(sfClusterInitializationFunction = init
                     rmseIntervalCode = entry(label = "RMSE Domain", length = 26,
                       default = "seq(1, 10, by = 0.1)"),
                     plotType = combo("boxplot", "medians", "population", "none", label = "Plot Type"),
+                    circular = toggle(label = "Circular Tree Population Plot",
+                      default = FALSE),
+                    structureOnly = toggle(label = "Simple Tree Population Plot",
+                      default = TRUE),
                     showOutliers = toggle(label = "Show Outliers",
                       default = FALSE),
                     randomSeed = entry(label = "Random Seed", length = 26,
@@ -326,10 +354,10 @@ gpdcExperimentRealInteractive <- function(sfClusterInitializationFunction = init
 gpdcExperimentBooleanInteractive <- function(sfClusterInitializationFunction = initLocalCluster) {
   invisible(twiddle(gpdcExperimentBoolean(samples, functionNamesCode, inputDimensions, treeDepth,
                                           mutationStepsIntervalCode,
-                                          plotType, showOutliers, randomSeed,
+                                          plotType, circular, structureOnly, showOutliers, randomSeed,
                                           sfClusterInitializationFunction),
                     samples = knob(label = "Samples", lim = c(1, 500), res = 1, ticks = 0,
-                      default = 20),
+                      default = 25),
                     functionNamesCode = entry(label = "Function Set", length = 26,
                       default = 'c("&", "|", "!")'),
                     inputDimensions = knob(label = "Input Dimension", lim = c(1, 10), res = 1, ticks = 0,
@@ -339,6 +367,10 @@ gpdcExperimentBooleanInteractive <- function(sfClusterInitializationFunction = i
                     mutationStepsIntervalCode = entry(label = "Genotypic Dist.", length = 26,
                       default = "1:3"),
                     plotType = combo("boxplot", "medians", "population", "none", label = "Plot Type"),
+                    circular = toggle(label = "Circular Tree Population Plot",
+                      default = FALSE),
+                    structureOnly = toggle(label = "Simple Tree Population Plot",
+                      default = TRUE),
                     showOutliers = toggle(label = "Show Outliers",
                       default = FALSE),
                     randomSeed = entry(label = "Random Seed", length = 26,
