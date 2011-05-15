@@ -135,7 +135,7 @@ plotIndividual <- function(individual, circular = FALSE, structureOnly = TRUE, .
          ...)
   } else {
     plot(ig, layout = layout.reingold.tilford(ig, circular = circular),
-         vertex.shape = "rectangle", vertex.color = "lightgray",
+         vertex.shape = "rectangle", vertex.size = 32, vertex.color = "white",
          vertex.label.color = "black", vertex.label.font = 1,
          edge.color = "black", edge.width = edgeWiths, edge.arrow.mode = "-",
          ...)
@@ -186,7 +186,7 @@ gpdcExperimentReal <- function(samples = 100,
                                mutationStepsIntervalCode = "1:3",
                                rmseIntervalCode = "seq(1, 10, by = 0.1)", 
                                plotType = "boxplot",
-                               circular = FALSE, structureOnly = TRUE,
+                               circular = FALSE, structureOnly = TRUE, distances = TRUE,
                                showOutliers = FALSE,
                                randomSeed = NA,
                                sfClusterInitializationFunction = initLocalCluster) {
@@ -210,7 +210,7 @@ gpdcExperimentReal <- function(samples = 100,
                               distanceMeasure = phenotypicDistanceMeasure)
   }
   genotypicDistances <- eval(parse(text = mutationStepsIntervalCode))
-  if (plotType == "population") {
+  if (plotType == "genotypes" || plotType == "phenotypes") {
     sampledMutations <- sampleMutations(samples, funcset, inset, conset,
                                         treeDepth = treeDepth, mutationSteps = max(genotypicDistances),
                                         distanceMeasure = phenotypicDistanceMeasure)
@@ -233,7 +233,7 @@ gpdcExperimentReal <- function(samples = 100,
          main = "Phenotypic Distance vs. Genotypic Distance",
          xlab = "Genotypic Distance (Atomic Mutation Steps)", ylab = "Phenotypic Distance (RMSE)")
     mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
-  } else if (plotType == "population") {
+  } else if (plotType == "genotypes") {
     oldPar <- par(no.readonly = TRUE)
     plotRows <- ceiling(sqrt(samples))
     par(mfrow = c(plotRows, plotRows), mar = c(1, 1, 1, 1))
@@ -241,7 +241,27 @@ gpdcExperimentReal <- function(samples = 100,
       mutatedIndividual <- mutatedPopulation[[i]]
       mutationPhenotypicDistance <- phenotypicDistances[[i]]
       plotIndividual(mutatedIndividual, circular = circular, structureOnly = structureOnly,
-                     main = mutationPhenotypicDistance)
+                     main = if (distances) mutationPhenotypicDistance else "")
+    }
+    par(oldPar)
+  } else if (plotType == "phenotypes") {
+    if (length(inset$all) > 1) stop("gpdcExperimentReal: Phenotype plots of multivariate individuals are not yet supported.")
+    oldPar <- par(no.readonly = TRUE)
+    plotRows <- ceiling(sqrt(samples))
+    par(mfrow = c(plotRows, plotRows), mar = c(1, 1, 1, 1))
+    for (i in seq_along(mutatedPopulation)) {
+      mutatedIndividual <- mutatedPopulation[[i]]
+      mutationPhenotypicDistance <- phenotypicDistances[[i]]
+      ys <- Vectorize(mutatedIndividual)(rmseXs)
+      if (!all(is.nan(ys)) && !any(is.infinite(ys))) {
+        plot(x = rmseXs, y = ys, type = "l",
+             main = if (distances) mutationPhenotypicDistance else "",
+             xlab = "", ylab = "", xaxt = "n", yaxt = "n")
+      } else {
+        plot(x = 0, type = "l",
+             main = if (distances) mutationPhenotypicDistance else "",
+             xlab = "", ylab = "", xaxt = "n", yaxt = "n")
+      }
     }
     par(oldPar)
   } else if (plotType == "none") {
@@ -279,7 +299,7 @@ gpdcExperimentBoolean <- function(samples = 100,
                               distanceMeasure = phenotypicDistanceMeasure)
   }
   genotypicDistances <- eval(parse(text = mutationStepsIntervalCode))
-  if (plotType == "population") {
+  if (plotType == "genotypes") {
     sampledMutations <- sampleMutations(samples, funcset, inset, conset,
                                         treeDepth = treeDepth, mutationSteps = max(genotypicDistances),
                                         distanceMeasure = phenotypicDistanceMeasure)
@@ -302,7 +322,7 @@ gpdcExperimentBoolean <- function(samples = 100,
          main = "Phenotypic Distance vs. Genotypic Distance",
          xlab = "Genotypic Distance (Atomic Mutation Steps)", ylab = "Phenotypic Distance (# Errors)")
     mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
-  } else if (plotType == "population") {
+  } else if (plotType == "genotypes") {
     oldPar <- par(no.readonly = TRUE)
     plotRows <- ceiling(sqrt(samples))
     par(mfrow = c(plotRows, plotRows), mar = c(1, 1, 1, 1))
@@ -324,7 +344,7 @@ gpdcExperimentBoolean <- function(samples = 100,
 gpdcExperimentRealInteractive <- function(sfClusterInitializationFunction = initLocalCluster) {
   invisible(twiddle(gpdcExperimentReal(samples, functionNamesCode, inputVariableNamesCode, treeDepth,
                                        mutationStepsIntervalCode, rmseIntervalCode,
-                                       plotType, circular, structureOnly, showOutliers, randomSeed,
+                                       plotType, circular, structureOnly, distances, showOutliers, randomSeed,
                                        sfClusterInitializationFunction),
                     samples = knob(label = "Samples", lim = c(1, 500), res = 1, ticks = 0,
                       default = 25),
@@ -338,10 +358,12 @@ gpdcExperimentRealInteractive <- function(sfClusterInitializationFunction = init
                       default = "1:3"),
                     rmseIntervalCode = entry(label = "RMSE Domain", length = 26,
                       default = "seq(1, 10, by = 0.1)"),
-                    plotType = combo("boxplot", "medians", "population", "none", label = "Plot Type"),
-                    circular = toggle(label = "Circular Tree Population Plot",
+                    plotType = combo("boxplot", "medians", "genotypes", "phenotypes", "none", label = "Plot Type"),
+                    circular = toggle(label = "Circular Genotypes Plot",
                       default = FALSE),
-                    structureOnly = toggle(label = "Simple Tree Population Plot",
+                    structureOnly = toggle(label = "Simple Genotypes Plot",
+                      default = TRUE),
+                    distances = toggle(label = "Plot Phenotypic Distances",
                       default = TRUE),
                     showOutliers = toggle(label = "Show Outliers",
                       default = FALSE),
@@ -366,10 +388,10 @@ gpdcExperimentBooleanInteractive <- function(sfClusterInitializationFunction = i
                       default = 5),
                     mutationStepsIntervalCode = entry(label = "Genotypic Dist.", length = 26,
                       default = "1:3"),
-                    plotType = combo("boxplot", "medians", "population", "none", label = "Plot Type"),
-                    circular = toggle(label = "Circular Tree Population Plot",
+                    plotType = combo("boxplot", "medians", "genotypes", "none", label = "Plot Type"),
+                    circular = toggle(label = "Circular Genotypes Plot",
                       default = FALSE),
-                    structureOnly = toggle(label = "Simple Tree Population Plot",
+                    structureOnly = toggle(label = "Simple Genotypes Plot",
                       default = TRUE),
                     showOutliers = toggle(label = "Show Outliers",
                       default = FALSE),
