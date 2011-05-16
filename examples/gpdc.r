@@ -122,7 +122,7 @@ countIndividualFunctions <- function(individual) {
   res
 }
 
-plotIndividual <- function(individual, circular = FALSE, structureOnly = TRUE, ...) {
+plotGenotype <- function(individual, circular = FALSE, structureOnly = TRUE, ...) {
   ig <- funcToIgraph(individual)
   vertexDepths <- shortest.paths(ig)[1,] + 1
   edgeDepths <- vertexDepths[get.edges(ig, E(ig))[,2] + 1]
@@ -142,6 +142,18 @@ plotIndividual <- function(individual, circular = FALSE, structureOnly = TRUE, .
   }
 }
 
+plotPhenotype <- function(individual, xs, ...) {
+  ys <- Vectorize(individual)(xs)
+  if (!all(is.nan(ys)) && !any(is.infinite(ys))) {
+    plot(x = xs, y = ys, type = "l",
+         xlab = "", ylab = "", xaxt = "n", yaxt = "n",
+         ...)
+  } else {
+    plot(x = 0, type = "l",
+         xlab = "", ylab = "", xaxt = "n", yaxt = "n",
+         ...)
+  }
+}
 
 
 ## Search space definitions...
@@ -184,6 +196,7 @@ gpdcExperimentReal <- function(samples = 100,
                                inputVariableNamesCode = 'c("x1")',
                                treeDepth = 5,
                                mutationStepsIntervalCode = "1:3",
+                               mutationOperatorName = "ChangeDeleteInsert",
                                rmseIntervalCode = "seq(1, 10, by = 0.1)", 
                                plotType = "boxplot",
                                circular = FALSE, structureOnly = TRUE, distances = TRUE,
@@ -200,18 +213,36 @@ gpdcExperimentReal <- function(samples = 100,
   inset <- do.call(inputVariableSet, as.list(eval(parse(text = inputVariableNamesCode))))
   conset <- numericConstantSet
   rmseXs <- eval(parse(text = rmseIntervalCode))
+  mutationOperator <- if (mutationOperatorName == "ChangeDeleteInsert")
+                        function(ind, i) mutateChangeDeleteInsert(ind, funcset, inset, conset, iterations = i,
+                                                               changeProbability = 1/3, deleteProbability = 1/3, insertProbability = 1/3)
+                      else if (mutationOperatorName == "Change")
+                        function(ind, i) mutateChangeDeleteInsert(ind, funcset, inset, conset, iterations = i,
+                                                               changeProbability = 1, deleteProbability = 0, insertProbability = 0)
+                      else if (mutationOperatorName == "DeleteInsert")
+                        function(ind, i) mutateChangeDeleteInsert(ind, funcset, inset, conset, iterations = i,
+                                                               changeProbability = 0, deleteProbability = 0.5, insertProbability = 0.5)
+                      else if (mutationOperatorName == "Delete")
+                        function(ind, i) mutateChangeDeleteInsert(ind, funcset, inset, conset, iterations = i,
+                                                               changeProbability = 0, deleteProbability = 1, insertProbability = 0)
+                      else if (mutationOperatorName == "Insert")
+                        function(ind, i) mutateChangeDeleteInsert(ind, funcset, inset, conset, iterations = i,
+                                                               changeProbability = 0, deleteProbability = 0, insertProbability = 1)
+                      else stop("gpdcExperimentReal: Unknown mutation operator name '", mutationOperatorName, ".")
   sfExportAll()
   phenotypicDistanceMeasure <- if (length(inset$all) > 1)
     function(f1, f2) multivariateRmse(length(inset$all), f1, f2, rmseXs)
   else function(f1, f2) univariateRmse(f1, f2, rmseXs)
   sfWorker <- function(mutationSteps) {
     sampleIndividualDistances(samples, funcset, inset, conset,
+                              mutationFunction = function(ind) mutationOperator(ind, mutationSteps),
                               treeDepth = treeDepth, mutationSteps = mutationSteps,
                               distanceMeasure = phenotypicDistanceMeasure)
   }
   genotypicDistances <- eval(parse(text = mutationStepsIntervalCode))
   if (plotType == "genotypes" || plotType == "phenotypes") {
     sampledMutations <- sampleMutations(samples, funcset, inset, conset,
+                                        mutationFunction = function(ind) mutationOperator(ind, max(genotypicDistances)),
                                         treeDepth = treeDepth, mutationSteps = max(genotypicDistances),
                                         distanceMeasure = phenotypicDistanceMeasure)
     phenotypicDistances <- sampledMutations$distances
@@ -224,15 +255,23 @@ gpdcExperimentReal <- function(samples = 100,
   sfStop()
   if (plotType == "boxplot") {
     boxplot(x = phenotypicDistances, outline = showOutliers,
-            main = "Phenotypic Distance vs. Genotypic Distance",
+            main = "Search Space Locality",
             xlab = "Genotypic Distance (Atomic Mutation Steps)", ylab = "Phenotypic Distance (RMSE)")
-    mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
+    legend("topleft", 
+           c(paste("Pearson Correlation:", round(genotypicPhenotypicDistanceCorrelation, digits = 4)),
+             paste("F.S.: {", do.call(paste, append(funcset$all, list(sep =", "))), "}"),
+             paste("M.O.:", mutationOperatorName)),
+           bg = "white")
   } else if (plotType == "medians") {
     plot(x = genotypicDistances, y = medianPhenotypicDistances,
          type = "b", pch = 1,
-         main = "Phenotypic Distance vs. Genotypic Distance",
+         main = "Search Space Locality",
          xlab = "Genotypic Distance (Atomic Mutation Steps)", ylab = "Phenotypic Distance (RMSE)")
-    mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
+    legend("topleft", 
+           c(paste("Pearson Correlation:", round(genotypicPhenotypicDistanceCorrelation, digits = 4)),
+             paste("F.S.: {", do.call(paste, append(funcset$all, list(sep =", "))), "}"),
+             paste("M.O.:", mutationOperatorName)),
+           bg = "white")
   } else if (plotType == "genotypes") {
     oldPar <- par(no.readonly = TRUE)
     plotRows <- ceiling(sqrt(samples))
@@ -240,8 +279,8 @@ gpdcExperimentReal <- function(samples = 100,
     for (i in seq_along(mutatedPopulation)) {
       mutatedIndividual <- mutatedPopulation[[i]]
       mutationPhenotypicDistance <- phenotypicDistances[[i]]
-      plotIndividual(mutatedIndividual, circular = circular, structureOnly = structureOnly,
-                     main = if (distances) mutationPhenotypicDistance else "")
+      plotGenotype(mutatedIndividual, circular = circular, structureOnly = structureOnly,
+                   main = if (distances) mutationPhenotypicDistance else "")
     }
     par(oldPar)
   } else if (plotType == "phenotypes") {
@@ -252,21 +291,17 @@ gpdcExperimentReal <- function(samples = 100,
     for (i in seq_along(mutatedPopulation)) {
       mutatedIndividual <- mutatedPopulation[[i]]
       mutationPhenotypicDistance <- phenotypicDistances[[i]]
-      ys <- Vectorize(mutatedIndividual)(rmseXs)
-      if (!all(is.nan(ys)) && !any(is.infinite(ys))) {
-        plot(x = rmseXs, y = ys, type = "l",
-             main = if (distances) mutationPhenotypicDistance else "",
-             xlab = "", ylab = "", xaxt = "n", yaxt = "n")
-      } else {
-        plot(x = 0, type = "l",
-             main = if (distances) mutationPhenotypicDistance else "",
-             xlab = "", ylab = "", xaxt = "n", yaxt = "n")
-      }
+      plotPhenotype(mutatedIndividual, rmseXs,
+                    main = if (distances) mutationPhenotypicDistance else "")
     }
     par(oldPar)
   } else if (plotType == "none") {
     plot.new()
-    mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
+    legend("topleft", 
+           c(paste("Pearson Correlation:", round(genotypicPhenotypicDistanceCorrelation, digits = 4)),
+             paste("F.S.: {", do.call(paste, append(funcset$all, list(sep =", "))), "}"),
+             paste("M.O.:", mutationOperatorName)),
+           bg = "white")
   } else stop("gpdcExperimentReal: Unvalid plotType: ", plotType, ".")
   list(genotypicDistances = genotypicDistances,
        phenotypicDistances = phenotypicDistances)
@@ -274,9 +309,10 @@ gpdcExperimentReal <- function(samples = 100,
 
 gpdcExperimentBoolean <- function(samples = 100,
                                   functionNamesCode = 'c("&", "|", "!")',
-                                  inputDimension = 2,
+                                  inputDimension = 5,
                                   treeDepth = 5,
                                   mutationStepsIntervalCode = "1:3", 
+                                  mutationOperatorName = "ChangeDeleteInsert",
                                   plotType = "boxplot",
                                   circular = FALSE, structureOnly = TRUE,
                                   showOutliers = FALSE,
@@ -291,16 +327,34 @@ gpdcExperimentBoolean <- function(samples = 100,
   funcset <- do.call(functionSet, as.list(eval(parse(text = functionNamesCode))))
   inset <- do.call(inputVariableSet, as.list(paste("x", 1:inputDimension, sep = "")))
   conset <- typedLogicalConstantSet
+  mutationOperator <- if (mutationOperatorName == "ChangeDeleteInsert")
+                        function(ind, i) mutateChangeDeleteInsert(ind, funcset, inset, conset, iterations = i,
+                                                               changeProbability = 1/3, deleteProbability = 1/3, insertProbability = 1/3)
+                      else if (mutationOperatorName == "Change")
+                        function(ind, i) mutateChangeDeleteInsert(ind, funcset, inset, conset, iterations = i,
+                                                               changeProbability = 1, deleteProbability = 0, insertProbability = 0)
+                      else if (mutationOperatorName == "DeleteInsert")
+                        function(ind, i) mutateChangeDeleteInsert(ind, funcset, inset, conset, iterations = i,
+                                                               changeProbability = 0, deleteProbability = 0.5, insertProbability = 0.5)
+                      else if (mutationOperatorName == "Delete")
+                        function(ind, i) mutateChangeDeleteInsert(ind, funcset, inset, conset, iterations = i,
+                                                               changeProbability = 0, deleteProbability = 1, insertProbability = 0)
+                      else if (mutationOperatorName == "Insert")
+                        function(ind, i) mutateChangeDeleteInsert(ind, funcset, inset, conset, iterations = i,
+                                                               changeProbability = 0, deleteProbability = 0, insertProbability = 1)
+                      else stop("gpdcExperimentReal: Unknown mutation operator name '", mutationOperatorName, ".")
   sfExportAll()
   phenotypicDistanceMeasure <- function(f1, f2) multivariateErrorCount(length(inset$all), f1, f2)
   sfWorker <- function(mutationSteps) {
     sampleIndividualDistances(samples, funcset, inset, conset,
+                              mutationFunction = function(ind) mutationOperator(ind, mutationSteps),
                               treeDepth = treeDepth, mutationSteps = mutationSteps,
                               distanceMeasure = phenotypicDistanceMeasure)
   }
   genotypicDistances <- eval(parse(text = mutationStepsIntervalCode))
   if (plotType == "genotypes") {
     sampledMutations <- sampleMutations(samples, funcset, inset, conset,
+                                        mutationFunction = function(ind) mutationOperator(ind, max(genotypicDistances)),
                                         treeDepth = treeDepth, mutationSteps = max(genotypicDistances),
                                         distanceMeasure = phenotypicDistanceMeasure)
     phenotypicDistances <- sampledMutations$distances
@@ -313,15 +367,23 @@ gpdcExperimentBoolean <- function(samples = 100,
   sfStop()
   if (plotType == "boxplot") {
     boxplot(x = phenotypicDistances, outline = showOutliers,
-            main = "Phenotypic Distance vs. Genotypic Distance",
+            main = "Search Space Locality",
             xlab = "Genotypic Distance (Atomic Mutation Steps)", ylab = "Phenotypic Distance (# Errors)")
-    mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
+    legend("topleft", 
+           c(paste("Pearson Correlation:", round(genotypicPhenotypicDistanceCorrelation, digits = 4)),
+             paste("F.S.: {", do.call(paste, append(funcset$all, list(sep =", "))), "}"),
+             paste("M.O.:", mutationOperatorName)),
+           bg = "white")
   } else if (plotType == "medians") {
     plot(x = genotypicDistances, y = medianPhenotypicDistances,
          type = "b", pch = 1,
-         main = "Phenotypic Distance vs. Genotypic Distance",
+         main = "Search Space Locality",
          xlab = "Genotypic Distance (Atomic Mutation Steps)", ylab = "Phenotypic Distance (# Errors)")
-    mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
+    legend("topleft", 
+           c(paste("Pearson Correlation:", round(genotypicPhenotypicDistanceCorrelation, digits = 4)),
+             paste("F.S.: {", do.call(paste, append(funcset$all, list(sep =", "))), "}"),
+             paste("M.O.:", mutationOperatorName)),
+           bg = "white")
   } else if (plotType == "genotypes") {
     oldPar <- par(no.readonly = TRUE)
     plotRows <- ceiling(sqrt(samples))
@@ -329,13 +391,17 @@ gpdcExperimentBoolean <- function(samples = 100,
     for (i in seq_along(mutatedPopulation)) {
       mutatedIndividual <- mutatedPopulation[[i]]
       mutationPhenotypicDistance <- phenotypicDistances[[i]]
-      plotIndividual(mutatedIndividual, circular = circular, structureOnly = structureOnly,
-                     main = mutationPhenotypicDistance)
+      plotGenotype(mutatedIndividual, circular = circular, structureOnly = structureOnly,
+                   main = mutationPhenotypicDistance)
     }
     par(oldPar)
   } else if (plotType == "none") {
     plot.new()
-    mtext(paste("Pearson Correlation: ", genotypicPhenotypicDistanceCorrelation, sep = ""))
+    legend("topleft", 
+           c(paste("Pearson Correlation:", round(genotypicPhenotypicDistanceCorrelation, digits = 4)),
+             paste("F.S.: {", do.call(paste, append(funcset$all, list(sep =", "))), "}"),
+             paste("M.O.:", mutationOperatorName)),
+           bg = "white")
   } else stop("gpdcExperimentBoolean: Unvalid plotType: ", plotType, ".")
   list(genotypicDistances = genotypicDistances,
        phenotypicDistances = phenotypicDistances)
@@ -343,7 +409,7 @@ gpdcExperimentBoolean <- function(samples = 100,
 
 gpdcExperimentRealInteractive <- function(sfClusterInitializationFunction = initLocalCluster) {
   invisible(twiddle(gpdcExperimentReal(samples, functionNamesCode, inputVariableNamesCode, treeDepth,
-                                       mutationStepsIntervalCode, rmseIntervalCode,
+                                       mutationStepsIntervalCode, mutationOperatorName, rmseIntervalCode,
                                        plotType, circular, structureOnly, distances, showOutliers, randomSeed,
                                        sfClusterInitializationFunction),
                     samples = knob(label = "Samples", lim = c(1, 500), res = 1, ticks = 0,
@@ -356,6 +422,7 @@ gpdcExperimentRealInteractive <- function(sfClusterInitializationFunction = init
                       default = 5),
                     mutationStepsIntervalCode = entry(label = "Genotypic Dist.", length = 26,
                       default = "1:3"),
+                    mutationOperatorName = combo("ChangeDeleteInsert", "Change", "DeleteInsert", "Delete", "Insert", label = "Mutation Operator"),
                     rmseIntervalCode = entry(label = "RMSE Domain", length = 26,
                       default = "seq(1, 10, by = 0.1)"),
                     plotType = combo("boxplot", "medians", "genotypes", "phenotypes", "none", label = "Plot Type"),
@@ -375,7 +442,7 @@ gpdcExperimentRealInteractive <- function(sfClusterInitializationFunction = init
 
 gpdcExperimentBooleanInteractive <- function(sfClusterInitializationFunction = initLocalCluster) {
   invisible(twiddle(gpdcExperimentBoolean(samples, functionNamesCode, inputDimensions, treeDepth,
-                                          mutationStepsIntervalCode,
+                                          mutationStepsIntervalCode, mutationOperatorName,
                                           plotType, circular, structureOnly, showOutliers, randomSeed,
                                           sfClusterInitializationFunction),
                     samples = knob(label = "Samples", lim = c(1, 500), res = 1, ticks = 0,
@@ -383,11 +450,12 @@ gpdcExperimentBooleanInteractive <- function(sfClusterInitializationFunction = i
                     functionNamesCode = entry(label = "Function Set", length = 26,
                       default = 'c("&", "|", "!")'),
                     inputDimensions = knob(label = "Input Dimension", lim = c(1, 10), res = 1, ticks = 0,
-                      default = 2),
+                      default = 5),
                     treeDepth = knob(label = "Tree Depth", lim = c(1, 10), res = 1, ticks = 0,
                       default = 5),
                     mutationStepsIntervalCode = entry(label = "Genotypic Dist.", length = 26,
                       default = "1:3"),
+                    mutationOperatorName = combo("ChangeDeleteInsert", "Change", "DeleteInsert", "Delete", "Insert", label = "Mutation Operator"),
                     plotType = combo("boxplot", "medians", "genotypes", "none", label = "Plot Type"),
                     circular = toggle(label = "Circular Genotypes Plot",
                       default = FALSE),

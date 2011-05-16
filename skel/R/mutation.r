@@ -38,8 +38,11 @@ NA
 ##' \code{mutateDeleteSubtree} Selects a subree of the exact depth of \code{subtreeDepth} by uniform random
 ##'   sampling and replaces it with a matching leaf.
 ##' \code{mutateChangeDeleteInsert} Either applies \code{mutateChangeLabel}, \code{mutateDeleteSubtree},
-##' or \code{mutateDeleteSubtree}. The probability weights for selecting an operator can be supplied
-##' via the ...Probability arguments (probability weights are normalized to a sum of 1). 
+##'   or \code{mutateDeleteSubtree}. The probability weights for selecting an operator can be supplied
+##'   via the ...Probability arguments (probability weights are normalized to a sum of 1). 
+##' \code{mutateDeleteInsert} Either applies \code{mutateDeleteSubtree} or \code{mutateDeleteSubtree}. The
+##'  probability weights for selecting an operator can be supplied via the ...Probability arguments
+##'  (probability weights are normalized to a sum of 1).
 ##' The above functions automatically create well-typed result expressions when used in a strongly
 ##' typed GP run.
 ##'
@@ -449,3 +452,24 @@ mutateChangeDeleteInsert <- function(func, funcset, inset, conset,
   }
 }
 class(mutateChangeDeleteInsert) <- c("mutationOperator", "function")
+
+##' @rdname expressionMutation
+##' @export
+mutateDeleteInsert <- function(func, funcset, inset, conset,
+                               strength = 1,
+                               subtreeDepth = 2,
+                               constprob = 0.2,
+                               iterations = 1,
+                               deleteProbability = 0.5,
+                               insertProbability = 0.5,
+                               breedingFitness = function(individual) TRUE,
+                               breedingTries = 50)
+  mutateChangeDeleteInsert(func, funcset, inset, conset,
+                           strength = strength, subtreeDepth = subtreeDepth,
+                           constprob = constprob, iterations = iterations,
+                           changeProbability = 0,
+                           deleteProbability = deleteProbability,
+                           insertProbability = insertProbability,
+                           breedingFitness = breedingFitness,
+                           breedingTries = breedingTries)
+class(mutateDeleteInsert) <- c("mutationOperator", "function")
