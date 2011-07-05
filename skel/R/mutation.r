@@ -74,7 +74,7 @@ NA
 ##'
 ##' @rdname expressionMutation
 ##' @export
-mutateFunc <- function(func, funcset, mutatefuncprob = 0.01,
+mutateFunc <- function(func, funcset, mutatefuncprob = 0.1,
                        breedingFitness = function(individual) TRUE,
                        breedingTries = 50) {
   mutatefuncexpr <- function(expr, funcset, mutatefuncprob) {
@@ -153,7 +153,7 @@ class(mutateNumericConst) <- c("mutationOperator", "function")
 
 ##' @rdname expressionMutation
 ##' @export
-mutateFuncTyped <- function(func, funcset, mutatefuncprob = 0.01,
+mutateFuncTyped <- function(func, funcset, mutatefuncprob = 0.1,
                             breedingFitness = function(individual) TRUE,
                             breedingTries = 50) {
   mutatefuncexprTyped <- function(expr, funcset, mutatefuncprob) {

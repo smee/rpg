@@ -141,7 +141,7 @@ geneticProgramming <- function(fitnessFunction,
   mutatefunc <-
     if (is.null(mutationFunction)) {
       function(ind) mutateSubtree(mutateNumericConst(ind),
-                                  functionSet, inputVariables, constantSet, mutatesubtreeprob = 0.01,
+                                  functionSet, inputVariables, constantSet, mutatesubtreeprob = 0.1,
                                   breedingFitness = breedingFitness, breedingTries = breedingTries)
     } else
       mutationFunction
