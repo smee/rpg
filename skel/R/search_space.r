@@ -9,6 +9,8 @@
 
 ##' @include stypes.r
 NA
+##' @include function_utils.r
+NA
 
 ##' Functions for defining the search space for Genetic Programming
 ##'
@@ -79,6 +81,8 @@ functionSet <- function(..., list = NULL) {
                         funcset.byType)
   funcset$byRange <- Map(function(set) extractAttributes(set, "probabilityWeight", default = 1.0),
                          funcset.byRange)
+  funcset$nameStrings <- as.character(funcset$all)
+  funcset$arities <- as.numeric(Map(function(nameString) arity(as.name(nameString)), funcset$nameStrings))
   funcset
 }
 
@@ -104,6 +108,7 @@ inputVariableSet <- function(..., list = NULL) {
                       inset.byType)
   inset$byRange <- Map(function(set) extractAttributes(set, "probabilityWeight", default = 1.0),
                        inset.byRange)
+  inset$nameStrings <- as.character(inset$all)
   inset
 }
 
