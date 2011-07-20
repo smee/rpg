@@ -298,7 +298,7 @@ multiNicheSymbolicRegression <- function(formula, data,
   variableNames <- attr(terms(formula(mf)), "term.labels")
   ## Create inputVariableSet
   inVarSet <- inputVariableSet(list=as.list(variableNames))
-  fitFunc <- makeRegressionFitnessFunction(formula(mf), mf, errormeasure = rmse,
+  fitFunc <- makeRegressionFitnessFunction(formula(mf), mf, errorMeasure = rmse,
                                            penalizeGenotypeConstantIndividuals = penalizeGenotypeConstantIndividuals,
                                            indsizelimit = individualSizeLimit)
   gpModel <- multiNicheGeneticProgramming(fitFunc, stopCondition, passStopCondition,
