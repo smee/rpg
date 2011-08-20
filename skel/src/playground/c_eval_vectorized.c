@@ -59,21 +59,20 @@ void CevalVectorized(SEXP rExpr, struct CevalContext *context, double *result) {
       return;
     }
     else if (!strcmp(Rchar, "-")) {
-      // TODO
-      //if (!CADDR(rExpr)) { // For use of handmade functions, GP created function dont need this exception
-      double lhs[samples], rhs[samples];
-      CevalVectorized(CADR(rExpr), context, lhs);
-      CevalVectorized(CADDR(rExpr), context, rhs);
-      for (int i = 0; i < samples; i++) {
-        result[i] = lhs[i] - rhs[i];
+      if (!isNull(CADDR(rExpr))) { // support for "handmade" (parsed) functions, GP created function dont need this exception
+        double lhs[samples], rhs[samples];
+        CevalVectorized(CADR(rExpr), context, lhs);
+        CevalVectorized(CADDR(rExpr), context, rhs);
+        for (int i = 0; i < samples; i++) {
+          result[i] = lhs[i] - rhs[i];
+        } 
+      } else {
+        double lhs[samples];
+        CevalVectorized(CADR(rExpr), context, lhs);
+        for (int i = 0; i < samples; i++) {
+          result[i] = -lhs[i];
+        }
       }
-      //} else {
-      //  double lhs[samples];
-      //  CevalVectorized(CADR(rExpr), context, lhs);
-      //  for (int i = 0; i < samples; i++) {
-      //    result[i] = -lhs[i];
-      //  }
-      //}
       return;
     }
     else if (!strcmp(Rchar, "*")) {

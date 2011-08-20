@@ -9,6 +9,8 @@
 
 ##' @include evolution.r
 NA
+##' @include data_driven_gp.r
+NA
 
 ##' Symbolic regression via untyped standard genetic programming
 ##'
@@ -52,7 +54,7 @@ NA
 ##' @param functionSet The function set.
 ##' @param constantSet The set of constant factory functions.
 ##' @param selectionFunction The selection function to use. Defaults to
-##'   tournament selection. See \link{makeTournamentSelection} for details.
+##'   tournament selection. See \code{\link{makeTournamentSelection}} for details.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param restartCondition The restart condition for the evolution main loop. See
@@ -105,41 +107,32 @@ symbolicRegression <- function(formula, data,
                                errorMeasure = rmse,
                                progressMonitor = NULL,
                                verbose = TRUE) {
-  ## Match variables in formula to those in data or parent.frame() and
-  ## return them in a new data frame. This also expands any '.'
-  ## arguments in the formula.  
-  mf <- model.frame(formula, data)
-  ## Extract list of terms (rhs of ~) in expanded formula
-  variableNames <- attr(terms(formula(mf)), "term.labels")
-  ## Create inputVariableSet
-  inVarSet <- inputVariableSet(list=as.list(variableNames))
-  fitFunc <- makeRegressionFitnessFunction(formula(mf), mf, errorMeasure = errorMeasure,
-                                           penalizeGenotypeConstantIndividuals = penalizeGenotypeConstantIndividuals,
-                                           indsizelimit = individualSizeLimit)
-  gpModel <- geneticProgramming(fitFunc,
-                                stopCondition = stopCondition,
-                                population = population,
-                                populationSize = populationSize,
-                                eliteSize = eliteSize,
-                                elite = elite,
-                                functionSet = functionSet,
-                                inputVariables = inVarSet,
-                                constantSet = constantSet,
-                                selectionFunction = selectionFunction,
-                                crossoverFunction = crossoverFunction,
-                                mutationFunction = mutationFunction,
-                                restartCondition = restartCondition,
-                                restartStrategy = restartStrategy,
-                                breedingFitness = breedingFitness,
-                                breedingTries = breedingTries,
-                                extinctionPrevention = extinctionPrevention,
-                                archive = archive,
-                                genealogy = genealogy,
-                                progressMonitor = progressMonitor,
-                                verbose = verbose)
-  
-  structure(append(gpModel, list(formula = formula(mf))),
-                   class = c("symbolicRegressionModel", "geneticProgrammingResult"))
+  symbolicRegressionModel <- dataDrivenGeneticProgramming(formula, data, makeRegressionFitnessFunction,
+                                                          list(errorMeasure = errorMeasure,
+                                                               penalizeGenotypeConstantIndividuals = penalizeGenotypeConstantIndividuals,
+                                                               indsizelimit = individualSizeLimit),
+                                                          stopCondition = stopCondition,
+                                                          population = population,
+                                                          populationSize = populationSize,
+                                                          eliteSize = eliteSize,
+                                                          elite = elite,
+                                                          extinctionPrevention = extinctionPrevention,
+                                                          archive = archive,
+                                                          genealogy = genealogy,
+                                                          functionSet = functionSet,
+                                                          constantSet = constantSet,
+                                                          selectionFunction = selectionFunction,
+                                                          crossoverFunction = crossoverFunction,
+                                                          mutationFunction = mutationFunction,
+                                                          restartCondition = restartCondition,
+                                                          restartStrategy = restartStrategy,
+                                                          breedingFitness = breedingFitness,
+                                                          breedingTries = breedingTries,
+                                                          progressMonitor = progressMonitor,
+                                                          verbose = verbose)
+
+  class(symbolicRegressionModel) <- c("symbolicRegressionModel", class(symbolicRegressionModel))
+  symbolicRegressionModel  
 }
 
 ##' Predict method for symbolic regression models
@@ -189,4 +182,50 @@ predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", det
     colnames(predictedVersusReal) <- c("predicted", "real")
     list(model = ind, response = predictedVersusReal, RMSE = errorind)
   } else ysind
+}
+
+##' Create a fitness function for symbolic regression
+##'
+##' Creates a fitness function that calculates an error measure with
+##' respect to a given set of data variables. A simplified version of
+##' the formula syntax is used to describe the regression task. When
+##' an \code{indsizelimit} is given, individuals exceeding this limit
+##' will receive a fitness of \code{Inf}.
+##'
+##' @param formula A formula object describing the regression task.
+##' @param data An optional data frame containing the variables in the
+##'   model.
+##' @param errorMeasure A function to use as an error measure, defaults to RMSE.
+##' @param indsizelimit Individuals exceeding this size limit will get
+##'   a fitness of \code{Inf}.
+##' @param penalizeGenotypeConstantIndividuals Individuals that do not
+##'   contain any input variables will get a fitness of \code{Inf}.
+##' @return A fitness function to be used in symbolic regression.
+##' @export
+makeRegressionFitnessFunction <- function(formula, data, errorMeasure = rmse,
+                                          indsizelimit = NA,
+                                          penalizeGenotypeConstantIndividuals = FALSE) {
+  data <- if (any(is.na(data))) {
+    dataWithoutNAs <- na.omit(data)
+    warning(sprintf("removed %i data rows containing NA values",
+                    length(attr(dataWithoutNAs, "na.action"))))
+    dataWithoutNAs
+  } else data
+  formulaVars <- as.list(attr(terms(formula), "variables")[-1])
+  responseVariable <- formulaVars[[1]]
+  explanatoryVariables <- formulaVars[-1]
+  trueResponse <- eval(responseVariable, envir=data)
+  explanatories <- lapply(explanatoryVariables, eval, envir=data)
+  function(ind) {
+    ysind <- do.call(ind, explanatories) # vectorized fitness-case evaluation
+    errorind <- errorMeasure(trueResponse, ysind)    
+    if (!is.na(indsizelimit) && funcSize(ind) > indsizelimit)
+      Inf # individual size limit exceeded
+    else if (is.na(errorind) || is.nan(errorind))
+      Inf # error value is NA or NaN
+    else if (penalizeGenotypeConstantIndividuals
+             && is.empty(inputVariablesOfIndividual(ind, explanatoryVariables)))
+      Inf # individual does not contain any input variables
+    else errorind
+  }
 }
