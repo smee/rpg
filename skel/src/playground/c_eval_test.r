@@ -8,7 +8,17 @@
 ##
 
 require("rgp")
-dyn.load("eval_vectorized.so")
+require("microbenchmark")
+ompEnabled <- FALSE
+cEnabled <- FALSE
+if (file.exists("eval_vectorized_omp.so")) {
+  dyn.load("eval_vectorized_omp.so")
+  ompEnabled <- TRUE
+} else if (file.exists("eval_vectorized.so")) {
+  dyn.load("eval_vectorized.so")
+  cEnabled <- TRUE
+}
+message("ompEnabled: ", ompEnabled, " cEnabled: ", cEnabled)
 
 
 makeCRegressionFitnessFunction <- function(formula, data) {
@@ -48,6 +58,24 @@ makeCVectorizedRegressionFitnessFunction <- function(formula, data) {
   }
 }
 
+makeCVectorizedOmpRegressionFitnessFunction <- function(formula, data) {
+  data <- if (any(is.na(data))) {
+    dataWithoutNAs <- na.omit(data)
+    warning(sprintf("removed %i data rows containing NA values",
+                    length(attr(dataWithoutNAs, "na.action"))))
+    dataWithoutNAs
+  } else data
+  formulaVars <- as.list(attr(terms(formula), "variables")[-1])
+  responseVariable <- formulaVars[[1]]
+  explanatoryVariables <- formulaVars[-1]
+  trueResponse <- eval(responseVariable, envir=data)
+  explanatories <- lapply(explanatoryVariables, eval, envir=data)
+  explanatoryVector <- Reduce(c, explanatories)
+  function(ind) {
+    .Call("evalVectorizedOmpRmse", ind, explanatoryVector, trueResponse)
+  }
+}
+
 makeLoopRegressionFitnessFunction <- function(formula, data) {
   data <- if (any(is.na(data))) {
     dataWithoutNAs <- na.omit(data)
@@ -73,3 +101,28 @@ makeLoopRegressionFitnessFunction <- function(formula, data) {
 makeTestData <- function(testDataSize)
   data.frame(x1 = 1:testDataSize, x2 = 2 * (1:testDataSize),
              y = 0.3 * sin(1:testDataSize) + cos(0.1 * (1:testDataSize)) + 0.1 * (1:testDataSize) - 2)
+
+benchmarkFitnessFunctions <- function(fitnessCases = 256, times = 100L,
+                                      ind = function(x1, x2) 0.2 * cos(x1 + 0.1) + sin(0.2 * x2) + 0.05 * x1 - 1.5) {
+  testData <- makeTestData(fitnessCases)
+  rLoopRegressionFitnessFunction <- makeLoopRegressionFitnessFunction(y ~ x1 + x2, testData)
+  rVectorizedRegressionFitnessFunction <- makeRegressionFitnessFunction(y ~ x1 + x2, testData)
+  cVectorizedRegressionFitnessFunction <- makeCVectorizedRegressionFitnessFunction(y ~ x1 + x2, testData)
+  cVectorizedOmpRegressionFitnessFunction <- makeCVectorizedOmpRegressionFitnessFunction(y ~ x1 + x2, testData)
+  if (ompEnabled) {
+    microbenchmark(rVectorizedRegressionFitnessFunction(ind),
+                   cVectorizedOmpRegressionFitnessFunction(ind),
+                   times = times)
+  } else if (cEnabled) {
+    microbenchmark(rVectorizedRegressionFitnessFunction(ind),
+                   cVectorizedRegressionFitnessFunction(ind),
+                   times = times)
+  } else {
+    microbenchmark(rVectorizedRegressionFitnessFunction(ind),
+                   times = times)
+  }
+}
+
+
+# test code...
+#print(benchmarkFitnessFunctions())

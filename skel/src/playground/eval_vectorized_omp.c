@@ -1,4 +1,4 @@
-/* eval_vectorized.c
+/* eval_vectorized_omp.c
  *
  */
 
@@ -8,14 +8,14 @@
 #include <math.h>
 
 
-struct EvalVectorizedContext {
+struct EvalVectorizedOmpContext {
   int arity;
   int samples;
   SEXP formalParameters;
   double *actualParameters;
 };
 
-void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, double *resultOut) {
+void evalVectorizedOmpRecursive(SEXP rExpr, struct EvalVectorizedOmpContext *context, double *resultOut) {
   SEXP coercedRExpr;
   const char *rChar;
   const char *rSymbol;
@@ -23,6 +23,7 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
 
   // recurse along the structure of rExpr and evaluate...
   if (isNumeric(rExpr)) { // numeric constant...
+    #pragma omp for
     for (int i = 0; i < samples; i++) { // return a vector "c(a, a, ..., a)" where "a" is the constant
       resultOut[i] = REAL(rExpr)[0];
     }
@@ -54,8 +55,9 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
 
     if (!strcmp(rChar, "+")) {
       double lhs[samples], rhs[samples];
-      evalVectorizedRecursive(CADR(rExpr), context, lhs);
-      evalVectorizedRecursive(CADDR(rExpr), context, rhs);
+      evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
+      evalVectorizedOmpRecursive(CADDR(rExpr), context, rhs);
+      #pragma omp for
       for (int i = 0; i < samples; i++) {
         resultOut[i] = lhs[i] + rhs[i];
       }
@@ -64,14 +66,16 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
     else if (!strcmp(rChar, "-")) {
       if (!isNull(CADDR(rExpr))) { // support for "handmade" (parsed) functions, GP created function dont need this exception
         double lhs[samples], rhs[samples];
-        evalVectorizedRecursive(CADR(rExpr), context, lhs);
-        evalVectorizedRecursive(CADDR(rExpr), context, rhs);
+        evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
+        evalVectorizedOmpRecursive(CADDR(rExpr), context, rhs);
+        #pragma omp for
         for (int i = 0; i < samples; i++) {
           resultOut[i] = lhs[i] - rhs[i];
         } 
       } else {
         double lhs[samples];
-        evalVectorizedRecursive(CADR(rExpr), context, lhs);
+        evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
+        #pragma omp for
         for (int i = 0; i < samples; i++) {
           resultOut[i] = -lhs[i];
         }
@@ -80,8 +84,9 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
     }
     else if (!strcmp(rChar, "*")) {
       double lhs[samples], rhs[samples];
-      evalVectorizedRecursive(CADR(rExpr), context, lhs);
-      evalVectorizedRecursive(CADDR(rExpr), context, rhs);
+      evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
+      evalVectorizedOmpRecursive(CADDR(rExpr), context, rhs);
+      #pragma omp for
       for (int i = 0; i < samples; i++) {
         resultOut[i] = lhs[i] * rhs[i];
       }
@@ -89,18 +94,20 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
     }
     else if (!strcmp(rChar, "/")) {
       double lhs[samples], rhs[samples];
-      evalVectorizedRecursive(CADR(rExpr), context, lhs);
-      evalVectorizedRecursive(CADDR(rExpr), context, rhs);
+      evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
+      evalVectorizedOmpRecursive(CADDR(rExpr), context, rhs);
+      #pragma omp for
       for (int i = 0; i < samples; i++) {
         if (rhs[i]) {
           resultOut[i] =  lhs[i] / rhs[i];
-        } else error("evalVectorizedRecursive: division by zero");
+        } else error("evalVectorizedOmpRecursive: division by zero");
       }
       return;
     }
     else if (!strcmp(rChar, "sin")) {
       double lhs[samples];
-      evalVectorizedRecursive(CADR(rExpr), context, lhs);
+      evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
+      #pragma omp for
       for (int i = 0; i < samples; i++) {
         resultOut[i] = sin(lhs[i]);
       }
@@ -108,7 +115,8 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
     }
     else if (!strcmp(rChar, "cos")) {
       double lhs[samples];
-      evalVectorizedRecursive(CADR(rExpr), context, lhs);
+      evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
+      #pragma omp for
       for (int i = 0; i < samples; i++) {
         resultOut[i] = cos(lhs[i]);
       }
@@ -116,21 +124,22 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
     }
     else if (!strcmp(rChar, "tan")) {
       double lhs[samples];
-      evalVectorizedRecursive(CADR(rExpr), context, lhs);
+      evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
+      #pragma omp for
       for (int i = 0; i < samples; i++) {
         resultOut[i] = tan(lhs[i]);
       }
       return;
     }
     else if (!strcmp(rChar, "(")) { // just skip parenthesis...
-      evalVectorizedRecursive(CADR(rExpr), context, resultOut);
+      evalVectorizedOmpRecursive(CADR(rExpr), context, resultOut);
       return;
     }
-    else error("evalVectorizedRecursive: unsupported composite R expression");
+    else error("evalVectorizedOmpRecursive: unsupported composite R expression");
   }
 }
 
-void makeEvalVectorizedContext(SEXP rFunction, SEXP actualParameters, struct EvalVectorizedContext *contextOut) {
+void makeEvalVectorizedOmpContext(SEXP rFunction, SEXP actualParameters, struct EvalVectorizedOmpContext *contextOut) {
   SEXP rFormals, rFormalNames, strFormals;
 
   rFormals = FORMALS(rFunction);
@@ -151,12 +160,12 @@ void makeEvalVectorizedContext(SEXP rFunction, SEXP actualParameters, struct Eva
   contextOut->actualParameters = REAL(actualParameters);
 }
 
-SEXP evalVectorized(SEXP rFunction, SEXP actualParameters) {
-  struct EvalVectorizedContext context;
-  makeEvalVectorizedContext(rFunction, actualParameters, &context);
+SEXP evalVectorizedOmp(SEXP rFunction, SEXP actualParameters) {
+  struct EvalVectorizedOmpContext context;
+  makeEvalVectorizedOmpContext(rFunction, actualParameters, &context);
 
   double result[context.samples];
-  evalVectorizedRecursive(BODY(rFunction), &context, result);
+  evalVectorizedOmpRecursive(BODY(rFunction), &context, result);
 
   SEXP rResult;
   PROTECT(rResult = allocVector(REALSXP, context.samples));
@@ -168,17 +177,18 @@ SEXP evalVectorized(SEXP rFunction, SEXP actualParameters) {
   return rResult;
 }
 
-SEXP evalVectorizedRmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues) {
-  struct EvalVectorizedContext context;
-  makeEvalVectorizedContext(rFunction, actualParameters, &context);
+SEXP evalVectorizedOmpRmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues) {
+  struct EvalVectorizedOmpContext context;
+  makeEvalVectorizedOmpContext(rFunction, actualParameters, &context);
 
   double result[context.samples];
-  evalVectorizedRecursive(BODY(rFunction), &context, result);
+  evalVectorizedOmpRecursive(BODY(rFunction), &context, result);
 
   // calculate RMSE...
   double diff, total, rmse;
   targetValues = coerceVector(targetValues, REALSXP);
 
+  #pragma omp for
   for (int i = 0; i < context.samples; i++) {
     diff = result[i] - REAL(targetValues)[i];
     total += diff * diff;
