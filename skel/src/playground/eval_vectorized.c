@@ -1,4 +1,4 @@
-/* c_eval_vectorized.c
+/* eval_vectorized.c
  *
  */
 

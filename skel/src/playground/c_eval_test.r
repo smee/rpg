@@ -8,7 +8,7 @@
 ##
 
 require("rgp")
-dyn.load("c_eval_vectorized.so")
+dyn.load("eval_vectorized.so")
 
 
 makeCRegressionFitnessFunction <- function(formula, data) {
