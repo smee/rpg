@@ -25,9 +25,8 @@ makeCRegressionFitnessFunction <- function(formula, data) {
   explanatories <- lapply(explanatoryVariables, eval, envir=data)
   explanatoryVector <- Reduce(c, explanatories)
   function(ind) {
-    ##ysind <- do.call(ind, explanatories) # vectorized fitness-case evaluation
-    ##rmse(trueResponse, ysind)
-    .Call("CevalWrapper", ind, names(formals(ind)), explanatoryVector, trueResponse)
+    ## TODO CevalLoopRmse is not yet available
+    .Call("CevalLoopRmse", ind, names(formals(ind)), explanatoryVector, trueResponse)
   }
 }
 
@@ -45,9 +44,7 @@ makeCVectorizedRegressionFitnessFunction <- function(formula, data) {
   explanatories <- lapply(explanatoryVariables, eval, envir=data)
   explanatoryVector <- Reduce(c, explanatories)
   function(ind) {
-    ##ysind <- do.call(ind, explanatories) # vectorized fitness-case evaluation
-    ##rmse(trueResponse, ysind)
-    .Call("CevalVectorizedWrapper", ind, names(formals(ind)), explanatoryVector, trueResponse)
+    .Call("CevalVectorizedRmse", ind, explanatoryVector, trueResponse)
   }
 }
 
