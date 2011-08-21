@@ -23,7 +23,7 @@ void evalVectorizedOmpRecursive(SEXP rExpr, struct EvalVectorizedOmpContext *con
 
   // recurse along the structure of rExpr and evaluate...
   if (isNumeric(rExpr)) { // numeric constant...
-    #pragma omp for
+#pragma omp parallel for
     for (int i = 0; i < samples; i++) { // return a vector "c(a, a, ..., a)" where "a" is the constant
       resultOut[i] = REAL(rExpr)[0];
     }
@@ -39,6 +39,7 @@ void evalVectorizedOmpRecursive(SEXP rExpr, struct EvalVectorizedOmpContext *con
     //for (int i = 0; i < context->arity; i++) Rprintf("formal %i: %s\n", i, CHAR(STRING_ELT(context->formalParameters, i)));
     for (int i = 0; i < context->arity; i++) { // find matching actualParameter vector and return it...
       if (!strcmp(rSymbol, CHAR(STRING_ELT(context->formalParameters, i)))) {
+#pragma omp parallel for
         for (int j = 0; j < samples; j++) {
           resultOut[j] = context->actualParameters[i * samples + j];
         }
@@ -57,7 +58,7 @@ void evalVectorizedOmpRecursive(SEXP rExpr, struct EvalVectorizedOmpContext *con
       double lhs[samples], rhs[samples];
       evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
       evalVectorizedOmpRecursive(CADDR(rExpr), context, rhs);
-      #pragma omp for
+#pragma omp parallel for
       for (int i = 0; i < samples; i++) {
         resultOut[i] = lhs[i] + rhs[i];
       }
@@ -68,14 +69,14 @@ void evalVectorizedOmpRecursive(SEXP rExpr, struct EvalVectorizedOmpContext *con
         double lhs[samples], rhs[samples];
         evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
         evalVectorizedOmpRecursive(CADDR(rExpr), context, rhs);
-        #pragma omp for
+#pragma omp parallel for
         for (int i = 0; i < samples; i++) {
           resultOut[i] = lhs[i] - rhs[i];
-        } 
+        }
       } else {
         double lhs[samples];
         evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
-        #pragma omp for
+#pragma omp parallel for
         for (int i = 0; i < samples; i++) {
           resultOut[i] = -lhs[i];
         }
@@ -86,7 +87,7 @@ void evalVectorizedOmpRecursive(SEXP rExpr, struct EvalVectorizedOmpContext *con
       double lhs[samples], rhs[samples];
       evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
       evalVectorizedOmpRecursive(CADDR(rExpr), context, rhs);
-      #pragma omp for
+#pragma omp parallel for
       for (int i = 0; i < samples; i++) {
         resultOut[i] = lhs[i] * rhs[i];
       }
@@ -96,7 +97,7 @@ void evalVectorizedOmpRecursive(SEXP rExpr, struct EvalVectorizedOmpContext *con
       double lhs[samples], rhs[samples];
       evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
       evalVectorizedOmpRecursive(CADDR(rExpr), context, rhs);
-      #pragma omp for
+#pragma omp parallel for
       for (int i = 0; i < samples; i++) {
         if (rhs[i]) {
           resultOut[i] =  lhs[i] / rhs[i];
@@ -107,7 +108,7 @@ void evalVectorizedOmpRecursive(SEXP rExpr, struct EvalVectorizedOmpContext *con
     else if (!strcmp(rChar, "sin")) {
       double lhs[samples];
       evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
-      #pragma omp for
+#pragma omp parallel for
       for (int i = 0; i < samples; i++) {
         resultOut[i] = sin(lhs[i]);
       }
@@ -116,7 +117,7 @@ void evalVectorizedOmpRecursive(SEXP rExpr, struct EvalVectorizedOmpContext *con
     else if (!strcmp(rChar, "cos")) {
       double lhs[samples];
       evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
-      #pragma omp for
+#pragma omp parallel for
       for (int i = 0; i < samples; i++) {
         resultOut[i] = cos(lhs[i]);
       }
@@ -125,7 +126,7 @@ void evalVectorizedOmpRecursive(SEXP rExpr, struct EvalVectorizedOmpContext *con
     else if (!strcmp(rChar, "tan")) {
       double lhs[samples];
       evalVectorizedOmpRecursive(CADR(rExpr), context, lhs);
-      #pragma omp for
+#pragma omp parallel for
       for (int i = 0; i < samples; i++) {
         resultOut[i] = tan(lhs[i]);
       }
@@ -188,7 +189,6 @@ SEXP evalVectorizedOmpRmse(SEXP rFunction, SEXP actualParameters, SEXP targetVal
   double diff, total, rmse;
   targetValues = coerceVector(targetValues, REALSXP);
 
-  #pragma omp for
   for (int i = 0; i < context.samples; i++) {
     diff = result[i] - REAL(targetValues)[i];
     total += diff * diff;
