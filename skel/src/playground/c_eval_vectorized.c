@@ -16,7 +16,7 @@ struct CevalVectorizedContext {
 };
 
 void CevalVectorizedRecursive(SEXP rExpr, struct CevalVectorizedContext *context, double *result) {
-  SEXP rfun;
+  SEXP coercedRExpr;
   const char *rChar;
   const char *rSymbol;
   const int samples = context->samples;
@@ -29,8 +29,8 @@ void CevalVectorizedRecursive(SEXP rExpr, struct CevalVectorizedContext *context
     return;
   }
   else if (isSymbol(rExpr)) { // input variable...
-    PROTECT(rfun = coerceVector(rExpr, STRSXP));
-    rSymbol = CHAR(STRING_ELT(rfun, 0));
+    PROTECT(coercedRExpr = coerceVector(rExpr, STRSXP));
+    rSymbol = CHAR(STRING_ELT(coercedRExpr, 0));
     UNPROTECT(1);
     //Rprintf("SYMBOL '%s'\n", rSymbol);
 
@@ -45,8 +45,8 @@ void CevalVectorizedRecursive(SEXP rExpr, struct CevalVectorizedContext *context
     error("CevalVectorizedRecursive: undefined symbol");
   }
   else { // composite R expression....
-    PROTECT(rfun = coerceVector(CAR(rExpr), STRSXP));
-    rChar = CHAR(STRING_ELT(rfun, 0));
+    PROTECT(coercedRExpr = coerceVector(CAR(rExpr), STRSXP));
+    rChar = CHAR(STRING_ELT(coercedRExpr, 0));
     UNPROTECT(1);
     //Rprintf("COMPOSITE %s\n", rChar);
 
