@@ -1,3 +1,6 @@
+/* mutate_function.c
+ *
+ */
 
 #include <R.h>
 #include <Rinternals.h>
@@ -5,33 +8,46 @@
 #include <math.h>
 
 
-void mutateConstantsRecursive(SEXP rExpr) {
+enum RandomDistributionKind {
+  NORMAL,
+  UNIFORM
+};
+
+
+static R_INLINE void recreateSourceAttribute(SEXP rFunc) {
+  // TODO This is not perfect, as R seems to use slightly different arguments to
+  // deparse() when initially setting the source attribute.
+  setAttrib(rFunc, R_SourceSymbol, eval(lang2(install("deparse"), rFunc), R_BaseEnv));
+}
+
+void mutateConstantsRecursive(SEXP rExpr, enum RandomDistributionKind rDistKind) {
   if(isNumeric(rExpr)) { // numeric constant...
-    Rprintf("Value: %f ", REAL(rExpr)[0]);
-    REAL(rExpr)[0] = REAL(rExpr)[0] + (unif_rand() * 2) - 1;
-    Rprintf(" NewValue: %f \n", REAL(rExpr)[0]);
-  } else if (!isNull(CADR(rExpr))) { // composite...
-      mutateConstantsRecursive(CADR(rExpr));
-      if (!isNull(CADDR(rExpr))) {
-        mutateConstantsRecursive(CADDR(rExpr)); 
-      }
+    //Rprintf("Value: %f ", REAL(rExpr)[0]);
+    switch (rDistKind) {
+    case NORMAL:
+      REAL(rExpr)[0] = REAL(rExpr)[0] + norm_rand(); // random normal mutation
+      break;
+    case UNIFORM:
+      REAL(rExpr)[0] = REAL(rExpr)[0] + (unif_rand() * 2) - 1; // random uniform mutation
+      break;
     }
+    //Rprintf(" NewValue: %f \n", REAL(rExpr)[0]);
+  } else if (!isNull(CADR(rExpr))) { // composite...
+    mutateConstantsRecursive(CADR(rExpr), rDistKind);
+    if (!isNull(CADDR(rExpr))) {
+      mutateConstantsRecursive(CADDR(rExpr), rDistKind); 
+    }
+  }
 }
 
-SEXP mutateConstants(SEXP rExpr) {
+SEXP mutateConstants(SEXP rFunc) { // TODO add parameter for RandomDistributionKind
   GetRNGstate();
-  mutateConstantsRecursive(BODY(rExpr));
+  mutateConstantsRecursive(BODY(rFunc), NORMAL);
   PutRNGstate();
-  return rExpr; // TODO return NULL!
+  recreateSourceAttribute(rFunc);
+  return R_NilValue;
 }
 
-/*
-mutateFunction <- function(func1) {
-  .Call("MutateFunctionWrapper",func1)
-  attr(func1, "source") <- deparse(func1) # TODO do this step in C!
-  func1
-}
-*/
 
 void removeSubtreeRecursive(SEXP rExpr) {
   if(isNumeric(rExpr)) { // numeric constant...
@@ -51,10 +67,9 @@ void removeSubtreeRecursive(SEXP rExpr) {
   }
 }
 
-SEXP removeSubtree(SEXP rExpr) {
-  removeSubtreeRecursive(BODY(rExpr));
-  return rExpr; // TODO return NULL!
+SEXP removeSubtree(SEXP rFunc) {
+  removeSubtreeRecursive(BODY(rFunc));
+  recreateSourceAttribute(rFunc);
+  return R_NilValue;
 }
-
-
 

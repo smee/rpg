@@ -102,6 +102,14 @@ makeTestData <- function(testDataSize)
   data.frame(x1 = 1:testDataSize, x2 = 2 * (1:testDataSize),
              y = 0.3 * sin(1:testDataSize) + cos(0.1 * (1:testDataSize)) + 0.1 * (1:testDataSize) - 2)
 
+benchmarkFitnessFunction <- function(fitnessFunctionFactory = makeRegressionFitnessFunction,
+                                     fitnessCases = 256, times = 100L,
+                                     ind = function(x1, x2) 0.2 * cos(x1 + 0.1) + sin(0.2 * x2) + 0.05 * x1 - 1.5,
+                                     testData = makeTestData(fitnessCases),
+                                     fitnessFunction = fitnessFunctionFactory(y ~ x1 + x2, testData)) {
+  microbenchmark(fitnessFunction(ind), times = times)$time
+}
+
 benchmarkFitnessFunctions <- function(fitnessCases = 256, times = 100L,
                                       ind = function(x1, x2) 0.2 * cos(x1 + 0.1) + sin(0.2 * x2) + 0.05 * x1 - 1.5) {
   testData <- makeTestData(fitnessCases)
@@ -122,7 +130,3 @@ benchmarkFitnessFunctions <- function(fitnessCases = 256, times = 100L,
                    times = times)
   }
 }
-
-
-# test code...
-#print(benchmarkFitnessFunctions())
