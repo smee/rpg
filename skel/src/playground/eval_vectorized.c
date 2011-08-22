@@ -130,7 +130,7 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
   }
 }
 
-void makeEvalVectorizedContext(SEXP rFunction, SEXP actualParameters, struct EvalVectorizedContext *contextOut) {
+void initializeEvalVectorizedContext(SEXP rFunction, SEXP actualParameters, struct EvalVectorizedContext *contextOut) {
   SEXP rFormals, rFormalNames, strFormals;
 
   rFormals = FORMALS(rFunction);
@@ -153,7 +153,7 @@ void makeEvalVectorizedContext(SEXP rFunction, SEXP actualParameters, struct Eva
 
 SEXP evalVectorized(SEXP rFunction, SEXP actualParameters) {
   struct EvalVectorizedContext context;
-  makeEvalVectorizedContext(rFunction, actualParameters, &context);
+  initializeEvalVectorizedContext(rFunction, actualParameters, &context);
 
   double result[context.samples];
   evalVectorizedRecursive(BODY(rFunction), &context, result);
@@ -170,7 +170,7 @@ SEXP evalVectorized(SEXP rFunction, SEXP actualParameters) {
 
 SEXP evalVectorizedRmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues) {
   struct EvalVectorizedContext context;
-  makeEvalVectorizedContext(rFunction, actualParameters, &context);
+  initializeEvalVectorizedContext(rFunction, actualParameters, &context);
 
   double result[context.samples];
   evalVectorizedRecursive(BODY(rFunction), &context, result);
