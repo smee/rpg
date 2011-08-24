@@ -58,29 +58,27 @@ if ((unif_rand() <= TreeParams->probSubtree)&&(currentDepth < TreeParams->maxDep
   }
 }
 
-void getArities(SEXP funcSet, int * arrayOfArities, int len){
-  const char * funcSymbol;
-  for (int i=0; i < len; i++){
-    funcSymbol = CHAR(STRING_ELT(funcSet, i));
-    if (!strcmp(funcSymbol, "+")) {
+void getArities(const char ** arrayOfFunctions, int * arrayOfArities, int nFunctions){
+  for (int i=0; i < nFunctions; i++){
+    if (!strcmp(arrayOfFunctions[i], "+")) {
       arrayOfArities[i] = 2; 
       }
-    else if (!strcmp(funcSymbol, "-")) {
+    else if (!strcmp(arrayOfFunctions[i], "-")) {
       arrayOfArities[i] = 2; 
       }
-    else if (!strcmp(funcSymbol, "/")) {
+    else if (!strcmp(arrayOfFunctions[i], "/")) {
       arrayOfArities[i] = 2;
       }
-    else if (!strcmp(funcSymbol, "*")) {
+    else if (!strcmp(arrayOfFunctions[i], "*")) {
       arrayOfArities[i] = 2;
       }
-    else if (!strcmp(funcSymbol, "sin")) {
+    else if (!strcmp(arrayOfFunctions[i], "sin")) {
       arrayOfArities[i] = 1;
       }
-    else if (!strcmp(funcSymbol, "cos")) {
+    else if (!strcmp(arrayOfFunctions[i], "cos")) {
       arrayOfArities[i] = 1;
       }
-    else if (!strcmp(funcSymbol, "tan")) {
+    else if (!strcmp(arrayOfFunctions[i], "tan")) {
       arrayOfArities[i] = 1;
       }
    }
@@ -96,12 +94,11 @@ SEXP randExprGrow(SEXP funcSet, SEXP InSet, SEXP maxDepth_ext, SEXP constProb_ex
   const char *arrayOfFunctions[TreeParams.nFunctions];
   int arrayOfArities[TreeParams.nFunctions];
   TreeParams.arities = arrayOfArities;
-  getArities(funcSet, TreeParams.arities, TreeParams.nFunctions);
-
-
+  
   for (int i= 0; i < TreeParams.nFunctions; i++) {
     arrayOfFunctions[i]= CHAR(STRING_ELT(funcSet,i));
   }
+  getArities(arrayOfFunctions,TreeParams.arities, TreeParams.nFunctions);
   TreeParams.functions = arrayOfFunctions;
 
     // Variables
