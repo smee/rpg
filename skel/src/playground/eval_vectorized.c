@@ -8,6 +8,7 @@
 #include <math.h>
 
 
+// TODO move structs to eval_vectorized.h
 struct EvalVectorizedContext {
   int arity;
   int samples;
@@ -15,6 +16,21 @@ struct EvalVectorizedContext {
   double *actualParameters;
 };
 
+
+// TODO move this function to environment_tools.c
+static R_INLINE SEXP makeEnvironment(SEXP enclosingEnvironment) { 
+  SEXP env;
+  PROTECT(env = allocSExp(ENVSXP));
+  SET_FRAME(env, R_NilValue);
+  SET_ENCLOS(env, (enclosingEnvironment)? enclosingEnvironment : R_GlobalEnv);
+  SET_HASHTAB(env, R_NilValue);
+  SET_ATTRIB(env, R_NilValue);
+  UNPROTECT(1);
+  return env; 
+}
+
+// TODO move forward declarations to eval_vectorized.h
+static void evalVectorizedFallback(SEXP, struct EvalVectorizedContext *, double *);
 
 void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, double *resultOut) {
   const char *rFuncName;
@@ -122,9 +138,52 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
       evalVectorizedRecursive(CADR(rExpr), context, resultOut);
       return;
     }
-    else error("evalVectorizedRecursive: unsupported composite R expression");
+    else {
+      evalVectorizedFallback(rExpr, context, resultOut);
+      return;
+    }
   }
   else error("evalVectorizedRecursive: unsupported R expression");
+}
+
+// TODO move this function to symbol_tools.c
+static R_INLINE SEXP makeFreshSymbol(int idx, SEXP env) {
+  // TODO this function must create a symbol that is fresh (unbound) in env
+  const int freshStringSize = 8 + (int) log10(idx + 1) + 1;
+  char freshString[freshStringSize];
+  sprintf(freshString, "__arg%d__", idx);
+  return install(freshString);
+}
+
+static R_INLINE void evalVectorizedFallback(SEXP rExpr, struct EvalVectorizedContext *context, double *resultOut) {
+  const int arity = LENGTH(coerceVector(rExpr, VECSXP)) - 1;
+  const int samples = context->samples;
+  //Rprintf("fallback to eval for function of arity %d\n", arity); // TODO
+  int argIdx; // argument index
+  SEXP argItor; // argument iterator
+  SEXP call; // call object, initialized with function name
+  SEXP callRev = lang1(CAR(rExpr)); // call is build in reverse
+  SEXP env = makeEnvironment(R_GlobalEnv); // fresh R environment for holding argument values
+  
+  // evaluate the arguments with evalVectorizedRecursive...
+  for (argItor = CDR(rExpr), argIdx = 0; !isNull(argItor); argItor = CDR(argItor), argIdx++) {
+    SEXP argName = makeFreshSymbol(argIdx, env);
+    SEXP argVal = PROTECT(allocVector(REALSXP, samples));
+    evalVectorizedRecursive(CAR(argItor), context, REAL(argVal));
+    defineVar(argName, argVal, env);
+    callRev = LCONS(argName, callRev); // add argument name to function call object
+  }
+  for (call = R_NilValue; !isNull(callRev); callRev = CDR(callRev)) { // reverse callRev into call
+    call = LCONS(CAR(callRev), call);
+  }
+  
+  // evaluate rExpr via R's evaluator...
+  SEXP result = PROTECT(eval(call, env));
+  for (int i = 0; i < samples; i++) {
+    resultOut[i] = REAL(result)[i];
+  }
+  UNPROTECT(1 + arity);
+  return;
 }
 
 void initializeEvalVectorizedContext(SEXP rFunction, SEXP actualParameters, struct EvalVectorizedContext *contextOut) {
