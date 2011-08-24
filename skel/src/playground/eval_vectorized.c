@@ -180,7 +180,7 @@ static R_INLINE void evalVectorizedFallback(SEXP rExpr, struct EvalVectorizedCon
   // evaluate rExpr via R's evaluator...
   SEXP result = PROTECT(eval(call, env));
   for (int i = 0; i < samples; i++) {
-    resultOut[i] = REAL(result)[i];
+    resultOut[i] = REAL(result)[i]; // TODO this will of course fail miserably for results of other type than real
   }
   UNPROTECT(1 + arity);
   return;
