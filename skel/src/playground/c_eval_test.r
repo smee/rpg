@@ -1,5 +1,5 @@
 ## c_eval_test.r
-##   - Functions for testing the C-based expression evalutors
+##   - Functions for testing the C-based expression evaluators
 ##
 ## RGP - a GP system for R
 ## 2010-2011 Oliver Flasch (oliver.flasch@fh-koeln.de)
