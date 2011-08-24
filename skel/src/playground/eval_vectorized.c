@@ -15,6 +15,7 @@ struct EvalVectorizedContext {
   double *actualParameters;
 };
 
+
 void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, double *resultOut) {
   const char *rFuncName;
   const char *rSymbol;
@@ -43,7 +44,7 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
     }
     error("evalVectorizedRecursive: undefined symbol");
   }
-  else { // composite R expression....
+  else if (isLanguage(rExpr)) { // composite R expression....
     rFuncName = CHAR(PRINTNAME(CAR(rExpr)));
     //Rprintf("COMPOSITE %s\n", rFuncName);
 
@@ -123,6 +124,7 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
     }
     else error("evalVectorizedRecursive: unsupported composite R expression");
   }
+  else error("evalVectorizedRecursive: unsupported R expression");
 }
 
 void initializeEvalVectorizedContext(SEXP rFunction, SEXP actualParameters, struct EvalVectorizedContext *contextOut) {

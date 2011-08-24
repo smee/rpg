@@ -1,8 +1,11 @@
-#include <R.h>
-#include <Rinternals.h>
+/* create_expr_tree.c
+ *
+ */
 
 // test12 <- function(n) { .Call("test_wrapper_full",n) }
 
+#include <R.h>
+#include <Rinternals.h>
 
 
 struct RandExprGrowContext {
@@ -15,6 +18,7 @@ struct RandExprGrowContext {
   double probConstant;
   int maxDepth;
 };
+
 
 SEXP randomNumber() {
   SEXP Rval;
@@ -33,7 +37,7 @@ static int randIndex(int a) {
   return x;
 }
 
-static R_INLINE SEXP randExprGrowRecursive(struct RandExprGrowContext * TreeParams, int currentDepth) {
+SEXP randExprGrowRecursive(struct RandExprGrowContext * TreeParams, int currentDepth) {
 if ((unif_rand() <= TreeParams->probSubtree)&&(currentDepth < TreeParams->maxDepth))
 {
   const int funIdx= randIndex(TreeParams->nFunctions);
@@ -58,7 +62,7 @@ if ((unif_rand() <= TreeParams->probSubtree)&&(currentDepth < TreeParams->maxDep
   }
 }
 
-void getArities(const char ** arrayOfFunctions, int * arrayOfArities, int nFunctions){
+static R_INLINE void getArities(const char ** arrayOfFunctions, int * arrayOfArities, int nFunctions){
   for (int i=0; i < nFunctions; i++){
     if (!strcmp(arrayOfFunctions[i], "+")) {
       arrayOfArities[i] = 2; 
