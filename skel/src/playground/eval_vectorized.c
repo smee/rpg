@@ -16,8 +16,7 @@ struct EvalVectorizedContext {
 };
 
 void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, double *resultOut) {
-  SEXP coercedRExpr;
-  const char *rChar;
+  const char *rFuncName;
   const char *rSymbol;
   const int samples = context->samples;
 
@@ -29,9 +28,7 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
     return;
   }
   else if (isSymbol(rExpr)) { // input variable...
-    PROTECT(coercedRExpr = coerceVector(rExpr, STRSXP));
-    rSymbol = CHAR(STRING_ELT(coercedRExpr, 0));
-    UNPROTECT(1);
+    rSymbol = CHAR(PRINTNAME(rExpr));
     //Rprintf("SYMBOL '%s'\n", rSymbol);
 
     //Rprintf("arity: %i\n", context->arity);
@@ -47,12 +44,10 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
     error("evalVectorizedRecursive: undefined symbol");
   }
   else { // composite R expression....
-    PROTECT(coercedRExpr = coerceVector(CAR(rExpr), STRSXP));
-    rChar = CHAR(STRING_ELT(coercedRExpr, 0));
-    UNPROTECT(1);
-    //Rprintf("COMPOSITE %s\n", rChar);
+    rFuncName = CHAR(PRINTNAME(CAR(rExpr)));
+    //Rprintf("COMPOSITE %s\n", rFuncName);
 
-    if (!strcmp(rChar, "+")) {
+    if (!strcmp(rFuncName, "+")) {
       double lhs[samples], rhs[samples];
       evalVectorizedRecursive(CADR(rExpr), context, lhs);
       evalVectorizedRecursive(CADDR(rExpr), context, rhs);
@@ -61,7 +56,7 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
       }
       return;
     }
-    else if (!strcmp(rChar, "-")) {
+    else if (!strcmp(rFuncName, "-")) {
       if (!isNull(CADDR(rExpr))) { // support for "handmade" (parsed) functions, GP created function dont need this exception
         double lhs[samples], rhs[samples];
         evalVectorizedRecursive(CADR(rExpr), context, lhs);
@@ -78,7 +73,7 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
       }
       return;
     }
-    else if (!strcmp(rChar, "*")) {
+    else if (!strcmp(rFuncName, "*")) {
       double lhs[samples], rhs[samples];
       evalVectorizedRecursive(CADR(rExpr), context, lhs);
       evalVectorizedRecursive(CADDR(rExpr), context, rhs);
@@ -87,7 +82,7 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
       }
       return;
     }
-    else if (!strcmp(rChar, "/")) {
+    else if (!strcmp(rFuncName, "/")) {
       double lhs[samples], rhs[samples];
       evalVectorizedRecursive(CADR(rExpr), context, lhs);
       evalVectorizedRecursive(CADDR(rExpr), context, rhs);
@@ -98,7 +93,7 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
       }
       return;
     }
-    else if (!strcmp(rChar, "sin")) {
+    else if (!strcmp(rFuncName, "sin")) {
       double lhs[samples];
       evalVectorizedRecursive(CADR(rExpr), context, lhs);
       for (int i = 0; i < samples; i++) {
@@ -106,7 +101,7 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
       }
       return;
     }
-    else if (!strcmp(rChar, "cos")) {
+    else if (!strcmp(rFuncName, "cos")) {
       double lhs[samples];
       evalVectorizedRecursive(CADR(rExpr), context, lhs);
       for (int i = 0; i < samples; i++) {
@@ -114,7 +109,7 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
       }
       return;
     }
-    else if (!strcmp(rChar, "tan")) {
+    else if (!strcmp(rFuncName, "tan")) {
       double lhs[samples];
       evalVectorizedRecursive(CADR(rExpr), context, lhs);
       for (int i = 0; i < samples; i++) {
@@ -122,7 +117,7 @@ void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, 
       }
       return;
     }
-    else if (!strcmp(rChar, "(")) { // just skip parenthesis...
+    else if (!strcmp(rFuncName, "(")) { // just skip parenthesis...
       evalVectorizedRecursive(CADR(rExpr), context, resultOut);
       return;
     }
