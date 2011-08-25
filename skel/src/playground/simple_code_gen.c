@@ -55,16 +55,16 @@ static R_INLINE SEXP makeX86Code(X86CodeBuffer *x86CodeBuffer) {
   return x86Code;
 }
 
-SEXP simpleX86CodeGen() {
+SEXP simpleX86CodeGen(SEXP doubleConstant) {
   // allocate a readable and executable memory buffer...
-  size_t bufSize = 1000;
+  size_t bufSize = 6;
   X86CodeBuffer *code = makeX86CodeBuffer(bufSize);
   
   // directly generate x86 code into the memory buffer...
-  code->buf[0] = 0xb8;
-  uint32_t u32 = 42;
-  memcpy(code->buf + 1, &u32, 4);
-  code->buf[5] = 0xc3;
+  code->buf[0] = 0xb8; // emit immediate load into EAX
+  uint32_t u32 = (uint32_t) REAL(doubleConstant)[0]; // extract constant and cast to 32 bit unsigned int
+  memcpy(code->buf + 1, &u32, 4); // emit immediate constant
+  code->buf[5] = 0xc3; // emit return
   
   // write-protect the memory buffer...
   writeProtectX86CodeBuffer(code);

@@ -10,6 +10,6 @@
 dyn.load("simple_code_gen.so")
 
 
-simpleX86CodeGen <- function() .Call("simpleX86CodeGen")
+simpleX86CodeGen <- function(doubleConstant) .Call("simpleX86CodeGen", doubleConstant)
 
 executeX86Code <- function(x86Code) .Call("executeX86Code", x86Code)
