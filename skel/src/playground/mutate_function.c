@@ -2,8 +2,7 @@
  *
  */
 
-#include <R.h>
-#include <Rinternals.h>
+#include "create_expr_tree.h"
 #include <string.h>
 #include <math.h>
 
@@ -12,6 +11,14 @@ enum RandomDistributionKind {
   NORMAL,
   UNIFORM
 };
+
+static int rand_number(int a)
+{
+int x = a * unif_rand();
+if(x==a) 
+{return x;}
+return x + 1;
+}
 
 
 static R_INLINE void recreateSourceAttribute(SEXP rFunc) {
@@ -47,29 +54,65 @@ SEXP mutateConstants(SEXP rFunc) { // TODO add parameter for RandomDistributionK
   recreateSourceAttribute(rFunc);
   return R_NilValue;
 }
-
-
-void removeSubtreeRecursive(SEXP rExpr) {
-  if(isNumeric(rExpr)) { // numeric constant...
-    return; // nothing to do
-  } else if (isLanguage(rExpr)) { // composite...
-    for (SEXP child = CDR(rExpr); !isNull(child); child = CDR(child)) {
-      if (isLanguage(CAR(child))) {
-        Rprintf("L\n");
-        SEXP replacementConstant = allocVector(REALSXP, 1);
-        REAL(replacementConstant)[0] = 42.0;
-        SETCAR(child, replacementConstant); // TODO de-allocate memory first?
-      } else {
-        Rprintf("C\n");
-      }
-    }
+void countSubtrees(SEXP rExpr, int* counter) { // count matching Subtrees for random selection
+if(isNumeric(rExpr)) { // numeric constant...
     return;
+  } else if(isSymbol(rExpr)) { // 
+    return; 
+  } else if (isLanguage(rExpr)) {// composite...
+    for (SEXP child = CDR(rExpr); !isNull(child); child = CDR(child)) {
+      if (isLanguage(CAR(child))){
+        if (!isLanguage(CADR(CAR(child))) && !isLanguage(CADDR(CAR(child)))) {
+	  *counter = *counter + 1;
+          }
+        }
+      }
+    countSubtrees(CADR(rExpr),counter);
+    countSubtrees(CADDR(rExpr),counter);
   }
 }
 
+void removeSubtreeRecursive(SEXP rExpr, int subtreeNumber, int i) {
+double probConstant= 0.2; //TODO probconstant
+if(isNumeric(rExpr)) { // numeric constant...
+    return; // nothing to do
+  } else if(isSymbol(rExpr)) { // 
+    return; // nothing to do
+  } else if (isLanguage(rExpr)) {// composite...
+    for (SEXP child = CDR(rExpr); !isNull(child); child = CDR(child)) {
+      if (isLanguage(CAR(child))){
+        if (!isLanguage(CADR(CAR(child))) && !isLanguage(CADDR(CAR(child)))) {
+          i++;
+            if(i == subtreeNumber) { // selected subtree is found
+              if (unif_rand() <= probConstant) { 
+                SEXP replacement = allocVector(REALSXP, 1);
+                REAL(replacement)[0] = (unif_rand() * 2) - 1;
+              }
+              SEXP replacement= install("x"); //TODO different variables
+              SETCAR(child, replacement);  
+            }
+          }
+        }
+      }
+    removeSubtreeRecursive(CADR(rExpr),subtreeNumber, i);
+    removeSubtreeRecursive(CADDR(rExpr),subtreeNumber, i);
+  }
+}
+
+
 SEXP removeSubtree(SEXP rFunc) {
-  removeSubtreeRecursive(BODY(rFunc));
+  int rnumber,counter= 0;
+  GetRNGstate();
+  countSubtrees(BODY(rFunc), &counter);
+  rnumber= rand_number(counter); // get random subtree-number
+  if(counter >= 1) {
+    removeSubtreeRecursive(BODY(rFunc),rnumber,0);
+    }
+  PutRNGstate();
   recreateSourceAttribute(rFunc);
   return R_NilValue;
 }
+
+
+
 

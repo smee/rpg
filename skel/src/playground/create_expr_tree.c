@@ -1,5 +1,4 @@
-#include <R.h>
-#include <Rinternals.h>
+#include "create_expr_tree.h"
 
 // test12 <- function(n) { .Call("test_wrapper_full",n) }
 
