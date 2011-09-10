@@ -211,15 +211,10 @@ SEXP evalVectorized(SEXP rFunction, SEXP actualParameters) {
   struct EvalVectorizedContext context;
   initializeEvalVectorizedContext(rFunction, actualParameters, &context);
 
-  double result[context.samples];
-  evalVectorizedRecursive(BODY(rFunction), &context, result);
-
   SEXP rResult;
-  PROTECT(rResult = allocVector(REALSXP, context.samples));
-  for (int i= 0; i < context.samples; i++) {
-    //Rprintf("%f\n", result[i]);
-    REAL(rResult)[i] = result[i];
-  }
+  PROTECT(rResult = allocVector(REALSXP, context.samples));  
+  double *result = REAL(rResult);
+  evalVectorizedRecursive(BODY(rFunction), &context, result);
   UNPROTECT(1);
   return rResult;
 }
