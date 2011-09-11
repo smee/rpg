@@ -164,6 +164,7 @@ static R_INLINE R_len_t function_argument_index(SEXP s_arg,
         }
     }
     error("evalVectorizedRecursive: undefined symbol");
+    return -1; /* Make compiler happy. */
 }
 
 static R_INLINE void evaluate_language_expression(SEXP s_expr,

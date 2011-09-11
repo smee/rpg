@@ -118,7 +118,7 @@ void evalVectorizedRecursive(SEXP rExpr,
 void initializeEvalVectorizedContext(SEXP rFunction, 
                                      SEXP actualParameters, 
                                      struct EvalVectorizedContext *contextOut) {
-    SEXP rFormals, rFormalNames, strFormals;
+    SEXP rFormals, rFormalNames;
     
     rFormals = FORMALS(rFunction);
     int arity = LENGTH(coerceVector(rFormals, VECSXP));
@@ -157,7 +157,7 @@ SEXP evalVectorizedRmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues
   evalVectorizedRecursive(BODY(rFunction), &context, result);
 
   // calculate RMSE...
-  double diff, total, rmse;
+  double diff, total = 0.0, rmse;
   targetValues = coerceVector(targetValues, REALSXP);
 
   for (int i = 0; i < context.samples; i++) {
