@@ -42,7 +42,7 @@ define(`_DEFINITION', $2)dnl
             for (R_len_t i = 0; i < samples; ++i) 
                 result[i] = _DEFINITION(value[i]);
         } else if (isLanguage(s_arg)) {
-            evalVectorizedRecursive(s_arg, context, result);
+            evaluate_language_expression(s_arg, context, result);
             for (R_len_t i = 0; i < samples; ++i) 
                 result[i] = _DEFINITION(result[i]);
         } else {
@@ -87,7 +87,7 @@ define(`_DEFINITION', $2)dnl
                 result[i] = _DEFINITION(value1, value2[i]);
         } else if (isNumeric(s_arg1) && isLanguage(s_arg2)) {
             const double value1 = REAL(s_arg1)[0];
-            evalVectorizedRecursive(s_arg2, context, result);
+            evaluate_language_expression(s_arg2, context, result);
             for (R_len_t i = 0; i < samples; ++i) 
                 result[i] = _DEFINITION(value1, result[i]);
         } else if (isSymbol(s_arg1) && isNumeric(s_arg2)) {
@@ -113,17 +113,17 @@ dnl Explicit unrolling here to facilitate vectorization:
         } else if (isSymbol(s_arg1) && isLanguage(s_arg2)) {
             const R_len_t index1 = function_argument_index(s_arg1, context);
             const double *value1 = context->actualParameters + (index1 * samples);
-            evalVectorizedRecursive(s_arg2, context, result);
+            evaluate_language_expression(s_arg2, context, result);
 
             for (R_len_t i = 0; i < samples; ++i) 
                 result[i] = _DEFINITION(value1[i], result[i]);
         } else if (isLanguage(s_arg1) && isNumeric(s_arg2)) {
-            evalVectorizedRecursive(s_arg1, context, result);
+            evaluate_language_expression(s_arg1, context, result);
             const double value2 = REAL(s_arg2)[0];
             for (R_len_t i = 0; i < samples; ++i) 
                 result[i] = _DEFINITION(result[i], value2);
         } else if (isLanguage(s_arg1) && isSymbol(s_arg2)) {
-            evalVectorizedRecursive(s_arg1, context, result);
+            evaluate_language_expression(s_arg1, context, result);
             const R_len_t index2 = function_argument_index(s_arg2, context);
             const double *value2 = context->actualParameters + (index2 * samples);
             for (R_len_t i = 0; i < samples; ++i) 
@@ -135,8 +135,8 @@ dnl Explicit unrolling here to facilitate vectorization:
              * crash R.
              */
             double *tmp = malloc(sizeof(double) * samples);
-            evalVectorizedRecursive(s_arg1, context, result);
-            evalVectorizedRecursive(s_arg2, context, tmp);
+            evaluate_language_expression(s_arg1, context, result);
+            evaluate_language_expression(s_arg2, context, tmp);
             for (int i = 0; i < samples; i++) 
                 result[i] = _DEFINITION(result[i], tmp[i]);
             free(tmp);
