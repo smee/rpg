@@ -17,10 +17,10 @@ c_eval_orig <- c_function("evalVectorized", PACKAGE="eval_vectorized_orig")
 fun <- function(x1, x2)  
   (x1 + x2) * 0.2 * cos(x1 + 0.1) + sin(0.2 * x2) + 0.05 * x1 - 1.5 + cos(x1) * sin(2.0)
 
-run_benchmark <- function(name, fun, size=10**(2:5), nruns=250) {
+run_benchmark <- function(name, fun, sizes=10**(1:5), nruns=250) {
   ## Run benchmark for differently sized arguments:
   result <- NULL
-  for (size in c(100, 1000, 10000, 50000)) {
+  for (size in sizes) {
     input <- lapply(formals(fun), function(x) rnorm(size))
     matrix_input <- do.call(cbind, input)
 
@@ -69,9 +69,9 @@ tmp <- ddply(result, .(fun, expr, size), summarize, median_runtime=median(time))
 tmp <- ddply(tmp, .(fun, size), transform,
              median_speedup=1/(median_runtime / max(median_runtime)))
 tbl <- dcast(tmp, fun + size ~ expr, value_var="median_speedup")
-tbl$c_to_r <- tbl$c / tbl$r
-o <- order(-tbl$c_to_r)
 
 cat("Median relative speedup:\n")
-print(tbl[o, ])
-print(mean(tbl$c_to_r))
+print(tbl)
+
+message("Improvement over R     : ", mean(tbl$c / tbl$r))
+message("Improvement over old C : ", mean(tbl$c / tbl$c_orig, na.rm=TRUE))
