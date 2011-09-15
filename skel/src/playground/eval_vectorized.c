@@ -38,11 +38,11 @@ static R_INLINE SEXP makeFreshSymbol(int idx, SEXP env) {
 
 void evalVectorizedRecursive(SEXP rExpr, 
                              struct EvalVectorizedContext *context, 
-                             double *resultOut);
+                             double *out_result);
 
 static R_INLINE void evalVectorizedFallback(SEXP rExpr, 
                                             struct EvalVectorizedContext *context, 
-                                            double *resultOut) {
+                                            double *out_result) {
   const int arity = LENGTH(coerceVector(rExpr, VECSXP)) - 1;
   const int samples = context->samples;
   //Rprintf("fallback to eval for function of arity %d\n", arity); // TODO
@@ -69,7 +69,7 @@ static R_INLINE void evalVectorizedFallback(SEXP rExpr,
   for (int i = 0; i < samples; i++) {
       /* TODO this will of course fail miserably for results of other
        * type than real */
-      resultOut[i] = REAL(result)[i]; 
+      out_result[i] = REAL(result)[i]; 
   }
   UNPROTECT(1 + arity);
   return;
@@ -79,12 +79,19 @@ static R_INLINE void evalVectorizedFallback(SEXP rExpr,
 
 void evalVectorizedRecursive(SEXP rExpr, 
                              struct EvalVectorizedContext *context, 
-                             double *resultOut) {
+                             double *out_result) {
     const int samples = context->samples;
     
     /* Composite R expression: */
     if (isLanguage(rExpr)) {
-        evaluate_language_expression(rExpr, context, resultOut);
+        int out_is_scalar_result;
+        evaluate_language_expression(rExpr, context, out_result, &out_is_scalar_result);
+        if (out_is_scalar_result) {
+          /* expand scalar result (to fill up the entire result vector) */
+          const double value = out_result[0];
+          for (R_len_t i = 0; i < samples; ++i) 
+              out_result[i] = value;
+        }
     } else  {
         /* The following two case should only be exercised if the
          * top-level rExpr is a Symbol or
@@ -95,7 +102,7 @@ void evalVectorizedRecursive(SEXP rExpr,
         if (isNumeric(rExpr)) {
             const double value = REAL(rExpr)[0];
             for (int i = 0; i < samples; i++) 
-                resultOut[i] = value;
+                out_result[i] = value;
             return;
         } else if (isSymbol(rExpr)) {
             const char *rSymbol = CHAR(PRINTNAME(rExpr));
@@ -104,7 +111,7 @@ void evalVectorizedRecursive(SEXP rExpr,
                 if (!strcmp(rSymbol, CHAR(STRING_ELT(context->formalParameters, i)))) {
                     const R_len_t offset = i * samples;
                     for (int j = 0; j < samples; j++) {
-                        resultOut[j] = context->actualParameters[offset + j];
+                        out_result[j] = context->actualParameters[offset + j];
                     }
                     return;
                 }

@@ -11,4 +11,6 @@ git show $BASE_REVISION:skel/src/playground/eval_vectorized.c > eval_vectorized_
 R CMD SHLIB eval_vectorized.c
 R CMD SHLIB eval_vectorized_orig.c
 
+echo "Benchmarking eval_vectorized.so. This may take several minutes..."
 Rscript benchmark_eval.R
+echo "...Benchmark DONE."
