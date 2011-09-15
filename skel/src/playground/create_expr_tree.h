@@ -5,8 +5,32 @@
 #include <R.h>
 #include <Rinternals.h>
 
+struct RandExprGrowContext {
+  const char ** functions;
+  int * arities;
+  int nFunctions;
+  double probSubtree;
+  const char ** variables;
+  int nVariables;
+  double constProb;
+  int maxDepth;
+};
+
+
 SEXP randExprGrow(SEXP, SEXP, SEXP, SEXP, SEXP);
 
-#endif /* MYHEADER_H */
+void getArities(const char **, int *, int);
+
+int randIndex(int);
+
+SEXP randomNumber();
+
+SEXP randExprGrowRecursive(struct RandExprGrowContext *, int);
+
+
+
+
+
+#endif 
 
 

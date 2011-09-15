@@ -245,6 +245,105 @@ SEXP deleteInsertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ex
 
 
 
+// Crossover functions
+
+
+void selectSubtreeRecursive(SEXP rExpr, SEXP * returnExpr, int subtree, int * counter) {
+if(isNumeric(rExpr)) { // numeric constant...
+    return; // nothing to do
+  } else if(isSymbol(rExpr)) { // 
+    return; // nothing to do
+  } else if (isLanguage(rExpr)) {// composite...
+    for (SEXP child = CDR(rExpr); !isNull(child); child = CDR(child)) {
+      if (isLanguage(CAR(child))){
+        if (!isLanguage(CADR(CAR(child))) && !isLanguage(CADDR(CAR(child))) ) {
+          *counter= *counter + 1;
+            if(*counter == subtree) { // selected subtree is found
+               *returnExpr= CAR(child); 
+            }
+          }
+        }
+      }
+    selectSubtreeRecursive(CADR(rExpr), returnExpr, subtree, counter);
+    if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+      selectSubtreeRecursive(CADDR(rExpr),returnExpr, subtree, counter);
+    }
+  }
+}
+
+void crossSubtreeRecursive(SEXP rExpr, SEXP rExpr2, int subtree, int * counter) {
+if(isNumeric(rExpr)) { // numeric constant...
+    return; // nothing to do
+  } else if(isSymbol(rExpr)) { // 
+    return; // nothing to do
+  } else if (isLanguage(rExpr)) {// composite...
+    for (SEXP child = CDR(rExpr); !isNull(child); child = CDR(child)) {
+      if (isLanguage(CAR(child))){
+        if (!isLanguage(CADR(CAR(child))) && !isLanguage(CADDR(CAR(child))) ) {
+          *counter= *counter + 1;
+            if(*counter == subtree) { // selected subtree is found
+               SETCAR(child, rExpr2);  
+            }
+          }
+        }
+      }
+    crossSubtreeRecursive(CADR(rExpr),rExpr2 , subtree, counter);
+    if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+      crossSubtreeRecursive(CADDR(rExpr), rExpr2 , subtree, counter);
+    }
+  }
+}
+
+void selectInsertSubtreeRecursive(SEXP rExpr, SEXP rExpr2,  SEXP * returnExpr,  int subtree, int * counter) {
+if(isNumeric(rExpr)) { // numeric constant...
+    return; // nothing to do
+  } else if(isSymbol(rExpr)) { // 
+    return; // nothing to do
+  } else if (isLanguage(rExpr)) {// composite...
+    for (SEXP child = CDR(rExpr); !isNull(child); child = CDR(child)) {
+      if (isLanguage(CAR(child))){
+        if (!isLanguage(CADR(CAR(child))) && !isLanguage(CADDR(CAR(child))) ) {
+          *counter= *counter + 1;
+            if(*counter == subtree) { // selected subtree is found
+               *returnExpr= CAR(child); 
+               SETCAR(child, rExpr2); 
+            }
+          }
+        }
+      }
+    selectInsertSubtreeRecursive(CADR(rExpr), rExpr2, returnExpr, subtree, counter);
+    if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+      selectInsertSubtreeRecursive(CADDR(rExpr), rExpr2, returnExpr, subtree, counter);
+    }
+  }
+}
+
+SEXP crossover(SEXP rFunc1, SEXP rFunc2) {
+
+int subtreeFunc1= 0, subtreeFunc2= 0, rSubtree1= 0, rSubtree2= 0, counter= 0, counter2= 0, counter3 = 0;
+countSubtrees(BODY(rFunc1), &subtreeFunc1);
+countSubtrees(BODY(rFunc2), &subtreeFunc2);
+  if(subtreeFunc1 >= 1 && subtreeFunc2 >= 1 ) {
+    GetRNGstate();
+    rSubtree1= rand_number(subtreeFunc1); // get random subtree-number
+    rSubtree2= rand_number(subtreeFunc2);
+    PutRNGstate(); 
+    SEXP exprPointer1;
+    SEXP exprPointer2;
+    selectSubtreeRecursive(BODY(rFunc1), &exprPointer1, rSubtree1, &counter);
+    selectInsertSubtreeRecursive(BODY(rFunc2), exprPointer1,  &exprPointer2,  rSubtree2, &counter2);
+    crossSubtreeRecursive(BODY(rFunc1), exprPointer2, rSubtree1, &counter3);
+    recreateSourceAttribute(rFunc1);
+    recreateSourceAttribute(rFunc2);
+    }
+return R_NilValue;
+}
+ 
+ 
+
+
+
+
 
 
 
