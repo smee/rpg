@@ -7,15 +7,13 @@
 #include <string.h>
 #include <math.h>
 
-
 // TODO move structs to eval_vectorized.h
 struct EvalVectorizedContext {
-  int arity;
-  int samples;
-  SEXP formalParameters;
-  double *actualParameters;
+    int arity;
+    R_len_t samples;
+    SEXP formalParameters;
+    double *actualParameters;
 };
-
 
 // TODO move this function to environment_tools.c
 static R_INLINE SEXP makeEnvironment(SEXP enclosingEnvironment) { 
@@ -29,123 +27,6 @@ static R_INLINE SEXP makeEnvironment(SEXP enclosingEnvironment) {
   return env; 
 }
 
-// TODO move forward declarations to eval_vectorized.h
-static void evalVectorizedFallback(SEXP, struct EvalVectorizedContext *, double *);
-
-void evalVectorizedRecursive(SEXP rExpr, struct EvalVectorizedContext *context, double *resultOut) {
-  const char *rFuncName;
-  const char *rSymbol;
-  const int samples = context->samples;
-
-  // recurse along the structure of rExpr and evaluate...
-  if (isNumeric(rExpr)) { // numeric constant...
-    for (int i = 0; i < samples; i++) { // return a vector "c(a, a, ..., a)" where "a" is the constant
-      resultOut[i] = REAL(rExpr)[0];
-    }
-    return;
-  }
-  else if (isSymbol(rExpr)) { // input variable...
-    rSymbol = CHAR(PRINTNAME(rExpr));
-    //Rprintf("SYMBOL '%s'\n", rSymbol);
-
-    //Rprintf("arity: %i\n", context->arity);
-    //for (int i = 0; i < context->arity; i++) Rprintf("formal %i: %s\n", i, CHAR(STRING_ELT(context->formalParameters, i)));
-    for (int i = 0; i < context->arity; i++) { // find matching actualParameter vector and return it...
-      if (!strcmp(rSymbol, CHAR(STRING_ELT(context->formalParameters, i)))) {
-        for (int j = 0; j < samples; j++) {
-          resultOut[j] = context->actualParameters[i * samples + j];
-        }
-        return;
-      }
-    }
-    error("evalVectorizedRecursive: undefined symbol");
-  }
-  else if (isLanguage(rExpr)) { // composite R expression....
-    rFuncName = CHAR(PRINTNAME(CAR(rExpr)));
-    //Rprintf("COMPOSITE %s\n", rFuncName);
-
-    if (!strcmp(rFuncName, "+")) {
-      double lhs[samples], rhs[samples];
-      evalVectorizedRecursive(CADR(rExpr), context, lhs);
-      evalVectorizedRecursive(CADDR(rExpr), context, rhs);
-      for (int i = 0; i < samples; i++) {
-        resultOut[i] = lhs[i] + rhs[i];
-      }
-      return;
-    }
-    else if (!strcmp(rFuncName, "-")) {
-      if (!isNull(CADDR(rExpr))) { // support for "handmade" (parsed) functions, GP created function dont need this exception
-        double lhs[samples], rhs[samples];
-        evalVectorizedRecursive(CADR(rExpr), context, lhs);
-        evalVectorizedRecursive(CADDR(rExpr), context, rhs);
-        for (int i = 0; i < samples; i++) {
-          resultOut[i] = lhs[i] - rhs[i];
-        } 
-      } else {
-        double lhs[samples];
-        evalVectorizedRecursive(CADR(rExpr), context, lhs);
-        for (int i = 0; i < samples; i++) {
-          resultOut[i] = -lhs[i];
-        }
-      }
-      return;
-    }
-    else if (!strcmp(rFuncName, "*")) {
-      double lhs[samples], rhs[samples];
-      evalVectorizedRecursive(CADR(rExpr), context, lhs);
-      evalVectorizedRecursive(CADDR(rExpr), context, rhs);
-      for (int i = 0; i < samples; i++) {
-        resultOut[i] = lhs[i] * rhs[i];
-      }
-      return;
-    }
-    else if (!strcmp(rFuncName, "/")) {
-      double lhs[samples], rhs[samples];
-      evalVectorizedRecursive(CADR(rExpr), context, lhs);
-      evalVectorizedRecursive(CADDR(rExpr), context, rhs);
-      for (int i = 0; i < samples; i++) {
-        if (rhs[i]) {
-          resultOut[i] =  lhs[i] / rhs[i];
-        } else error("evalVectorizedRecursive: division by zero");
-      }
-      return;
-    }
-    else if (!strcmp(rFuncName, "sin")) {
-      double lhs[samples];
-      evalVectorizedRecursive(CADR(rExpr), context, lhs);
-      for (int i = 0; i < samples; i++) {
-        resultOut[i] = sin(lhs[i]);
-      }
-      return;
-    }
-    else if (!strcmp(rFuncName, "cos")) {
-      double lhs[samples];
-      evalVectorizedRecursive(CADR(rExpr), context, lhs);
-      for (int i = 0; i < samples; i++) {
-        resultOut[i] = cos(lhs[i]);
-      }
-      return;
-    }
-    else if (!strcmp(rFuncName, "tan")) {
-      double lhs[samples];
-      evalVectorizedRecursive(CADR(rExpr), context, lhs);
-      for (int i = 0; i < samples; i++) {
-        resultOut[i] = tan(lhs[i]);
-      }
-      return;
-    }
-    else if (!strcmp(rFuncName, "(")) { // just skip parenthesis...
-      evalVectorizedRecursive(CADR(rExpr), context, resultOut);
-      return;
-    }
-    else {
-      evalVectorizedFallback(rExpr, context, resultOut);
-      return;
-    }
-  }
-  else error("evalVectorizedRecursive: unsupported R expression");
-}
-
 // TODO move this function to symbol_tools.c
 static R_INLINE SEXP makeFreshSymbol(int idx, SEXP env) {
   // TODO this function must create a symbol that is fresh (unbound) in env
@@ -155,7 +36,13 @@ static R_INLINE SEXP makeFreshSymbol(int idx, SEXP env) {
   return install(freshString);
 }
 
-static R_INLINE void evalVectorizedFallback(SEXP rExpr, struct EvalVectorizedContext *context, double *resultOut) {
+void evalVectorizedRecursive(SEXP rExpr, 
+                             struct EvalVectorizedContext *context, 
+                             double *resultOut);
+
+static R_INLINE void evalVectorizedFallback(SEXP rExpr, 
+                                            struct EvalVectorizedContext *context, 
+                                            double *resultOut) {
   const int arity = LENGTH(coerceVector(rExpr, VECSXP)) - 1;
   const int samples = context->samples;
   //Rprintf("fallback to eval for function of arity %d\n", arity); // TODO
@@ -167,44 +54,87 @@ static R_INLINE void evalVectorizedFallback(SEXP rExpr, struct EvalVectorizedCon
   
   // evaluate the arguments with evalVectorizedRecursive...
   for (argItor = CDR(rExpr), argIdx = 0; !isNull(argItor); argItor = CDR(argItor), argIdx++) {
-    SEXP argName = makeFreshSymbol(argIdx, env);
-    SEXP argVal = PROTECT(allocVector(REALSXP, samples));
-    evalVectorizedRecursive(CAR(argItor), context, REAL(argVal));
-    defineVar(argName, argVal, env);
-    callRev = LCONS(argName, callRev); // add argument name to function call object
+      SEXP argName = makeFreshSymbol(argIdx, env);
+      SEXP argVal = PROTECT(allocVector(REALSXP, samples));
+      evalVectorizedRecursive(CAR(argItor), context, REAL(argVal));
+      defineVar(argName, argVal, env);
+      callRev = LCONS(argName, callRev); // add argument name to function call object
   }
   for (call = R_NilValue; !isNull(callRev); callRev = CDR(callRev)) { // reverse callRev into call
-    call = LCONS(CAR(callRev), call);
+      call = LCONS(CAR(callRev), call);
   }
   
   // evaluate rExpr via R's evaluator...
   SEXP result = PROTECT(eval(call, env));
   for (int i = 0; i < samples; i++) {
-    resultOut[i] = REAL(result)[i]; // TODO this will of course fail miserably for results of other type than real
+      /* TODO this will of course fail miserably for results of other
+       * type than real */
+      resultOut[i] = REAL(result)[i]; 
   }
   UNPROTECT(1 + arity);
   return;
 }
 
-void initializeEvalVectorizedContext(SEXP rFunction, SEXP actualParameters, struct EvalVectorizedContext *contextOut) {
-  SEXP rFormals, rFormalNames, strFormals;
+#include "evaluate_language_expression.h"
 
-  rFormals = FORMALS(rFunction);
-  int arity = LENGTH(coerceVector(rFormals, VECSXP));
-  contextOut->arity = arity;
+void evalVectorizedRecursive(SEXP rExpr, 
+                             struct EvalVectorizedContext *context, 
+                             double *resultOut) {
+    const int samples = context->samples;
+    
+    /* Composite R expression: */
+    if (isLanguage(rExpr)) {
+        evaluate_language_expression(rExpr, context, resultOut);
+    } else  {
+        /* The following two case should only be exercised if the
+         * top-level rExpr is a Symbol or
+         * Numeric. evaluate_language_expression() internally avoids
+         * dispatching on these two types. Instead they are special
+         * cased for efficiency.
+         */
+        if (isNumeric(rExpr)) {
+            const double value = REAL(rExpr)[0];
+            for (int i = 0; i < samples; i++) 
+                resultOut[i] = value;
+            return;
+        } else if (isSymbol(rExpr)) {
+            const char *rSymbol = CHAR(PRINTNAME(rExpr));
+            /* find matching actualParameter vector and return it... */
+            for (int i = 0; i < context->arity; i++) {
+                if (!strcmp(rSymbol, CHAR(STRING_ELT(context->formalParameters, i)))) {
+                    const R_len_t offset = i * samples;
+                    for (int j = 0; j < samples; j++) {
+                        resultOut[j] = context->actualParameters[offset + j];
+                    }
+                    return;
+                }
+            }
+            error("evalVectorizedRecursive: undefined symbol '%s'.", rSymbol);
+        } else
+            error("evalVectorizedRecursive: unsupported R expression");
+    }
+}
 
-  rFormalNames = getAttrib(rFormals, R_NamesSymbol);
-  contextOut->formalParameters = rFormalNames;
-
-  if (arity) {
-    contextOut->samples = LENGTH(actualParameters) / arity;
-  } else {
-    contextOut->samples = 1;
-  }
-  //Rprintf("samples: %i \n", contextOut->samples);
-
-  actualParameters = coerceVector(actualParameters, REALSXP);
-  contextOut->actualParameters = REAL(actualParameters);
+void initializeEvalVectorizedContext(SEXP rFunction, 
+                                     SEXP actualParameters, 
+                                     struct EvalVectorizedContext *contextOut) {
+    SEXP rFormals, rFormalNames;
+    
+    rFormals = FORMALS(rFunction);
+    int arity = LENGTH(coerceVector(rFormals, VECSXP));
+    contextOut->arity = arity;
+    
+    rFormalNames = getAttrib(rFormals, R_NamesSymbol);
+    contextOut->formalParameters = rFormalNames;
+    
+    if (arity) {
+        contextOut->samples = LENGTH(actualParameters) / arity;
+    } else {
+        contextOut->samples = 1;
+    }
+    
+    actualParameters = coerceVector(actualParameters, REALSXP);
+    contextOut->actualParameters = REAL(actualParameters);
 }
 
 SEXP evalVectorized(SEXP rFunction, SEXP actualParameters) {
@@ -227,7 +157,7 @@ SEXP evalVectorizedRmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues
   evalVectorizedRecursive(BODY(rFunction), &context, result);
 
   // calculate RMSE...
-  double diff, total, rmse;
+  double diff, total = 0.0, rmse;
   targetValues = coerceVector(targetValues, REALSXP);
 
   for (int i = 0; i < context.samples; i++) {

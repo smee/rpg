@@ -10,3 +10,16 @@
 
 # Ignore Emacs backup files
 *~
+
+# Ignore object files
+*.o
+*.so
+
+# TeX temporaries
+doc/**/*.log
+doc/**/*.aux
+doc/**/*.toc
+doc/**/*.out
+
+# Generated files:
+skel/src/playground/evaluate_language_expression.h
