@@ -4,7 +4,7 @@
 BASE_REVISION=7fbb1174760d7a2824be9bc04df090895be90d78 # vectorized evaluator without optimizations
 
 rm -f eval_vectorized.o eval_vectorized.so
-m4 ../../../codegen/evaluate_language_expression.m4 > evaluate_language_expression.h
+cd ../../..; make m4; cd skel/src/playground
 
 git show $BASE_REVISION:skel/src/playground/eval_vectorized.c > eval_vectorized_orig.c
 

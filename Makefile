@@ -34,12 +34,12 @@ check: clean roxygen
 	R CMD check pkg && rm -fR pkg.Rcheck
 	echo "DONE."
 
-m4: skel
+m4:
 	echo "Generating code from m4 macros..."
 	m4 codegen/evaluate_language_expression.m4 > skel/src/playground/evaluate_language_expression.h
 	echo "DONE."
 
-roxygen: skel
+roxygen:
 	echo "Roxygenizing package..."
 	./roxygenize > roxygen.log 2>&1
 	./roxygen-fixup >> roxygen.log 2>&1

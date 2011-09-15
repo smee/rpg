@@ -13,7 +13,6 @@ dnl ---------------------------------------------------- language SEXP evaluator
  * !!! Do not modify this generated code, as all changes will be overwritten.
  * !!! START OF GENERATED CODE
  */
-dnl
 define(`matches',`dnl
 ifelse(len($1), 1,dnl
 (arity == $2) && (symbol_len == 1) && symbol[0] == "$1"[0],dnl
@@ -35,7 +34,8 @@ dnl evaluation of _DEFINITION in that case.
 define(`unary_function',`dnl
 define(`_SYMBOL', `$1')dnl
 define(`_DEFINITION', `$2')dnl
-    if (matches(_SYMBOL, 1)) {
+dnl double qoute to avoid a problem with "(" as a unary function symbol
+    if (matches(``$1'', 1)) {
         SEXP s_arg = CADR(s_expr);
         if (isNumeric(s_arg)) {
             const double value = _DEFINITION(REAL(s_arg)[0]);
@@ -51,7 +51,7 @@ define(`_DEFINITION', `$2')dnl
             for (R_len_t i = 0; i < samples; ++i) 
                 result[i] = _DEFINITION(result[i]);
         } else {
-            error("`unary_function'(_SYMBOL):  Unhandled argument type combination");
+            error("`unary_function'(\"_SYMBOL\"):  Unhandled argument type combination");
         }
         return;
     }')dnl
@@ -146,7 +146,7 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                 result[i] = _DEFINITION(result[i], tmp[i]);
             free(tmp);
         } else {
-            error("`binary_function'(_SYMBOL): Unhandled argument type combination");
+            error("`binary_function'(\"_SYMBOL\"): Unhandled argument type combination");
         }
         return;
     }')dnl
