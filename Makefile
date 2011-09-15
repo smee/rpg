@@ -1,18 +1,23 @@
+# Makefile
+# make build script for RGP
+#
+
 .SILENT:
 .PHONEY: usage help install test check clean package
 
 usage:
 	echo "Most important targets:"
 	echo ""
-	echo " install  - Install the package, writing the output into install.log"
-	echo " test     - Install package and run unit tests"
-	echo " check    - Run R CMD check on the package"
-	echo " help     - Show ALL available targets"
+	echo " install  - Install the package, writing the output into install.log."
+	echo " check    - Run R CMD check on the package."
+	echo " test     - Install package and run unit tests."
+	echo " help     - Show ALL available targets."
 
 help: usage
-	echo " clean    - Clean up package cruft"
-	echo " package  - Build source package of last commit"
-	echo " roxygen  - Roxygenize skel/ into pkg/"
+	echo " clean    - Clean up package cruft."
+	echo " package  - Build source package of last commit."
+	echo " m4       - Generate code from m4 macros in codegen/ into skel/."
+	echo " roxygen  - Roxygenize skel/ into pkg/."
 
 install: clean roxygen
 	echo "Installing package..."
@@ -27,6 +32,11 @@ test: install
 check: clean roxygen
 	echo "Running R CMD check..."
 	R CMD check pkg && rm -fR pkg.Rcheck
+	echo "DONE."
+
+m4: skel
+	echo "Generating code from m4 macros..."
+	m4 codegen/evaluate_language_expression.m4 > skel/src/playground/evaluate_language_expression.h
 	echo "DONE."
 
 roxygen: skel

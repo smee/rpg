@@ -15,11 +15,11 @@
 *.o
 *.so
 
-# TeX temporaries
+# Ignore TeX temporaries
 doc/**/*.log
 doc/**/*.aux
 doc/**/*.toc
 doc/**/*.out
 
-# Generated files:
+# Ignore Generated files:
 skel/src/playground/evaluate_language_expression.h

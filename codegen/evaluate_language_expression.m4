@@ -1,13 +1,18 @@
 dnl -*- mode:m4 -*-
 dnl
+dnl ------------------------------------------------------------- utility macros
 define(`forloop', `ifelse(eval(`($2) <= ($3)'), `1',
   `pushdef(`$1')_$0(`$1', eval(`$2'),
-    eval(`$3'), `$4')popdef(`$1')')')
+    eval(`$3'), `$4')popdef(`$1')')')dnl
 define(`_forloop',
   `define(`$1', `$2')$4`'ifelse(`$2', `$3', `',
-  `$0(`$1', incr(`$2'), `$3', `$4')')')
-#include <R.h>
-#include <math.h>
+  `$0(`$1', incr(`$2'), `$3', `$4')')')dnl
+dnl
+dnl ---------------------------------------------------- language SEXP evaluator
+/* !!! Automatically generated from codegen/evaluate_language_expression.m4.
+ * !!! Do not modify this generated code, as all changes will be overwritten.
+ * !!! START OF GENERATED CODE
+ */
 dnl
 define(`matches',`dnl
 ifelse(len($1), 1,dnl
@@ -29,8 +34,8 @@ dnl The generated code checks if $1 is a constant and avoid repeated
 dnl evaluation of _DEFINITION in that case. 
 define(`unary_function',`dnl
 define(`_SYMBOL', `$1')dnl
-define(`_DEFINITION', $2)dnl
-    if (matches(``$1'', 1)) {
+define(`_DEFINITION', `$2')dnl
+    if (matches(_SYMBOL, 1)) {
         SEXP s_arg = CADR(s_expr);
         if (isNumeric(s_arg)) {
             const double value = _DEFINITION(REAL(s_arg)[0]);
@@ -68,8 +73,9 @@ dnl and special cases execution in case they are constants. This
 dnl avoids allocating a vector of size "samples" and filling it with a
 dnl constant. 
 define(binary_function,`dnl
-define(`_DEFINITION', $2)dnl
-    if (matches(`$1', 2)) {
+define(`_SYMBOL', `$1')dnl
+define(`_DEFINITION', `$2')dnl
+    if (matches(_SYMBOL, 2)) {
         SEXP s_arg1 = CADR(s_expr);
         SEXP s_arg2 = CADDR(s_expr);
 
@@ -101,7 +107,7 @@ define(`_DEFINITION', $2)dnl
             const double *value1 = context->actualParameters + (index1 * samples);
             const R_len_t index2 = function_argument_index(s_arg2, context);
             const double *value2 = context->actualParameters + (index2 * samples);
-dnl Explicit unrolling here to facilitate vectorization:
+dnl Explicit unrolling here to facilitate automatic vectorization by modern C compilers:
             R_len_t i;
             const R_len_t n_unrolled = samples / 4;
             for (i = 0; i < n_unrolled; i += 4) {
@@ -114,7 +120,6 @@ dnl Explicit unrolling here to facilitate vectorization:
             const R_len_t index1 = function_argument_index(s_arg1, context);
             const double *value1 = context->actualParameters + (index1 * samples);
             evaluate_language_expression(s_arg2, context, result);
-
             for (R_len_t i = 0; i < samples; ++i) 
                 result[i] = _DEFINITION(value1[i], result[i]);
         } else if (isLanguage(s_arg1) && isNumeric(s_arg2)) {
@@ -141,7 +146,7 @@ dnl Explicit unrolling here to facilitate vectorization:
                 result[i] = _DEFINITION(result[i], tmp[i]);
             free(tmp);
         } else {
-            error("`binary_function'($1): Unhandled argument type combination");
+            error("`binary_function'(_SYMBOL): Unhandled argument type combination");
         }
         return;
     }')dnl
@@ -175,7 +180,8 @@ static R_INLINE void evaluate_language_expression(SEXP s_expr,
     const R_len_t arity = expression_arity(s_expr);
     const R_len_t samples = context->samples;
     
-include(`function_definitions.m4')dnl
+include(`codegen/function_definitions.m4')dnl
     evalVectorizedFallback(s_expr, context, result);
     return;
 }
+/* !!! END OF GENERATED CODE */
