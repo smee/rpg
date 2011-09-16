@@ -41,37 +41,49 @@ run_benchmark <- function(name, fun, sizes=10**(1:5), nruns=250) {
   result
 }
 
-## List of benchmark functions:
-functions <- list(negate_s=function(x) -x,
-                  n_mult_s=function(x) 2.192 * x,
-                  s_mult_s=function(x, y) x * y,
-                  s_div_s=function(x, y) x / y,
-                  trig_p1=function(x, y) sin(x)^2 + cos(y)^2,
-                  trig_p2=function(x, y) sin(x) * sin(x) + cos(y) * cos(y),
-                  ndens1=function(x) 1 / sqrt(2 * 3.1415) * exp(-(x*x)/2),
-                  ndens2=function(x) 1 / sqrt(2 * 3.1415) * exp(-0.5 * (x*x)),
-                  parens1=function(x) (2.1 * 0.3) * x,
-                  parens2=function(x) 2.1 * (0.3 * x),
-                  sum10=function(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10)
-                    x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10,
-                  symreg=function(x1, x2)
-                    0.2 * cos(x1 + 0.1) + sin(0.2 * x2) + 0.05 * x1 - 1.5
-                  )
+benchPlot <- function(bData, func = "symreg", maxSize = 10000)
+  boxplot(value ~ variable, data = melt(bData[bData$fun == func & bData$size <= maxSize,], c("fun", "size")),
+          main = func, xlab = "evaluator", ylab = "runtime (ns)")
 
-result <- NULL
-for (function_name in names(functions)) {
-  fun <- functions[[function_name]]
-  tmp <- run_benchmark(function_name, fun)
-  result <- rbind(result, tmp)
+run_benchmarks <- function() {
+  ## List of benchmark functions:
+  functions <- list(negate_s=function(x) -x,
+                    n_mult_s=function(x) 2.192 * x,
+                    s_mult_s=function(x, y) x * y,
+                    s_div_s=function(x, y) x / y,
+                    trig_p1=function(x, y) sin(x)^2 + cos(y)^2,
+                    trig_p2=function(x, y) sin(x) * sin(x) + cos(y) * cos(y),
+                    ndens1=function(x) 1 / sqrt(2 * 3.1415) * exp(-(x*x)/2),
+                    ndens2=function(x) 1 / sqrt(2 * 3.1415) * exp(-0.5 * (x*x)),
+                    parens1=function(x) (2.1 * 0.3) * x,
+                    parens2=function(x) 2.1 * (0.3 * x),
+                    sum10=function(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10)
+                      x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10,
+                    symreg=function(x1, x2)
+                      0.2 * cos(x1 + 0.1) + sin(0.2 * x2) + 0.05 * x1 - 1.5
+                    )
+
+  result <- NULL
+  for (function_name in names(functions)) {
+    fun <- functions[[function_name]]
+    tmp <- run_benchmark(function_name, fun)
+    result <- rbind(result, tmp)
+  }
+
+  absTimes <- ddply(result, .(fun, expr, size), summarize, median_runtime=median(time))
+  tmp <- ddply(absTimes, .(fun, size), transform,
+               median_speedup=1/(median_runtime / max(median_runtime)))
+  tblRel <- dcast(tmp, fun + size ~ expr, value_var = "median_speedup")
+  tblAbs <- dcast(absTimes, fun + size ~ expr, value_var = "median_runtime")
+
+  cat("Absolute median runtimes (ns):\n")
+  print(tblAbs)
+
+  cat("Median relative speedup:\n")
+  print(tblRel)
+
+  message("Improvement over R     : ", mean(tblRel$c / tblRel$r))
+  message("Improvement over old C : ", mean(tblRel$c / tblRel$c_orig, na.rm=TRUE))
+
+  list(absoulteMedianRuntimes = tblAbs, relativeMedianSpeedup = tblRel)
 }
-
-tmp <- ddply(result, .(fun, expr, size), summarize, median_runtime=median(time))
-tmp <- ddply(tmp, .(fun, size), transform,
-             median_speedup=1/(median_runtime / max(median_runtime)))
-tbl <- dcast(tmp, fun + size ~ expr, value_var="median_speedup")
-
-cat("Median relative speedup:\n")
-print(tbl)
-
-message("Improvement over R     : ", mean(tbl$c / tbl$r))
-message("Improvement over old C : ", mean(tbl$c / tbl$c_orig, na.rm=TRUE))
