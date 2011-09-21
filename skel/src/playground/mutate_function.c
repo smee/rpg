@@ -35,7 +35,7 @@ static R_INLINE void recreateSourceAttribute(SEXP rFunc) {
   setAttrib(rFunc, R_SourceSymbol, eval(lang2(install("deparse"), rFunc), R_BaseEnv));
 }
 
-void mutateConstantsRecursive(SEXP rExpr, enum RandomDistributionKind rDistKind) {
+void mutateFullConstantsRecursive(SEXP rExpr, enum RandomDistributionKind rDistKind) {
   if(isNumeric(rExpr)) { // numeric constant...
     //Rprintf("Value: %f ", REAL(rExpr)[0]);
     switch (rDistKind) {
@@ -48,16 +48,16 @@ void mutateConstantsRecursive(SEXP rExpr, enum RandomDistributionKind rDistKind)
     }
     //Rprintf(" NewValue: %f \n", REAL(rExpr)[0]);
   } else if (!isNull(CADR(rExpr))) { // composite...
-    mutateConstantsRecursive(CADR(rExpr), rDistKind);
+    mutateFullConstantsRecursive(CADR(rExpr), rDistKind);
     if (!isNull(CADDR(rExpr))) {
-      mutateConstantsRecursive(CADDR(rExpr), rDistKind); 
+      mutateFullConstantsRecursive(CADDR(rExpr), rDistKind); 
     }
   }
 }
 
 SEXP mutateConstants(SEXP rFunc) { // TODO add parameter for RandomDistributionKind
   GetRNGstate();
-  mutateConstantsRecursive(BODY(rFunc), NORMAL);
+  mutateFullConstantsRecursive(BODY(rFunc), NORMAL);
   PutRNGstate();
   recreateSourceAttribute(rFunc);
   return R_NilValue;
@@ -107,9 +107,11 @@ if(isNumeric(rExpr)) { // numeric constant...
           }
         }
       }
-    removeSubtreeRecursive(CADR(rExpr),delSubCon, counter);
-    if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
-      removeSubtreeRecursive(CADDR(rExpr),delSubCon, counter);
+    if(*counter <= delSubCon->rSubtree) { 
+      removeSubtreeRecursive(CADR(rExpr),delSubCon, counter);
+      if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+        removeSubtreeRecursive(CADDR(rExpr),delSubCon, counter);
+      }
     }
   }
 }
@@ -184,10 +186,12 @@ void insertSubtreeRecursive(SEXP rExpr, struct RandExprGrowContext* TreeParams, 
           }
         }
       }
-      insertSubtreeRecursive(CADR(rExpr),TreeParams, counter, rLeaf);
-      if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
-        insertSubtreeRecursive(CADDR(rExpr),TreeParams, counter, rLeaf);
-    }
+      if(*counter <= rLeaf)  {
+        insertSubtreeRecursive(CADR(rExpr),TreeParams, counter, rLeaf);
+        if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+          insertSubtreeRecursive(CADDR(rExpr),TreeParams, counter, rLeaf);
+        }
+      }
   }
 }
 
@@ -264,9 +268,11 @@ if(isNumeric(rExpr)) { // numeric constant...
           }
         }
       }
-    selectSubtreeRecursive(CADR(rExpr), returnExpr, subtree, counter);
-    if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
-      selectSubtreeRecursive(CADDR(rExpr),returnExpr, subtree, counter);
+    if(*counter <= subtree) {
+      selectSubtreeRecursive(CADR(rExpr), returnExpr, subtree, counter);
+      if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+        selectSubtreeRecursive(CADDR(rExpr),returnExpr, subtree, counter);
+      }
     }
   }
 }
@@ -287,9 +293,11 @@ if(isNumeric(rExpr)) { // numeric constant...
           }
         }
       }
-    crossSubtreeRecursive(CADR(rExpr),rExpr2 , subtree, counter);
-    if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
-      crossSubtreeRecursive(CADDR(rExpr), rExpr2 , subtree, counter);
+    if(*counter <= subtree) {
+      crossSubtreeRecursive(CADR(rExpr),rExpr2 , subtree, counter);
+      if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+        crossSubtreeRecursive(CADDR(rExpr), rExpr2 , subtree, counter);
+      }
     }
   }
 }
@@ -311,9 +319,11 @@ if(isNumeric(rExpr)) { // numeric constant...
           }
         }
       }
-    selectInsertSubtreeRecursive(CADR(rExpr), rExpr2, returnExpr, subtree, counter);
-    if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
-      selectInsertSubtreeRecursive(CADDR(rExpr), rExpr2, returnExpr, subtree, counter);
+    if(*counter <= subtree) {
+      selectInsertSubtreeRecursive(CADR(rExpr), rExpr2, returnExpr, subtree, counter);
+      if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+        selectInsertSubtreeRecursive(CADDR(rExpr), rExpr2, returnExpr, subtree, counter);
+      }
     }
   }
 }
