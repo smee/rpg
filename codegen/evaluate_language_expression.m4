@@ -39,12 +39,12 @@ dnl double qoute to avoid a problem with "(" as a unary function symbol
         SEXP s_arg = CADR(s_expr);
         if (isNumeric(s_arg)) {
             const double value = _DEFINITION(REAL(s_arg)[0]);
-            for (int i = 0; i < samples; ++i) 
+            for (int i = 0; i < samples; ++i)
                 out_result[i] = value;
         } else if (isSymbol(s_arg)) {
             const R_len_t index = function_argument_index(s_arg, context);
             const double *value = context->actualParameters + (index * samples);
-            for (R_len_t i = 0; i < samples; ++i) 
+            for (R_len_t i = 0; i < samples; ++i)
                 out_result[i] = _DEFINITION(value[i]);
         } else if (isLanguage(s_arg)) {
             int is_scalar_result;
@@ -53,7 +53,7 @@ dnl double qoute to avoid a problem with "(" as a unary function symbol
                 out_result[0] = _DEFINITION(out_result[0]);
                 *out_is_scalar_result = 1;
             } else {
-                for (R_len_t i = 0; i < samples; ++i) 
+                for (R_len_t i = 0; i < samples; ++i)
                     out_result[i] = _DEFINITION(out_result[i]);
             }
         } else {
@@ -95,7 +95,7 @@ define(`_DEFINITION', `$2')dnl
             const double value1 = REAL(s_arg1)[0];
             const R_len_t index2 = function_argument_index(s_arg2, context);
             const double *value2 = context->actualParameters + (index2 * samples);
-            for (R_len_t i = 0; i < samples; ++i) 
+            for (R_len_t i = 0; i < samples; ++i)
                 out_result[i] = _DEFINITION(value1, value2[i]);
         } else if (isNumeric(s_arg1) && isLanguage(s_arg2)) {
             const double value1 = REAL(s_arg1)[0];
@@ -105,14 +105,14 @@ define(`_DEFINITION', `$2')dnl
                 out_result[0] = _DEFINITION(value1, out_result[0]);
                 *out_is_scalar_result = 1;
             } else {
-                for (R_len_t i = 0; i < samples; ++i) 
+                for (R_len_t i = 0; i < samples; ++i)
                     out_result[i] = _DEFINITION(value1, out_result[i]);
             }
         } else if (isSymbol(s_arg1) && isNumeric(s_arg2)) {
             const R_len_t index1 = function_argument_index(s_arg1, context);
             const double *value1 = context->actualParameters + (index1 * samples);
             const double value2 = REAL(s_arg2)[0];
-            for (R_len_t i = 0; i < samples; ++i) 
+            for (R_len_t i = 0; i < samples; ++i)
                 out_result[i] = _DEFINITION(value1[i], value2);
         } else if (isSymbol(s_arg1) && isSymbol(s_arg2)) {
             const R_len_t index1 = function_argument_index(s_arg1, context);
@@ -126,7 +126,7 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                 forloop(`j', 0, 3,`out_result[i + j] = _DEFINITION(value1[i + j], value2[i + j]);
 ')
             }
-            for (; i < samples; ++i) 
+            for (; i < samples; ++i)
                 out_result[i] = _DEFINITION(value1[i], value2[i]);
         } else if (isSymbol(s_arg1) && isLanguage(s_arg2)) {
             const R_len_t index1 = function_argument_index(s_arg1, context);
@@ -137,7 +137,7 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                 for (R_len_t i = 0; i < samples; ++i)
                     out_result[i] = _DEFINITION(value1[i], out_result[1]);
             } else {
-                for (R_len_t i = 0; i < samples; ++i) 
+                for (R_len_t i = 0; i < samples; ++i)
                     out_result[i] = _DEFINITION(value1[i], out_result[i]);
             }
         } else if (isLanguage(s_arg1) && isNumeric(s_arg2)) {
@@ -148,7 +148,7 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                 out_result[0] = _DEFINITION(out_result[0], value2);
                 *out_is_scalar_result = 1;
             } else {
-                for (R_len_t i = 0; i < samples; ++i) 
+                for (R_len_t i = 0; i < samples; ++i)
                     out_result[i] = _DEFINITION(out_result[i], value2);
             }
         } else if (isLanguage(s_arg1) && isSymbol(s_arg2)) {
@@ -160,7 +160,7 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                 for (R_len_t i = 0; i < samples; ++i)
                     out_result[i] = _DEFINITION(out_result[0], value2[i]);
             } else {
-                for (R_len_t i = 0; i < samples; ++i) 
+                for (R_len_t i = 0; i < samples; ++i)
                     out_result[i] = _DEFINITION(out_result[i], value2[i]);
             }
         } else if (isLanguage(s_arg1) && isLanguage(s_arg2)) {
@@ -169,24 +169,34 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
              * (>100000). This will overrun the (limited) C stack and 
              * crash R.
              */
-            double *tmp = malloc(sizeof(double) * samples);
             int is_scalar_result, is_scalar_tmp;
             evaluate_language_expression(s_arg1, context, out_result, &is_scalar_result);
-            evaluate_language_expression(s_arg2, context, tmp, &is_scalar_tmp);
-            if (!(is_scalar_result || is_scalar_tmp)) { // case 1/4: both out_result and tmp are vectors
-                for (int i = 0; i < samples; ++i) 
-                    out_result[i] = _DEFINITION(out_result[i], tmp[i]);
-            } else if (is_scalar_result) { // case 2/4: out_result is scalar, tmp is vector
-                for (int i = 0; i < samples; ++i) 
-                    out_result[i] = _DEFINITION(out_result[0], tmp[i]);
-            } else if (is_scalar_tmp) { // case 3/4: out_result is vector, tmp is scalar
-                for (int i = 0; i < samples; ++i) 
-                    out_result[i] = _DEFINITION(out_result[i], tmp[0]);
-            } else { // case 4/4: both out_result and tmp are scalar
-                out_result[0] = _DEFINITION(out_result[0], tmp[0]);
-                *out_is_scalar_result = 1;
+            if (!is_scalar_result) {
+                double *tmp = malloc(sizeof(double) * samples);
+                evaluate_language_expression(s_arg2, context, tmp, &is_scalar_tmp);
+                if (!is_scalar_tmp) {
+                    for (int i = 0; i < samples; ++i)
+                        out_result[i] = _DEFINITION(out_result[i], tmp[i]);
+                    *out_is_scalar_result = 0;
+                } else {
+                    const double value2 = tmp[0];
+                    for (int i = 0; i < samples; ++i)
+                        out_result[i] = _DEFINITION(out_result[i], value2);
+                    *out_is_scalar_result = 0;
+                }
+                free(tmp);
+            } else {
+                const double value1 = out_result[0];
+                evaluate_language_expression(s_arg2, context, out_result, &is_scalar_tmp);
+                if (!is_scalar_tmp) {
+                    for (int i = 0; i < samples; ++i)
+                        out_result[i] = _DEFINITION(value1, out_result[i]);
+                    *out_is_scalar_result = 0;
+                } else {
+                    out_result[0] = _DEFINITION(value1, out_result[0]);
+                    *out_is_scalar_result = 1;
+                }
             }
-            free(tmp);
         } else {
             error("`binary_function'(\"_SYMBOL\"): Unhandled argument type combination");
         }
