@@ -19,6 +19,8 @@ struct RandExprGrowContext {
 
 SEXP randExprGrow(SEXP, SEXP, SEXP, SEXP, SEXP);
 
+SEXP randFuncGrow(SEXP, SEXP, SEXP, SEXP, SEXP);
+
 void getArities(const char **, int *, int);
 
 int randIndex(int);
