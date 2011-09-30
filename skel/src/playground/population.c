@@ -7,11 +7,12 @@ SEXP createPopulation(SEXP popSize_ext, SEXP funcSet, SEXP inSet, SEXP maxDepth_
   popSize_ext = coerceVector(popSize_ext, INTSXP);
   int popSize= INTEGER(popSize_ext)[0];
 
-  SEXP pop = allocVector(VECSXP, popSize);
+  PROTECT(SEXP pop = allocVector(VECSXP, popSize));
   for(int i=0; i < popSize; i++)
   {
     SET_VECTOR_ELT(pop, i, randFuncGrow(funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext));
   }
+  UNPROTECT(1);
   return pop;
 }
 
