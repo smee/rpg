@@ -127,7 +127,7 @@ SEXP selection(SEXP population, SEXP sampleSize_ext, SEXP actualParameters, SEXP
 
 
   UNPROTECT(3);
-  return R_NilValue;
+  return winnerPop;
 
 }
 
