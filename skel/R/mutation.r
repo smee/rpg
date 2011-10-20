@@ -18,7 +18,7 @@ NA
 ##'
 ##' RGP implements two sets of mutation operators. The first set is inspired by classical
 ##' GP systems. Mutation strength is controlled by giving mutation probabilities:
-##' \code{mutateFunc} mutates a function \eqn{f} by recursively replacing inner functions in
+##' \code{mutateFunc} mutates a function \eqn{f} by recursively replacing inner function labels in
 ##'   \eqn{f} with probability \code{mutatefuncprob}.
 ##' \code{mutateSubtree} mutates a function by recursively replacing inner nodes with
 ##'   newly grown subtrees of maximum depth \code{maxsubtreedepth}.
