@@ -3,21 +3,22 @@
 #
 
 .SILENT:
-.PHONEY: usage help install test check clean package
+.PHONEY: usage help install test check clean distclean package
 
 usage:
 	echo "Most important targets:"
 	echo ""
-	echo " install  - Install the package, writing the output into install.log."
-	echo " check    - Run R CMD check on the package."
-	echo " test     - Install package and run unit tests."
-	echo " help     - Show ALL available targets."
+	echo " install   - Install the package, writing the output into install.log."
+	echo " check     - Run R CMD check on the package."
+	echo " test      - Install package and run unit tests."
+	echo " help      - Show ALL available targets."
 
 help: usage
-	echo " clean    - Clean up package cruft."
-	echo " package  - Build source package of last commit."
-	echo " m4       - Generate code from m4 macros in codegen/ into skel/."
-	echo " roxygen  - Roxygenize skel/ into pkg/."
+	echo " clean     - Clean up package cruft."
+	echo " distclean - Clean up and remove all generated artifacts."
+	echo " package   - Build source package of last commit."
+	echo " codegen   - Generate code from m4 macros in codegen/ into skel/."
+	echo " roxygen   - Roxygenize skel/ into pkg/."
 
 install: clean roxygen
 	echo "Installing package..."
@@ -34,9 +35,9 @@ check: clean roxygen
 	R CMD check pkg && rm -fR pkg.Rcheck
 	echo "DONE."
 
-m4:
+codegen:
 	echo "Generating code from m4 macros..."
-	m4 codegen/evaluate_language_expression.m4 > skel/src/playground/evaluate_language_expression.h
+	m4 codegen/evaluate_language_expression.m4 > playground/evaluate_language_expression.h
 	echo "DONE."
 
 roxygen:
@@ -52,6 +53,12 @@ clean:
 	rm -fR .RData .Rhistory build.log install.log roxygen.log
 	echo "DONE."
 
+distclean: clean
+	echo "Removing all generated artifacts..."
+	rm -f rgp_*.tar.gz 
+	rm -f playground/evaluate_language_expression.h
+	echo "DONE."
+
 package: clean roxygen
 	echo "Building package..."
 	echo "Date: $(date +%Y-%m-%d)" >> pkg/DESCRIPTION
@@ -59,3 +66,6 @@ package: clean roxygen
 	R CMD build pkg > build.log 2>&1
 	rm -fR pkg
 	echo "DONE."
+
+# EOF
+
