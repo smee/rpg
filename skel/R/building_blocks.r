@@ -27,6 +27,7 @@
 ##' \code{buildingBlockq} is equivaltent to \code{buildingBlock}, but
 ##' quotes it's argument \code{expr} first.
 ##'
+##' @param expr The expresion to transform to a building block.
 ##' @param hardness The strength of the protection against varition inside
 ##'   the building block. Must be a numeric in the interval [0.0, 1.0].
 ##'   A \code{hardness} of \code{1.0} (the default) means that the building

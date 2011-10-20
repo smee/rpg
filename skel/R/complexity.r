@@ -26,6 +26,7 @@
 ##'
 ##' @param expr An R expression.
 ##' @param func An R function.
+##' @param predicate An R predicate (function with range type \code{logical}).
 ##'
 ##' @rdname expressionComplexityMeasures
 ##' @export

@@ -122,6 +122,7 @@ calculateSTypeq <- function(x, typeEnvir = rgpSTypeEnvironment)
 ##' of a formal argument \code{x} and a \code{formalsStack}, respectively.
 ##'
 ##' @param x The object to operate on.
+##' @param value An sType. 
 ##' @param typeEnvir The type environment, containing user-supplied sTypes of building blocks.
 ##' @param formalsStack A stack of formal arguments with their sTypes.
 ##'

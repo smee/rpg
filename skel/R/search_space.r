@@ -61,7 +61,7 @@ NA
 ##'
 ##' @examples
 ##' # creating an untyped search space description...
-##' functionSet("+", "-", "*", "/", "expt", "log", "sin", "cos", "tan")
+##' functionSet("+", "-", "*", "/", "exp", "log", "sin", "cos", "tan")
 ##' inputVariableSet("x", "y")
 ##' constantFactorySet(function() runif(1, -1, 1))
 ##' # creating an untyped function set with probability weights...

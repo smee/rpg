@@ -119,6 +119,7 @@ subexpressions <- function(expr)
 ##' of an expression \code{expr}. The symbols are returned as character strings.
 ##'
 ##' @param x The object to operate on.
+##' @param expr An R expression.
 ##' @param copyAttributes Whether to copy all attributes of \code{x} to the
 ##'   result object.
 ##' @return The result.

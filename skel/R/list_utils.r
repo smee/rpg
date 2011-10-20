@@ -20,6 +20,7 @@
 ##' \code{x} contains an element identical to \code{elt}.
 ##'
 ##' @param x A list or vector.
+##' @param elt An element of a list or vector.
 ##'
 ##' @rdname lispLists
 first <- function(x) x[[1]]
@@ -171,6 +172,7 @@ randelt <- function(x, prob = NULL) {
 ##' @param pairConstructor The function to use for constructing pairs, defaults to \code{list}.
 ##' @param groupAssignment A vector of group assignment indices.
 ##' @param numberOfGroups The number of groups to create, must be <= length(l)
+##' @param recursive Whether to operate recursively on sublists or vectors.
 ##' @return A list of lists, where each member represents a group.
 ##'
 ##' @rdname listSplittingAndGrouping
