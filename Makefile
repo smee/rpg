@@ -16,9 +16,10 @@ usage:
 help: usage
 	echo " clean     - Clean up package cruft."
 	echo " distclean - Clean up and remove all generated artifacts."
+	echo " macros    - Generate code from m4 macros in codegen/ into skel/."
 	echo " package   - Build source package of last commit."
-	echo " codegen   - Generate code from m4 macros in codegen/ into skel/."
 	echo " roxygen   - Roxygenize skel/ into pkg/."
+	echo " shlibs    - Build shared libraries of C-based components (for interactive testing)."
 
 install: clean roxygen
 	echo "Installing package..."
@@ -40,6 +41,11 @@ macros:
 	m4 codegen/evaluate_language_expression.m4 > playground/evaluate_language_expression.h
 	echo "DONE."
 
+shlibs: macros
+	echo "Buiding shared libraries of C-based components..."
+	R CMD SHLIB playground/evolution.c playground/selection.c playground/mutate_function.c playground/create_expr_tree.c playground/eval_vectorized.c playground/population.c
+	echo "DONE."
+
 roxygen:
 	echo "Roxygenizing package..."
 	./roxygenize > roxygen.log 2>&1
@@ -48,8 +54,10 @@ roxygen:
 
 clean:
 	echo "Cleaning up..."
-	rm -fR skel/src/*.o skel/src/*.so skel/R/*~ skel.Rcheck rgp.Rcheck
 	rm -fR pkg
+	rm -fR skel.Rcheck rgp.Rcheck
+	rm -fR skel/src/*.o skel/src/*.so skel/R/*~
+	rm -fR playground/*.o playground/*.so playground/*~
 	rm -fR .RData .Rhistory build.log install.log roxygen.log
 	echo "DONE."
 
