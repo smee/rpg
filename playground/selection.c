@@ -3,6 +3,8 @@
 #include "selection.h"
 #include "create_expr_tree.h"
 #include "population.h"
+
+
 /*
 functionSet1 <- functionSet("+", "*", "-", "/")
 inputVariableSet1 <- inputVariableSet("x")
@@ -10,6 +12,13 @@ numericConstantSet <- constantFactorySet(function() runif(1, -1, 1))
 pop1 <- makePopulation(10, functionSet1, inputVariableSet1, numericConstantSet)  
 */
 
+// TODO deep_copy_closxp is available from skel/src/sexp_utils.h, remove this
+SEXP deep_copy_closxp(SEXP closxp) {
+  SEXP copied_closxp = duplicate(closxp);
+  // duplicate() by default does a shallow copy of a CLOSXP body, fix this
+  SET_BODY(copied_closxp, duplicate(BODY(closxp)));
+  return copied_closxp;
+}
 
 static void snr(int k, int n, int *y, int *x)
 {

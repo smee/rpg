@@ -5,7 +5,14 @@
 #include "sexp_utils.h"
 
 
-SEXP map_sexp(SEXP (*const f)(SEXP), const SEXP sexp) {
+SEXP deep_copy_closxp(SEXP closxp) {
+  SEXP copied_closxp = duplicate(closxp);
+  // duplicate() by default does a shallow copy of a CLOSXP body, fix this
+  SET_BODY(copied_closxp, duplicate(BODY(closxp)));
+  return copied_closxp;
+}
+
+SEXP map_sexp(SEXP (*const f)(SEXP), SEXP sexp) {
   switch (TYPEOF(sexp)) { // switch for speed
   case NILSXP:
     return sexp; // do nothing with nils
@@ -18,7 +25,7 @@ SEXP map_sexp(SEXP (*const f)(SEXP), const SEXP sexp) {
   }
 }
 
-SEXP map_sexp_leafs(SEXP (*const f)(SEXP), const SEXP sexp) {
+SEXP map_sexp_leafs(SEXP (*const f)(SEXP), SEXP sexp) {
   switch (TYPEOF(sexp)) { // switch for speed
   case NILSXP:
     return sexp; // do nothing with nils
@@ -31,7 +38,7 @@ SEXP map_sexp_leafs(SEXP (*const f)(SEXP), const SEXP sexp) {
   }
 }
 
-SEXP map_sexp_inner_nodes(SEXP (*const f)(SEXP), const SEXP sexp) {
+SEXP map_sexp_inner_nodes(SEXP (*const f)(SEXP), SEXP sexp) {
   switch (TYPEOF(sexp)) { // switch for speed
   case NILSXP:
     return sexp; // do nothing with nils
@@ -45,13 +52,13 @@ SEXP map_sexp_inner_nodes(SEXP (*const f)(SEXP), const SEXP sexp) {
 }
 
 // TODO
-SEXP map_sexp_shortcut(SEXP (*const f)(SEXP), const SEXP sexp) {
+SEXP map_sexp_shortcut(SEXP (*const f)(SEXP), SEXP sexp) {
   switch (TYPEOF(sexp)) { // switch for speed
   case NILSXP:
     return sexp; // do nothing with nils
   case LANGSXP: // fall-through to next case
   case LISTSXP: {
-    const SEXP mapped_sexp = f(sexp);
+    SEXP mapped_sexp = f(sexp);
     if (sexp == mapped_sexp)
       return LCONS(map_sexp_shortcut(f, CAR(sexp)),
                    map_sexp_shortcut(f, CDR(sexp))); // recurse
@@ -64,13 +71,13 @@ SEXP map_sexp_shortcut(SEXP (*const f)(SEXP), const SEXP sexp) {
 }
 
 // TODO
-static SEXP map_sexp_shortcut_depth_recursive(SEXP (*const f)(SEXP, int), const SEXP sexp, const int current_depth) {
+static SEXP map_sexp_shortcut_depth_recursive(SEXP (*const f)(SEXP, int), SEXP sexp, const int current_depth) {
   switch (TYPEOF(sexp)) { // switch for speed
   case NILSXP:
     return sexp; // do nothing with nils
   case LANGSXP: // fall-through to next case
   case LISTSXP: {
-    const SEXP mapped_sexp = f(sexp, current_depth);
+    SEXP mapped_sexp = f(sexp, current_depth);
     if (sexp == mapped_sexp)
       return LCONS(map_sexp_shortcut_depth_recursive(f, CAR(sexp), current_depth + 1),
                    map_sexp_shortcut_depth_recursive(f, CDR(sexp), current_depth + 1)); // recurse
@@ -83,6 +90,6 @@ static SEXP map_sexp_shortcut_depth_recursive(SEXP (*const f)(SEXP, int), const 
 }
 
 // TODO
-SEXP map_sexp_shortcut_depth(SEXP (*const f)(SEXP, int), const SEXP sexp) {
+SEXP map_sexp_shortcut_depth(SEXP (*const f)(SEXP, int), SEXP sexp) {
   return map_sexp_shortcut_depth_recursive(f, sexp, 0);
 }
