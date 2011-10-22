@@ -35,7 +35,7 @@ check: clean roxygen
 	R CMD check pkg && rm -fR pkg.Rcheck
 	echo "DONE."
 
-codegen:
+macros:
 	echo "Generating code from m4 macros..."
 	m4 codegen/evaluate_language_expression.m4 > playground/evaluate_language_expression.h
 	echo "DONE."

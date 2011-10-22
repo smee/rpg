@@ -2,18 +2,11 @@
  *
  */
 
+#include "eval_vectorized.h"
 #include <R.h>
 #include <Rinternals.h>
 #include <string.h>
 #include <math.h>
-
-// TODO move structs to eval_vectorized.h
-struct EvalVectorizedContext {
-    int arity;
-    R_len_t samples;
-    SEXP formalParameters;
-    double *actualParameters;
-};
 
 // TODO move this function to environment_tools.c
 static R_INLINE SEXP makeEnvironment(SEXP enclosingEnvironment) { 

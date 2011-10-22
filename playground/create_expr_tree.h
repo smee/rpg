@@ -1,4 +1,3 @@
-
 #ifndef CREATE_EXPR_TREE_H
 #define CREATE_EXPR_TREE_H
 
@@ -29,10 +28,5 @@ SEXP randomNumber();
 
 SEXP randExprGrowRecursive(struct RandExprGrowContext *, int);
 
-
-
-
-
 #endif 
-
 

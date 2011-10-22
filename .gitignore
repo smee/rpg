@@ -22,4 +22,4 @@ doc/**/*.toc
 doc/**/*.out
 
 # Ignore Generated files:
-skel/src/playground/evaluate_language_expression.h
+playground/evaluate_language_expression.h

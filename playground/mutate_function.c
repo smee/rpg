@@ -3,6 +3,7 @@
  */
 
 #include "create_expr_tree.h"
+#include "mutate_function.h"
 #include <string.h>
 #include <math.h>
 
@@ -142,8 +143,7 @@ SEXP removeSubtree(SEXP rFunc, SEXP inSet, SEXP constProb_ext)
     removeSubtreeRecursive(BODY(rFunc), &delSubCon, &counter);
     }
   PutRNGstate();
-  recreateSourceAttribute(rFunc);
-  return R_NilValue;
+  return rFunc;
 } 
 
 
@@ -230,24 +230,28 @@ SEXP insertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext)
   if(leafCounter > 0) {
     GetRNGstate();
     rLeaf= rand_number(leafCounter);
-    insertSubtreeRecursive(BODY(rFunc), &TreeParams, &counter, rLeaf);
-    recreateSourceAttribute(rFunc);
-    PutRNGstate();
-  }
+    insertSubtreeRecursive(BODY(rFunc), &TreeParams, &counter, rLeaf); 
+    PutRNGstate(); //Todo Else for symbols and constants 
+  } else {
+    SEXP rExpr;
+    rExpr= randExprGrowRecursive(&TreeParams, 1);
+    SETCDR(rFunc, rExpr);
+    }
 
-return R_NilValue;
+return rFunc;;
 } 
 
 // .Call("insertSubtree",func1,c("+","-","*","/"),c("x","y","z"),0.2)
 
 SEXP deleteInsertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext)
-{  
-  removeSubtree(rFunc, inSet, constProb_ext);
-  insertSubtree(rFunc, funcSet, inSet, constProb_ext);
-  return R_NilValue;
+{ 
+  PROTECT(rFunc);
+  rFunc= removeSubtree(rFunc, inSet, constProb_ext);
+  rFunc= insertSubtree(rFunc, funcSet, inSet, constProb_ext);
+  recreateSourceAttribute(rFunc);
+  UNPROTECT(1);
+  return rFunc;
 }
-
-
 
 // Crossover functions
 
@@ -346,8 +350,13 @@ countSubtrees(BODY(rFunc2), &subtreeFunc2);
     recreateSourceAttribute(rFunc1);
     recreateSourceAttribute(rFunc2);
     }
+
 return R_NilValue;
 }
+
+
+
+
  
  
 
