@@ -7,5 +7,7 @@
 
 SEXP selection(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
+void sortByRmse(int *, int *, int, SEXP);
+
 #endif
 

@@ -119,7 +119,7 @@ SEXP selection(SEXP population, SEXP sampleSize_ext, SEXP actualParameters, SEXP
    }
 
   for(int i= 0; i < (sampleSize/4); i++) { 
-     //crossover(VECTOR_ELT(winnerA, i),(VECTOR_ELT(winnerB, i))); 
+     crossover(VECTOR_ELT(winnerA, i),(VECTOR_ELT(winnerB, i))); 
      SET_VECTOR_ELT(winnerA, i, deleteInsertSubtree(VECTOR_ELT(winnerA, i), funcSet, inSet, constProb_ext));
      SET_VECTOR_ELT(winnerB, i, deleteInsertSubtree(VECTOR_ELT(winnerB, i), funcSet, inSet, constProb_ext));
   } 

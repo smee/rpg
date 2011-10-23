@@ -35,10 +35,11 @@ if ((unif_rand() <= TreeParams->probSubtree)&&(currentDepth < TreeParams->maxDep
   for ( int i=0; i < arity; i++ ) {
     SEXP newParameter;
     PROTECT(newParameter = randExprGrowRecursive(TreeParams, currentDepth+1));
-    UNPROTECT(1);
     expr= LCONS(newParameter, expr);
+    UNPROTECT(1);
     }
-  expr= LCONS(install(TreeParams->functions[funIdx]), expr);
+  PROTECT(expr= LCONS(install(TreeParams->functions[funIdx]), expr));
+  UNPROTECT(1);
   return expr;
   }
   else if (unif_rand() <= TreeParams->constProb){ //create constant
@@ -46,7 +47,9 @@ if ((unif_rand() <= TreeParams->probSubtree)&&(currentDepth < TreeParams->maxDep
     return randomNumber();
   } else {
     const int varIdx= randIndex(TreeParams->nVariables); //create variable
-    const SEXP expr2= install(TreeParams->variables[varIdx]);
+    SEXP expr2;
+    PROTECT(expr2= install(TreeParams->variables[varIdx]));
+    UNPROTECT(1);
     return expr2;
   }
 }
@@ -176,21 +179,22 @@ SEXP randExprGrow(SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ex
 
 SEXP exprToFunction(int nVariables, const char **vaList, SEXP rExpr)  {
   SEXP charList, rChar, pl;
-  SEXP rFunc = allocSExp(CLOSXP);
+  SEXP rFunc;
+  PROTECT(rFunc= allocSExp(CLOSXP));
   SET_CLOENV(rFunc, R_GlobalEnv);
   int i = 0, warn= 0, n= 0;
   if(nVariables > 0) {
-  charList = allocVector(STRSXP, nVariables);
+  PROTECT(charList = allocVector(STRSXP, nVariables));
   
   for(int i=0; i < nVariables; i++){ //TODO STRSXP fill
-    rChar= mkChar(vaList[i]);
+    PROTECT(rChar= mkChar(vaList[i]));
     SET_STRING_ELT(charList, i, rChar);
+    UNPROTECT(1);
   }
-
   charList= VectorToPairList(charList);
   n= length(charList);
   if(n > 0) { 
-    pl = allocList(n);
+    PROTECT(pl = allocList(n));
     if(n == 1) {
       SET_TAG(pl, CreateTag(CAR(charList)));
       SETCAR(pl, R_MissingArg);
@@ -204,12 +208,13 @@ SEXP exprToFunction(int nVariables, const char **vaList, SEXP rExpr)  {
         SET_TAG(nextpl, CreateTag(CAR(nextChar)));
 	SETCAR(nextpl, R_MissingArg);
         }
-     }
-      
+     }  
    } }
   SET_FORMALS(rFunc, pl); 
   SET_BODY(rFunc, rExpr);
-  setAttrib(rFunc, R_SourceSymbol, eval(lang2(install("deparse"), rFunc), R_BaseEnv)); // TODO: Deparse not necessary
+  //setAttrib(rFunc, R_SourceSymbol, eval(lang2(install("deparse"), rFunc), R_BaseEnv)); // TODO: Deparse not necessary
+  if(n > 0) {UNPROTECT(1);}
+  UNPROTECT(2); 
   return rFunc;
 }
 
