@@ -227,7 +227,7 @@ SEXP insertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext)
 
   int rLeaf, leafCounter= 0, counter= 0;
   countLeafs(BODY(rFunc), &leafCounter);  
-  if(leafCounter > 0) {
+  if(leafCounter > 1) {
     GetRNGstate();
     rLeaf= rand_number(leafCounter);
     insertSubtreeRecursive(BODY(rFunc), &TreeParams, &counter, rLeaf); 
@@ -235,7 +235,7 @@ SEXP insertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext)
   } else {
     SEXP rExpr;
     rExpr= randExprGrowRecursive(&TreeParams, 1);
-    SETCDR(rFunc, rExpr);
+    SET_BODY(rFunc, rExpr);
     }
 
 return rFunc;;

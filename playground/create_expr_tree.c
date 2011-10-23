@@ -152,8 +152,9 @@ SEXP randExprGrow(SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ex
  
  int currentDepth= 1;
   GetRNGstate();
-    rfun= randExprGrowRecursive(&TreeParams, currentDepth);
+    PROTECT(rfun= randExprGrowRecursive(&TreeParams, currentDepth));
   PutRNGstate();
+  UNPROTECT(1);
   return rfun;
 } 
 

@@ -4,6 +4,25 @@
 #include "population.h"
 #include "create_expr_tree.h"
 
+void summary(SEXP population,SEXP actualParameters, SEXP targetValues) {
+
+int popSize= LENGTH(population);
+SEXP rmseVectorSum;
+PROTECT(rmseVectorSum= allocVector(VECSXP, popSize));
+
+for(int i= 0; i < popSize; i++) {
+SET_VECTOR_ELT(rmseVectorSum, i, evalVectorizedRmse(VECTOR_ELT(population, i), actualParameters, targetValues)); 
+}
+rmseVectorSum= coerceVector(rmseVectorSum, REALSXP);
+double rmseArray[popSize];
+for(int i= 0; i < popSize; i++) {
+rmseArray[i]= REAL(rmseVectorSum)[i];
+Rprintf("\n Number: %d RMSE: %f",i+1,rmseArray[i]);
+}
+UNPROTECT(1);
+}
+
+
 SEXP evolutionRun(SEXP numberOfRuns_ext, SEXP popSize_ext, SEXP sampleSize_ext, SEXP actualParameters, SEXP targetValues, SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ext, SEXP subtreeProb_ext) {
 
   numberOfRuns_ext= coerceVector(numberOfRuns_ext, INTSXP);
@@ -16,6 +35,7 @@ for(int i=0; i < numberOfRuns; i++) {
   Rprintf(" \n StepNumber: %d", i);
     population= selection(population, sampleSize_ext, actualParameters, targetValues, funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext);
   }
+summary(population, actualParameters, targetValues);
 UNPROTECT(1);
 return population;
 }
