@@ -36,26 +36,19 @@ UNPROTECT(2);
 
 SEXP evolutionRun(SEXP numberOfRuns_ext, SEXP popSize_ext, SEXP sampleSize_ext, SEXP actualParameters, SEXP targetValues, SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ext, SEXP subtreeProb_ext) {
 
-PROTECT(targetValues);
-PROTECT(funcSet);
-PROTECT(inSet);
-PROTECT(maxDepth_ext);
-PROTECT(constProb_ext);
-PROTECT(subtreeProb_ext);
-
-  numberOfRuns_ext= coerceVector(numberOfRuns_ext, INTSXP);
-  int numberOfRuns= INTEGER(numberOfRuns_ext)[0];
-
 SEXP population;
-PROTECT(population= createPopulation(popSize_ext, funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext));
 
+  PROTECT(population= createPopulation(popSize_ext, funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext));
+  PROTECT(numberOfRuns_ext= coerceVector(numberOfRuns_ext, INTSXP));
+
+  int numberOfRuns= INTEGER(numberOfRuns_ext)[0];
 for(int i=0; i < numberOfRuns; i++) {
   Rprintf(" \n StepNumber: %d", i);
     PROTECT(population= selection(population, sampleSize_ext, actualParameters, targetValues, funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext));
     UNPROTECT(1);
   }
 summary(population, actualParameters, targetValues);
-UNPROTECT(7);
+UNPROTECT(2);
 return population;
 }
 

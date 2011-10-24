@@ -30,10 +30,11 @@ return x + 1;
 }
 
 
-static R_INLINE void recreateSourceAttribute(SEXP rFunc) {
+SEXP recreateSourceAttribute(SEXP rFunc) {
   // TODO This is not perfect, as R seems to use slightly different arguments to
   // deparse() when initially setting the source attribute.
   setAttrib(rFunc, R_SourceSymbol, eval(lang2(install("deparse"), rFunc), R_BaseEnv));
+  return rFunc;
 }
 
 void mutateFullConstantsRecursive(SEXP rExpr, enum RandomDistributionKind rDistKind) {
@@ -60,7 +61,8 @@ SEXP mutateConstants(SEXP rFunc) { // TODO add parameter for RandomDistributionK
   GetRNGstate();
   mutateFullConstantsRecursive(BODY(rFunc), NORMAL);
   PutRNGstate();
-  recreateSourceAttribute(rFunc);
+  PROTECT(recreateSourceAttribute(rFunc));
+  UNPROTECT(1);
   return R_NilValue;
 }
 
@@ -130,7 +132,7 @@ SEXP removeSubtree(SEXP rFunc, SEXP inSet, SEXP constProb_ext)
   delSubCon.variables = arrayOfVariables;
   
     // Constant Prob	
-  constProb_ext = coerceVector(constProb_ext, REALSXP);
+  PROTECT(constProb_ext = coerceVector(constProb_ext, REALSXP));
   delSubCon.constProb= REAL(constProb_ext)[0];
 
   int counter= 0;
@@ -143,6 +145,7 @@ SEXP removeSubtree(SEXP rFunc, SEXP inSet, SEXP constProb_ext)
     removeSubtreeRecursive(BODY(rFunc), &delSubCon, &counter);
     }
   PutRNGstate();
+  UNPROTECT(1);
   return rFunc;
 } 
 
@@ -180,9 +183,10 @@ void insertSubtreeRecursive(SEXP rExpr, struct RandExprGrowContext* TreeParams, 
          *counter= *counter + 1;
           if(*counter == rLeaf){
             GetRNGstate();
-            replacement= randExprGrowRecursive(TreeParams, 1);
+            PROTECT(replacement= randExprGrowRecursive(TreeParams, 1));
             PutRNGstate();
             SETCAR(child, replacement);
+            UNPROTECT(1);
           }
         }
       }
@@ -222,7 +226,7 @@ SEXP insertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext)
   TreeParams.variables= arrayOfVariables;
   
     // Constant Prob	
-  constProb_ext= coerceVector(constProb_ext, REALSXP);
+  PROTECT(constProb_ext= coerceVector(constProb_ext, REALSXP));
   TreeParams.constProb= REAL(constProb_ext)[0];
 
   int rLeaf, leafCounter= 0, counter= 0;
@@ -234,10 +238,11 @@ SEXP insertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext)
     PutRNGstate(); //Todo Else for symbols and constants 
   } else {
     SEXP rExpr;
-    rExpr= randExprGrowRecursive(&TreeParams, 1);
+    PROTECT(rExpr= randExprGrowRecursive(&TreeParams, 1));
     SET_BODY(rFunc, rExpr);
+    UNPROTECT(1);
     }
-
+UNPROTECT(1);
 return rFunc;;
 } 
 
@@ -245,11 +250,10 @@ return rFunc;;
 
 SEXP deleteInsertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext)
 { 
-  PROTECT(rFunc);
-  rFunc= removeSubtree(rFunc, inSet, constProb_ext);
-  rFunc= insertSubtree(rFunc, funcSet, inSet, constProb_ext);
-  recreateSourceAttribute(rFunc);
-  UNPROTECT(1);
+  PROTECT(rFunc= removeSubtree(rFunc, inSet, constProb_ext));
+  PROTECT(rFunc= insertSubtree(rFunc, funcSet, inSet, constProb_ext));
+  //PROTECT(recreateSourceAttribute(rFunc));
+  UNPROTECT(2);
   return rFunc;
 }
 
@@ -347,8 +351,9 @@ countSubtrees(BODY(rFunc2), &subtreeFunc2);
     selectSubtreeRecursive(BODY(rFunc1), &exprPointer1, rSubtree1, &counter);
     selectInsertSubtreeRecursive(BODY(rFunc2), exprPointer1,  &exprPointer2,  rSubtree2, &counter2);
     crossSubtreeRecursive(BODY(rFunc1), exprPointer2, rSubtree1, &counter3);
-    recreateSourceAttribute(rFunc1);
-    recreateSourceAttribute(rFunc2);
+    //PROTECT(recreateSourceAttribute(rFunc1));
+    //PROTECT(recreateSourceAttribute(rFunc2));
+    //UNPROTECT(2);
     }
 
 return R_NilValue;

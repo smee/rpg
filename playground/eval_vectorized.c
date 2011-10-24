@@ -36,7 +36,7 @@ void evalVectorizedRecursive(SEXP rExpr,
 static R_INLINE void evalVectorizedFallback(SEXP rExpr, 
                                             struct EvalVectorizedContext *context, 
                                             double *out_result) {
-  const int arity = LENGTH(coerceVector(rExpr, VECSXP)) - 1;
+  const int arity = LENGTH(PROTECT(coerceVector(rExpr, VECSXP))) - 1;
   const int samples = context->samples;
   //Rprintf("fallback to eval for function of arity %d\n", arity); // TODO
   int argIdx; // argument index
@@ -64,7 +64,7 @@ static R_INLINE void evalVectorizedFallback(SEXP rExpr,
        * type than real */
       out_result[i] = REAL(result)[i]; 
   }
-  UNPROTECT(1 + arity);
+  UNPROTECT(2 + arity);
   return;
 }
 
@@ -121,26 +121,27 @@ void initializeEvalVectorizedContext(SEXP rFunction,
     SEXP rFormals, rFormalNames;
     
     rFormals = FORMALS(rFunction);
-    int arity = LENGTH(coerceVector(rFormals, VECSXP));
+    PROTECT(rFormals= coerceVector(rFormals, VECSXP));
+    int arity = LENGTH(rFormals);
     contextOut->arity = arity;
     
     rFormalNames = getAttrib(rFormals, R_NamesSymbol);
     contextOut->formalParameters = rFormalNames;
-    
     if (arity) {
         contextOut->samples = LENGTH(actualParameters) / arity;
     } else {
         contextOut->samples = 1;
     }
     
-    actualParameters = coerceVector(actualParameters, REALSXP);
+    PROTECT(actualParameters = coerceVector(actualParameters, REALSXP));
     contextOut->actualParameters = REAL(actualParameters);
+    UNPROTECT(2);
 }
 
 SEXP evalVectorized(SEXP rFunction, SEXP actualParameters) {
   struct EvalVectorizedContext context;
   initializeEvalVectorizedContext(rFunction, actualParameters, &context);
-
+  
   SEXP rResult;
   PROTECT(rResult = allocVector(REALSXP, context.samples));  
   double *result = REAL(rResult);
@@ -152,23 +153,22 @@ SEXP evalVectorized(SEXP rFunction, SEXP actualParameters) {
 SEXP evalVectorizedRmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues) {
   struct EvalVectorizedContext context;
   initializeEvalVectorizedContext(rFunction, actualParameters, &context);
-
   double result[context.samples];
+  
   evalVectorizedRecursive(BODY(rFunction), &context, result);
-
+  
   // calculate RMSE...
   double diff, total = 0.0, rmse;
-  targetValues = coerceVector(targetValues, REALSXP);
+  PROTECT(targetValues = coerceVector(targetValues, REALSXP));
 
   for (int i = 0; i < context.samples; i++) {
     diff = result[i] - REAL(targetValues)[i];
     total += diff * diff;
   }
   rmse = sqrt(total / (double) context.samples);
-
   SEXP rResult;
   PROTECT(rResult = allocVector(REALSXP, 1));
   REAL(rResult)[0] = rmse;
-  UNPROTECT(1);
+  UNPROTECT(2);
   return rResult;
 }
