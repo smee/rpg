@@ -18,6 +18,8 @@ This package contains the following objects:
 │   └── [...]
 ├── examples             RGP examples
 │   └── [...]
+├── playground           experimental RGP components
+│   └── [...]
 ├── results              results of RGP test experiments
 │   └── [...]
 ├── roxygen-fixup        script to work around a roxygen bug
