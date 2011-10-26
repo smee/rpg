@@ -43,7 +43,7 @@ SEXP population;
 
   int numberOfRuns= INTEGER(numberOfRuns_ext)[0];
 for(int i=0; i < numberOfRuns; i++) {
-  Rprintf(" \n StepNumber: %d", i);
+  Rprintf(" \n StepNumber: %d", i+1);
     PROTECT(population= selection(population, sampleSize_ext, actualParameters, targetValues, funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext));
     UNPROTECT(1);
   }

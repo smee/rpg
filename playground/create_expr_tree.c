@@ -14,7 +14,6 @@ SEXP randomNumber() {
   PROTECT(Rval = allocVector(REALSXP, 1));
   REAL(Rval)[0] = (unif_rand() * 2) - 1;
   UNPROTECT(1);
-
   return Rval;
 }
 
@@ -31,15 +30,15 @@ if ((unif_rand() <= TreeParams->probSubtree)&&(currentDepth < TreeParams->maxDep
 {
   const int funIdx= randIndex(TreeParams->nFunctions);
   const int arity= TreeParams->arities[funIdx];
-  SEXP expr= R_NilValue;
+  SEXP expr;
+  PROTECT(expr= R_NilValue);
   for ( int i=0; i < arity; i++ ) {
     SEXP newParameter;
     PROTECT(newParameter = randExprGrowRecursive(TreeParams, currentDepth+1));
-    expr= LCONS(newParameter, expr);
-    UNPROTECT(1);
+    PROTECT(expr= LCONS(newParameter, expr));
     }
   PROTECT(expr= LCONS(install(TreeParams->functions[funIdx]), expr));
-  UNPROTECT(1);
+  UNPROTECT(2 + 2*arity);
   return expr;
   }
   else if (unif_rand() <= TreeParams->constProb){ //create constant
@@ -180,6 +179,7 @@ SEXP randExprGrow(SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ex
 } */ 
 
 SEXP exprToFunction(int nVariables, const char **vaList, SEXP rExpr)  {
+  PROTECT(rExpr);
   SEXP charList, rChar, pl;
   SEXP rFunc;
   PROTECT(rFunc= allocSExp(CLOSXP));
@@ -216,7 +216,7 @@ SEXP exprToFunction(int nVariables, const char **vaList, SEXP rExpr)  {
   SET_BODY(rFunc, rExpr);
   //setAttrib(rFunc, R_SourceSymbol, eval(lang2(install("deparse"), rFunc), R_BaseEnv)); // TODO: Deparse not necessary
   if(n > 0) {UNPROTECT(1);}
-  UNPROTECT(3); 
+  UNPROTECT(4); 
   return rFunc;
 }
 
