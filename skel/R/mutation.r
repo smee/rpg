@@ -37,10 +37,10 @@ NA
 ##'   subtree of the exact depth of \code{subtreeDepth}.
 ##' \code{mutateDeleteSubtree} Selects a subree of the exact depth of \code{subtreeDepth} by uniform random
 ##'   sampling and replaces it with a matching leaf.
-##' \code{mutateChangeDeleteInsert} Either applies \code{mutateChangeLabel}, \code{mutateDeleteSubtree},
+##' \code{mutateChangeDeleteInsert} Either applies \code{mutateChangeLabel}, \code{mutateInsertSubtree},
 ##'   or \code{mutateDeleteSubtree}. The probability weights for selecting an operator can be supplied
 ##'   via the ...Probability arguments (probability weights are normalized to a sum of 1). 
-##' \code{mutateDeleteInsert} Either applies \code{mutateDeleteSubtree} or \code{mutateDeleteSubtree}. The
+##' \code{mutateDeleteInsert} Either applies \code{mutateDeleteSubtree} or \code{mutateInsertSubtree}. The
 ##'  probability weights for selecting an operator can be supplied via the ...Probability arguments
 ##'  (probability weights are normalized to a sum of 1).
 ##' The above functions automatically create well-typed result expressions when used in a strongly
