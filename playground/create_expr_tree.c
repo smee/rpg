@@ -79,7 +79,13 @@ void getArities(const char ** arrayOfFunctions, int * arrayOfArities, int nFunct
     else if (!strcmp(arrayOfFunctions[i], "exp")) {
       arrayOfArities[i] = 1;
       }
+    else if (!strcmp(arrayOfFunctions[i], "log")) {
+      arrayOfArities[i] = 1;
+      }
     else if (!strcmp(arrayOfFunctions[i], "sqrt")) {
+      arrayOfArities[i] = 1;
+      }
+    else if (!strcmp(arrayOfFunctions[i], "abs")) {
       arrayOfArities[i] = 1;
       }
    
