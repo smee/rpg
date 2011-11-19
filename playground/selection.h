@@ -5,7 +5,7 @@
 #include <Rinternals.h>
 
 
-SEXP selection(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP selection(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, double *);
 
 void sortByRmse(int *, int *, int, SEXP);
 

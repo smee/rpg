@@ -36,19 +36,23 @@ void evalVectorizedRecursive(SEXP rExpr,
 static R_INLINE void evalVectorizedFallback(SEXP rExpr, 
                                             struct EvalVectorizedContext *context, 
                                             double *out_result) {
-  const int arity = LENGTH(PROTECT(coerceVector(rExpr, VECSXP))) - 1;
+  //PROTECT(rExpr= coerceVector(rExpr, VECSXP));
+  //const int arity = LENGTH(rExpr) - 1;
   const int samples = context->samples;
   //Rprintf("fallback to eval for function of arity %d\n", arity); // TODO
   int argIdx; // argument index
   SEXP argItor; // argument iterator
   SEXP call; // call object, initialized with function name
-  SEXP callRev = lang1(CAR(rExpr)); // call is build in reverse
-  SEXP env = makeEnvironment(R_GlobalEnv); // fresh R environment for holding argument values
+  SEXP callRev, env;
+  PROTECT(callRev = lang1(CAR(rExpr))); // call is build in reverse
+  PROTECT(env = makeEnvironment(R_GlobalEnv)); // fresh R environment for holding argument values
   
   // evaluate the arguments with evalVectorizedRecursive...
   for (argItor = CDR(rExpr), argIdx = 0; !isNull(argItor); argItor = CDR(argItor), argIdx++) {
-      SEXP argName = makeFreshSymbol(argIdx, env);
-      SEXP argVal = PROTECT(allocVector(REALSXP, samples));
+      SEXP argName;
+      PROTECT(argName = makeFreshSymbol(argIdx, env));
+      SEXP argVal;
+      PROTECT(argVal = allocVector(REALSXP, samples));
       evalVectorizedRecursive(CAR(argItor), context, REAL(argVal));
       defineVar(argName, argVal, env);
       callRev = LCONS(argName, callRev); // add argument name to function call object
@@ -64,7 +68,7 @@ static R_INLINE void evalVectorizedFallback(SEXP rExpr,
        * type than real */
       out_result[i] = REAL(result)[i]; 
   }
-  UNPROTECT(2 + arity);
+  UNPROTECT(2 + 1);//arity);
   return;
 }
 
@@ -74,7 +78,6 @@ void evalVectorizedRecursive(SEXP rExpr,
                              struct EvalVectorizedContext *context, 
                              double *out_result) {
     const int samples = context->samples;
-    
     /* Composite R expression: */
     if (isLanguage(rExpr)) {
         int out_is_scalar_result;
@@ -120,12 +123,12 @@ void initializeEvalVectorizedContext(SEXP rFunction,
                                      struct EvalVectorizedContext *contextOut) {
     SEXP rFormals, rFormalNames;
     
-    rFormals = FORMALS(rFunction);
+    PROTECT(rFormals = FORMALS(rFunction));
     PROTECT(rFormals= coerceVector(rFormals, VECSXP));
     int arity = LENGTH(rFormals);
     contextOut->arity = arity;
     
-    rFormalNames = getAttrib(rFormals, R_NamesSymbol);
+    PROTECT(rFormalNames = getAttrib(rFormals, R_NamesSymbol));
     contextOut->formalParameters = rFormalNames;
     if (arity) {
         contextOut->samples = LENGTH(actualParameters) / arity;
@@ -135,7 +138,6 @@ void initializeEvalVectorizedContext(SEXP rFunction,
     
     PROTECT(actualParameters = coerceVector(actualParameters, REALSXP));
     contextOut->actualParameters = REAL(actualParameters);
-    UNPROTECT(2);
 }
 
 SEXP evalVectorized(SEXP rFunction, SEXP actualParameters) {
@@ -150,7 +152,7 @@ SEXP evalVectorized(SEXP rFunction, SEXP actualParameters) {
   return rResult;
 }
 
-SEXP evalVectorizedRmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues) {
+SEXP evalVectorizedRmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues, double * bestRMSE) {
   struct EvalVectorizedContext context;
   initializeEvalVectorizedContext(rFunction, actualParameters, &context);
   double result[context.samples];
@@ -166,9 +168,11 @@ SEXP evalVectorizedRmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues
     total += diff * diff;
   }
   rmse = sqrt(total / (double) context.samples);
+  if(*bestRMSE > rmse) {
+    *bestRMSE= rmse; }
   SEXP rResult;
   PROTECT(rResult = allocVector(REALSXP, 1));
   REAL(rResult)[0] = rmse;
-  UNPROTECT(2);
+  UNPROTECT(6);
   return rResult;
 }

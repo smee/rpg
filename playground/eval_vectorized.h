@@ -12,7 +12,7 @@ struct EvalVectorizedContext {
     double *actualParameters;
 };
 
-SEXP evalVectorizedRmse(SEXP, SEXP, SEXP);
+SEXP evalVectorizedRmse(SEXP, SEXP, SEXP, double *);
 
 #endif
 

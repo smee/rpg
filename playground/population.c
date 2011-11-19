@@ -1,17 +1,17 @@
 #include "create_expr_tree.h"
 #include "population.h"
 
-SEXP createPopulation(SEXP popSize_ext, SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ext, SEXP subtreeProb_ext) {
+SEXP createPopulation(SEXP popSize_ext, SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ext, SEXP subtreeProb_ext, SEXP constScaling_ext) {
   SEXP pop;
-  popSize_ext = coerceVector(popSize_ext, INTSXP);
+  PROTECT(popSize_ext = coerceVector(popSize_ext, INTSXP));
   int popSize= INTEGER(popSize_ext)[0];
 
   PROTECT(pop= allocVector(VECSXP, popSize));
   for(int i=0; i < popSize; i++)
   {
-    SET_VECTOR_ELT(pop, i, randFuncGrow(funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext));
+    SET_VECTOR_ELT(pop, i, randFuncGrow(funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext, constScaling_ext));
   }
-  UNPROTECT(1);
+  UNPROTECT(2);
   return pop;
 }
 

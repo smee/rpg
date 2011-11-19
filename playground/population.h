@@ -5,7 +5,7 @@
 #include <Rinternals.h>
 
 
-SEXP createPopulation(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP createPopulation(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 #endif
 
