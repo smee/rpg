@@ -4,14 +4,14 @@
 #include "population.h"
 #include "create_expr_tree.h"
 
-void summary(SEXP population,SEXP actualParameters, SEXP targetValues) {
+void summary(SEXP population,SEXP actualParameters, SEXP targetValues, double * bestRMSE) {
 
 int popSize= LENGTH(population);
 SEXP rmseVectorSum;
 PROTECT(rmseVectorSum= allocVector(VECSXP, popSize));
 
 for(int i= 0; i < popSize; i++) {
-SET_VECTOR_ELT(rmseVectorSum, i, evalVectorizedRmse(VECTOR_ELT(population, i), actualParameters, targetValues)); 
+SET_VECTOR_ELT(rmseVectorSum, i, evalVectorizedRmse(VECTOR_ELT(population, i), actualParameters, targetValues, bestRMSE)); 
 }
 int *numbersRMSE= Calloc(popSize * sizeof(int), int);
 int *sortedNumbersRMSE= Calloc(popSize * sizeof(int), int);
@@ -34,22 +34,56 @@ UNPROTECT(2);
 }
 
 
-SEXP evolutionRun(SEXP numberOfRuns_ext, SEXP popSize_ext, SEXP sampleSize_ext, SEXP actualParameters, SEXP targetValues, SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ext, SEXP subtreeProb_ext) {
+SEXP evolutionRun(SEXP numberOfRuns_ext, SEXP popSize_ext, SEXP sampleSize_ext, SEXP actualParameters, SEXP targetValues, SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP maxLeafs_ext, SEXP constProb_ext, SEXP constScaling_ext,  SEXP subtreeProb_ext, SEXP RMSElimit_ext, SEXP returnRMSE_ext, SEXP silent_ext) {
 
-SEXP population;
+  SEXP population;
 
-  PROTECT(population= createPopulation(popSize_ext, funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext));
-  PROTECT(numberOfRuns_ext= coerceVector(numberOfRuns_ext, INTSXP));
+    PROTECT(population= createPopulation(popSize_ext, funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext, constScaling_ext));
+    PROTECT(numberOfRuns_ext= coerceVector(numberOfRuns_ext, INTSXP));
+    int numberOfRuns= INTEGER(numberOfRuns_ext)[0];
 
-  int numberOfRuns= INTEGER(numberOfRuns_ext)[0];
-for(int i=0; i < numberOfRuns; i++) {
-  Rprintf(" \n StepNumber: %d", i+1);
-    PROTECT(population= selection(population, sampleSize_ext, actualParameters, targetValues, funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext));
-    UNPROTECT(1);
+    PROTECT(RMSElimit_ext= coerceVector(RMSElimit_ext, REALSXP));
+    double RMSElimit= REAL(RMSElimit_ext)[0];
+
+    PROTECT(silent_ext= coerceVector(silent_ext, INTSXP));
+    int silent= INTEGER(silent_ext)[0]; 
+
+    PROTECT(returnRMSE_ext= coerceVector(returnRMSE_ext, INTSXP));
+    int rRMSE= INTEGER(returnRMSE_ext)[0]; 
+
+    double bestRMSE= 1000000;
+  for(int i=0; i < numberOfRuns; i++) {
+    
+      PROTECT(population= selection(population, sampleSize_ext, actualParameters, targetValues, funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext, maxLeafs_ext, constScaling_ext, &bestRMSE));
+      if(silent == 0) {
+        Rprintf(" \n StepNumber: %d", i+1);
+        Rprintf(" best RMSE: %f", bestRMSE); 
+        }
+      if(RMSElimit > 0) {
+        if (RMSElimit >= bestRMSE) {
+          UNPROTECT(6);
+          if(rRMSE == 0) {
+            return population; 
+          } else {
+          SEXP returnRMSE;
+          PROTECT(returnRMSE = allocVector(REALSXP, 1));
+          REAL(returnRMSE)[0] = bestRMSE;
+          UNPROTECT(1);
+            return returnRMSE; } }
+        } UNPROTECT(1); 
+     } 
+  if(silent != 1) {
+    summary(population, actualParameters, targetValues, &bestRMSE);
   }
-summary(population, actualParameters, targetValues);
-UNPROTECT(2);
-return population;
+  UNPROTECT(5);
+  if(rRMSE == 0) {
+   return population; 
+  } else {
+   SEXP returnRMSE;
+   PROTECT(returnRMSE = allocVector(REALSXP, 1));
+   REAL(returnRMSE)[0] = bestRMSE;
+   UNPROTECT(1);
+   return returnRMSE; }
 }
 
 

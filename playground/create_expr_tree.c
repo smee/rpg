@@ -9,10 +9,10 @@
 #include <R.h>
 #include <Rinternals.h>
 
-SEXP randomNumber() {
+SEXP randomNumber(double constScaling) {
   SEXP Rval;
   PROTECT(Rval = allocVector(REALSXP, 1));
-  REAL(Rval)[0] = (unif_rand() * 2) - 1;
+  REAL(Rval)[0] = constScaling * ((unif_rand() * 2) - 1);
   UNPROTECT(1);
   return Rval;
 }
@@ -43,7 +43,7 @@ if ((unif_rand() <= TreeParams->probSubtree)&&(currentDepth < TreeParams->maxDep
   }
   else if (unif_rand() <= TreeParams->constProb){ //create constant
     unif_rand(); // TODO constant factory
-    return randomNumber();
+    return randomNumber(TreeParams->constScaling);
   } else {
     const int varIdx= randIndex(TreeParams->nVariables); //create variable
     SEXP expr2;
@@ -76,6 +76,13 @@ void getArities(const char ** arrayOfFunctions, int * arrayOfArities, int nFunct
     else if (!strcmp(arrayOfFunctions[i], "tan")) {
       arrayOfArities[i] = 1;
       }
+    else if (!strcmp(arrayOfFunctions[i], "exp")) {
+      arrayOfArities[i] = 1;
+      }
+    else if (!strcmp(arrayOfFunctions[i], "sqrt")) {
+      arrayOfArities[i] = 1;
+      }
+   
    }
 }
  
@@ -117,7 +124,7 @@ void initRandExprGrowContext(SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP c
 } 
 
      
-SEXP randExprGrow(SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ext, SEXP subtreeProb_ext)
+SEXP randExprGrow(SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ext, SEXP subtreeProb_ext, SEXP constScaling_ext)
 {
   SEXP rfun;
  
@@ -153,12 +160,15 @@ SEXP randExprGrow(SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ex
     //	Subtree Prob
   PROTECT(subtreeProb_ext = coerceVector(subtreeProb_ext, REALSXP));
   TreeParams.probSubtree= REAL(subtreeProb_ext)[0];
+  
+  PROTECT(constScaling_ext = coerceVector(constScaling_ext, REALSXP));
+  TreeParams.constScaling= REAL(constScaling_ext)[0];
  
  int currentDepth= 1;
   GetRNGstate();
     PROTECT(rfun= randExprGrowRecursive(&TreeParams, currentDepth));
   PutRNGstate();
-  UNPROTECT(4);
+  UNPROTECT(5);
   return rfun;
 } 
 
@@ -220,7 +230,7 @@ SEXP exprToFunction(int nVariables, const char **vaList, SEXP rExpr)  {
   return rFunc;
 }
 
-SEXP randFuncGrow(SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ext, SEXP subtreeProb_ext)
+SEXP randFuncGrow(SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ext, SEXP subtreeProb_ext, SEXP constScaling_ext)
 {
   SEXP rfun;
  
@@ -256,13 +266,16 @@ SEXP randFuncGrow(SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ex
     //	Subtree Prob
   PROTECT(subtreeProb_ext = coerceVector(subtreeProb_ext, REALSXP));
   TreeParams.probSubtree= REAL(subtreeProb_ext)[0];
+
+  PROTECT(constScaling_ext = coerceVector(constScaling_ext, REALSXP));
+  TreeParams.constScaling= REAL(constScaling_ext)[0];
  
  int currentDepth= 1;
   GetRNGstate();
     PROTECT(rfun= randExprGrowRecursive(&TreeParams, currentDepth));
   PutRNGstate();
   PROTECT(rfun= exprToFunction(TreeParams.nVariables, TreeParams.variables, rfun));
-  UNPROTECT(5);
+  UNPROTECT(6);
   return rfun;
 } 
 

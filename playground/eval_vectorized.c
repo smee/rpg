@@ -152,7 +152,7 @@ SEXP evalVectorized(SEXP rFunction, SEXP actualParameters) {
   return rResult;
 }
 
-SEXP evalVectorizedRmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues) {
+SEXP evalVectorizedRmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues, double * bestRMSE) {
   struct EvalVectorizedContext context;
   initializeEvalVectorizedContext(rFunction, actualParameters, &context);
   double result[context.samples];
@@ -168,6 +168,8 @@ SEXP evalVectorizedRmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues
     total += diff * diff;
   }
   rmse = sqrt(total / (double) context.samples);
+  if(*bestRMSE > rmse) {
+    *bestRMSE= rmse; }
   SEXP rResult;
   PROTECT(rResult = allocVector(REALSXP, 1));
   REAL(rResult)[0] = rmse;

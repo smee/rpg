@@ -13,12 +13,13 @@ struct RandExprGrowContext {
   int nVariables;
   double constProb;
   int maxDepth;
+  double constScaling;
 };
 
 
-SEXP randExprGrow(SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP randExprGrow(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
-SEXP randFuncGrow(SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP randFuncGrow(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 void getArities(const char **, int *, int);
 
