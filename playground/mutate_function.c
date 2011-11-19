@@ -292,7 +292,7 @@ SEXP insertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext, SEX
   int rLeaf, leafCounter= 0, counter= 0, depth= 0, nodeCounter= 0;
   countLeafs(BODY(rFunc), &leafCounter); 
   countNodes(BODY(rFunc), &nodeCounter); 
-  Rprintf(" %d", nodeCounter);
+  //Rprintf(" %d", nodeCounter);
   //depth= countDepth(BODY(rFunc), depth);
   // Rprintf("depth %d", depth);
   if((leafCounter > 1) && (leafCounter <= maxLeafs) && (nodeCounter <= maxNodes))  {
