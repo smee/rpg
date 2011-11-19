@@ -22,6 +22,14 @@ enum RandomDistributionKind {
   UNIFORM
 };
 
+int randIndex2(int a) {
+  int x = a * unif_rand();
+  if (x == a) {
+    return x - 1;
+  }
+  return x;
+}
+
 static int rand_number(int a)
 {
 int x= a * unif_rand();
@@ -30,6 +38,14 @@ if(x == a)
 return x + 1;
 }
 
+int expression_arity(SEXP expr) {
+    int arity = 0;
+    while (!isNull(CDR(expr))) {
+        expr = CDR(expr);
+        ++arity;
+    }
+    return arity;
+}
 
 SEXP recreateSourceAttribute(SEXP rFunc) {
   // TODO This is not perfect, as R seems to use slightly different arguments to
@@ -41,7 +57,7 @@ SEXP recreateSourceAttribute(SEXP rFunc) {
 void mutateFullConstantsRecursive(SEXP rExpr, enum RandomDistributionKind rDistKind, double constScaling) {
   if(isNumeric(rExpr)) { // numeric constant...
     //Rprintf("Value: %f ", REAL(rExpr)[0]);
-    if (unif_rand() <= 0.5) {
+    if (unif_rand() <= 0.3) {
     switch (rDistKind) {
     case NORMAL:
       REAL(rExpr)[0]= REAL(rExpr)[0] + (constScaling/10) * norm_rand(); // random normal mutation
@@ -248,6 +264,29 @@ void insertSubtreeRecursive(SEXP rExpr, struct RandExprGrowContext* TreeParams, 
   }
 }
 
+void changeNodesRekursive(SEXP rExpr, struct RandExprGrowContext* TreeParams)  {
+ 
+  if(isNumeric(rExpr)) { // numeric constant...
+      return;
+  } else if(isSymbol(rExpr)) { // 
+      return;
+  } else if ((isLanguage(rExpr)) && (unif_rand() <= 0.3)) {
+     int oldArity= expression_arity(rExpr);
+     SEXP replacement;
+     int arity, funIdx;
+        while(arity != oldArity) {
+        funIdx= randIndex2(TreeParams->nFunctions);
+        arity= TreeParams->arities[funIdx];
+        }
+        PROTECT(replacement= install(TreeParams->functions[funIdx]));
+        SETCAR(rExpr, replacement);
+        UNPROTECT(1);
+          }
+        changeNodesRekursive(CADR(rExpr),TreeParams);
+        if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+          changeNodesRekursive(CADDR(rExpr),TreeParams); }
+}
+
 SEXP insertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext, SEXP subtreeProb_ext, SEXP maxDepth_ext, SEXP maxLeafs_ext, SEXP maxNodes_ext, SEXP constScaling_ext)
 {
   
@@ -314,21 +353,66 @@ UNPROTECT(5);
 return rFunc;;
 } 
 
+SEXP changeNodes(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext, SEXP subtreeProb_ext, SEXP maxDepth_ext, SEXP constScaling_ext)
+{
+  
+  struct RandExprGrowContext TreeParams;
+  TreeParams.probSubtree= 1;
+ 
+  PROTECT(maxDepth_ext = coerceVector(maxDepth_ext, INTSXP));
+  TreeParams.maxDepth= INTEGER(maxDepth_ext)[0];
+  
+  TreeParams.nFunctions= LENGTH(funcSet);
+  const char *arrayOfFunctions[TreeParams.nFunctions];
+  int arrayOfArities[TreeParams.nFunctions];
+  TreeParams.arities= arrayOfArities;
+  
+  for (int i= 0; i < TreeParams.nFunctions; i++) {
+    arrayOfFunctions[i]= CHAR(STRING_ELT(funcSet,i));
+  }
+  getArities(arrayOfFunctions,TreeParams.arities, TreeParams.nFunctions);
+  TreeParams.functions= arrayOfFunctions;
+
+  PROTECT(constScaling_ext = coerceVector(constScaling_ext, REALSXP));
+  TreeParams.constScaling= REAL(constScaling_ext)[0];
+
+    // Variables
+  TreeParams.nVariables= LENGTH(inSet);
+  const char *arrayOfVariables[TreeParams.nVariables];
+  for (int i= 0; i < TreeParams.nVariables; i++) {
+    arrayOfVariables[i]= CHAR(STRING_ELT(inSet,i));
+  }
+  TreeParams.variables= arrayOfVariables;
+  
+    // Constant Prob	
+  PROTECT(constProb_ext= coerceVector(constProb_ext, REALSXP));
+  TreeParams.constProb= REAL(constProb_ext)[0];
+
+    GetRNGstate();
+     changeNodesRekursive(BODY(rFunc), &TreeParams); 
+    PutRNGstate(); 
+UNPROTECT(3);
+return rFunc;
+} 
+
 // .Call("insertSubtree",func1,c("+","-","*","/"),c("x","y","z"),0.2)
 
-SEXP deleteInsertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext, SEXP subtreeProb_ext, SEXP maxDepth_ext, SEXP maxLeafs_ext, SEXP maxNodes_ext, SEXP constScaling_ext)
+SEXP deleteInsertChangeSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext, SEXP subtreeProb_ext, SEXP maxDepth_ext, SEXP maxLeafs_ext, SEXP maxNodes_ext, SEXP constScaling_ext)
 { 
   GetRNGstate();
-  int mutateop= rand_number(3);
+  int mutateop= rand_number(4);
   PutRNGstate();
   if (mutateop == 1) {
     PROTECT(rFunc= removeSubtree(rFunc, inSet, constProb_ext, constScaling_ext));
     UNPROTECT(1); } 
-  if (mutateop == 2) {
+  else if (mutateop == 2) {
     PROTECT(rFunc= insertSubtree(rFunc, funcSet, inSet, constProb_ext, subtreeProb_ext, maxDepth_ext, maxLeafs_ext, maxNodes_ext, constScaling_ext));
     UNPROTECT(1); }
-  if (mutateop == 3) {
+  else if (mutateop == 3) {
     PROTECT(rFunc= mutateConstants(rFunc, constScaling_ext));
+    UNPROTECT(1); }
+  else if (mutateop == 4) {
+    PROTECT(rFunc= changeNodes(rFunc, funcSet, inSet, constProb_ext, subtreeProb_ext, maxDepth_ext, constScaling_ext));
     UNPROTECT(1); }
   //PROTECT(recreateSourceAttribute(rFunc));
   return rFunc;

@@ -120,8 +120,8 @@ SEXP selection(SEXP population, SEXP sampleSize_ext, SEXP actualParameters, SEXP
   
   for(int i= 0; i < (sampleSize/4); i++) { 
      crossover(VECTOR_ELT(winnerA, i),(VECTOR_ELT(winnerB, i))); 
-     SET_VECTOR_ELT(winnerA, i, PROTECT(deleteInsertSubtree(VECTOR_ELT(winnerA, i), funcSet, inSet, constProb_ext, subtreeProb_ext, maxDepth_ext, maxLeafs_ext, maxNodes_ext,constScaling_ext)));
-     SET_VECTOR_ELT(winnerB, i, PROTECT(deleteInsertSubtree(VECTOR_ELT(winnerB, i), funcSet, inSet, constProb_ext, subtreeProb_ext, maxDepth_ext, maxLeafs_ext, maxNodes_ext,constScaling_ext)));
+     SET_VECTOR_ELT(winnerA, i, PROTECT(deleteInsertChangeSubtree(VECTOR_ELT(winnerA, i), funcSet, inSet, constProb_ext, subtreeProb_ext, maxDepth_ext, maxLeafs_ext, maxNodes_ext,constScaling_ext)));
+     SET_VECTOR_ELT(winnerB, i, PROTECT(deleteInsertChangeSubtree(VECTOR_ELT(winnerB, i), funcSet, inSet, constProb_ext, subtreeProb_ext, maxDepth_ext, maxLeafs_ext, maxNodes_ext,constScaling_ext)));
   } 
   
   for(int i=(sampleSize/4); i < (sampleSize/2); i++) {
