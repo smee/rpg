@@ -198,6 +198,20 @@ int countDepth(SEXP rExpr, int depth)  {
    return ldepth; }
 }
 
+void countNodes(SEXP rExpr, int *counter)  {
+ 
+  if(isNumeric(rExpr)) { // numeric constant...
+      return;
+  } else if(isSymbol(rExpr)) { // 
+      return;
+  } else if (isLanguage(rExpr)){
+         *counter= *counter + 1; } 
+      countLeafs(CADR(rExpr), counter);
+      if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+        countLeafs(CADDR(rExpr), counter);
+    }
+}
+
 void insertSubtreeRecursive(SEXP rExpr, struct RandExprGrowContext* TreeParams, int *counter, int rLeaf, int depth)  {
  
   SEXP replacement;
@@ -234,7 +248,7 @@ void insertSubtreeRecursive(SEXP rExpr, struct RandExprGrowContext* TreeParams, 
   }
 }
 
-SEXP insertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext, SEXP subtreeProb_ext, SEXP maxDepth_ext, SEXP maxLeafs_ext, SEXP constScaling_ext)
+SEXP insertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext, SEXP subtreeProb_ext, SEXP maxDepth_ext, SEXP maxLeafs_ext, SEXP maxNodes_ext, SEXP constScaling_ext)
 {
   
   struct RandExprGrowContext TreeParams;
@@ -271,12 +285,17 @@ SEXP insertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext, SEX
 
   PROTECT(maxLeafs_ext= coerceVector(maxLeafs_ext, INTSXP));
   int maxLeafs= INTEGER(maxLeafs_ext)[0];
+
+  PROTECT(maxNodes_ext= coerceVector(maxNodes_ext, INTSXP));
+  int maxNodes= INTEGER(maxNodes_ext)[0];
   
-  int rLeaf, leafCounter= 0, counter= 0, depth= 0;
+  int rLeaf, leafCounter= 0, counter= 0, depth= 0, nodeCounter= 0;
   countLeafs(BODY(rFunc), &leafCounter); 
+  countNodes(BODY(rFunc), &nodeCounter); 
+  Rprintf(" %d", nodeCounter);
   //depth= countDepth(BODY(rFunc), depth);
   // Rprintf("depth %d", depth);
-  if((leafCounter > 1) && (leafCounter <= maxLeafs))  {
+  if((leafCounter > 1) && (leafCounter <= maxLeafs) && (nodeCounter <= maxNodes))  {
     GetRNGstate();
     rLeaf= rand_number(leafCounter);
      insertSubtreeRecursive(BODY(rFunc), &TreeParams, &counter, rLeaf, depth); 
@@ -291,13 +310,13 @@ SEXP insertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext, SEX
     SET_BODY(rFunc, rExpr);
     UNPROTECT(2);
     }
-UNPROTECT(4);
+UNPROTECT(5);
 return rFunc;;
 } 
 
 // .Call("insertSubtree",func1,c("+","-","*","/"),c("x","y","z"),0.2)
 
-SEXP deleteInsertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext, SEXP subtreeProb_ext, SEXP maxDepth_ext, SEXP maxLeafs_ext, SEXP constScaling_ext)
+SEXP deleteInsertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ext, SEXP subtreeProb_ext, SEXP maxDepth_ext, SEXP maxLeafs_ext, SEXP maxNodes_ext, SEXP constScaling_ext)
 { 
   GetRNGstate();
   int mutateop= rand_number(3);
@@ -306,7 +325,7 @@ SEXP deleteInsertSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constProb_ex
     PROTECT(rFunc= removeSubtree(rFunc, inSet, constProb_ext, constScaling_ext));
     UNPROTECT(1); } 
   if (mutateop == 2) {
-    PROTECT(rFunc= insertSubtree(rFunc, funcSet, inSet, constProb_ext, subtreeProb_ext, maxDepth_ext, maxLeafs_ext, constScaling_ext));
+    PROTECT(rFunc= insertSubtree(rFunc, funcSet, inSet, constProb_ext, subtreeProb_ext, maxDepth_ext, maxLeafs_ext, maxNodes_ext, constScaling_ext));
     UNPROTECT(1); }
   if (mutateop == 3) {
     PROTECT(rFunc= mutateConstants(rFunc, constScaling_ext));

@@ -9,7 +9,7 @@ SEXP crossover(SEXP, SEXP);
 
 SEXP mutateConstants(SEXP, SEXP);
 
-SEXP deleteInsertSubtree(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP deleteInsertSubtree(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 #endif
 

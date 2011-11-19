@@ -34,7 +34,7 @@ UNPROTECT(2);
 }
 
 
-SEXP evolutionRun(SEXP numberOfRuns_ext, SEXP popSize_ext, SEXP sampleSize_ext, SEXP actualParameters, SEXP targetValues, SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP maxLeafs_ext, SEXP constProb_ext, SEXP constScaling_ext,  SEXP subtreeProb_ext, SEXP RMSElimit_ext, SEXP returnRMSE_ext, SEXP silent_ext) {
+SEXP evolutionRun(SEXP numberOfRuns_ext, SEXP popSize_ext, SEXP sampleSize_ext, SEXP actualParameters, SEXP targetValues, SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP maxLeafs_ext, SEXP maxNodes_ext, SEXP constProb_ext, SEXP constScaling_ext,  SEXP subtreeProb_ext, SEXP RMSElimit_ext, SEXP returnRMSE_ext, SEXP silent_ext) {
 
   SEXP population;
 
@@ -54,7 +54,7 @@ SEXP evolutionRun(SEXP numberOfRuns_ext, SEXP popSize_ext, SEXP sampleSize_ext, 
     double bestRMSE= 1000000;
   for(int i=0; i < numberOfRuns; i++) {
     
-      PROTECT(population= selection(population, sampleSize_ext, actualParameters, targetValues, funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext, maxLeafs_ext, constScaling_ext, &bestRMSE));
+      PROTECT(population= selection(population, sampleSize_ext, actualParameters, targetValues, funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext, maxLeafs_ext, maxNodes_ext, constScaling_ext, &bestRMSE));
       if(silent == 0) {
         Rprintf(" \n StepNumber: %d", i+1);
         Rprintf(" best RMSE: %f", bestRMSE); 
