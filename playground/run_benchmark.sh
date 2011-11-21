@@ -4,7 +4,7 @@
 BASE_REVISION=7fbb1174760d7a2824be9bc04df090895be90d78 # vectorized evaluator without optimizations
 
 rm -f eval_vectorized.o eval_vectorized.so
-cd ../../..; make m4; cd skel/src/playground
+cd ../../..; make macros; cd skel/src/playground
 
 git show $BASE_REVISION:skel/src/playground/eval_vectorized.c > eval_vectorized_orig.c
 
