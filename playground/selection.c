@@ -42,7 +42,7 @@ int compare_doubles (const void *a, const void *b) //TODO
        return (*da > *db) - (*da < *db);
      }
 
-void sortByRmse(int * sampleNumbers, int * sortedNumbers, int sampleSize, SEXP rmseVector) 
+void sortByRmse(int * sampleNumbers, int * sortedNumbers, int sampleSize, SEXP rmseVector, double * sortedRMSE) 
 { 
   PROTECT(rmseVector= coerceVector(rmseVector, REALSXP));
   double rmseArray[sampleSize];
@@ -58,6 +58,7 @@ void sortByRmse(int * sampleNumbers, int * sortedNumbers, int sampleSize, SEXP r
   
  for(int i=0; i < sampleSize; i++) {
    sortedNumbers[i] = (int)rmseArraySort[i][1];
+   sortedRMSE[i] = rmseArraySort[i][0];
    //Rprintf(" \n RmseSorted: %f, Number: %d", rmseArraySort[i][0], sortedNumbers[i]);
   }
   UNPROTECT(1);
@@ -100,10 +101,12 @@ SEXP selection(SEXP population, SEXP sampleSize_ext, SEXP actualParameters, SEXP
  
   int *sortedNumbersA= Calloc((sampleSize/2)*sizeof(int), int);
   int *sortedNumbersB= Calloc((sampleSize/2)*sizeof(int), int);
-  sortByRmse(sampleNumbersA, sortedNumbersA, (sampleSize/2), rmseVectorA);
-  sortByRmse(sampleNumbersB, sortedNumbersB, (sampleSize/2), rmseVectorB);
+  double *sortedRMSEA= Calloc((sampleSize/2)*sizeof(double), double);
+  double *sortedRMSEB= Calloc((sampleSize/2)*sizeof(double), double);
+  sortByRmse(sampleNumbersA, sortedNumbersA, (sampleSize/2), rmseVectorA, sortedRMSEA);
+  sortByRmse(sampleNumbersB, sortedNumbersB, (sampleSize/2), rmseVectorB, sortedRMSEB);
   for(int i=0; i < (sampleSize/2); i++) {
-  //Rprintf(" SortA: %d, SortB %d", sortedNumbersA[i] - 1, sortedNumbersB[i] - 1);
+  //Rprintf(" SortA: %f, SortB %f", sortedRMSEA[i], sortedRMSEB[i]);
   }
  
  SEXP winnerA,winnerB,loserA,loserB;
@@ -111,7 +114,28 @@ SEXP selection(SEXP population, SEXP sampleSize_ext, SEXP actualParameters, SEXP
  PROTECT(winnerB= allocVector(VECSXP, (sampleSize/4)));
  //PROTECT(loserA= allocVector(VECSXP, (sampleSize/4)));
  //PROTECT(loserB= allocVector(VECSXP, (sampleSize/4)));
- for(int i=0; i < (sampleSize/4); i++) {
+ 
+
+// Restart if individual is duplicate
+  double restartCritA = sortedRMSEA[0];
+  double restartCritB = sortedRMSEB[0];
+
+  for(int i=1; i < (sampleSize/4); i++) {
+    if(sortedRMSEA[i] == restartCritA) {
+       //Rprintf("restartA %f", sortedRMSEA[i]);
+       SET_VECTOR_ELT(population, sortedNumbersA[i] - 1, randFuncGrow(funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext, constScaling_ext));
+    } }
+
+  for(int i=1; i < (sampleSize/4); i++) {
+    if(sortedRMSEB[i] == restartCritB) {
+       //Rprintf("restartB %f", sortedRMSEB[i]);
+  SET_VECTOR_ELT(population, sortedNumbersB[i] - 1, PROTECT(deleteInsertChangeSubtree(VECTOR_ELT(population, sortedNumbersB[i] - 1), funcSet, inSet, constProb_ext, subtreeProb_ext, maxDepth_ext, maxLeafs_ext, maxNodes_ext,constScaling_ext))); 
+      UNPROTECT(1);
+     //SET_VECTOR_ELT(population, sortedNumbersB[i] - 1, randFuncGrow(funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext, constScaling_ext));
+    } }
+
+
+  for(int i=0; i < (sampleSize/4); i++) {
    SET_VECTOR_ELT(winnerA, i, deep_copy_closxp(VECTOR_ELT(population, sortedNumbersA[i] - 1)));
    SET_VECTOR_ELT(winnerB, i, deep_copy_closxp(VECTOR_ELT(population, sortedNumbersB[i] - 1)));
   // SET_VECTOR_ELT(loserA, i, VECTOR_ELT(population, sortedNumbersA[i + (sampleSize/4)] - 1));
@@ -128,13 +152,8 @@ SEXP selection(SEXP population, SEXP sampleSize_ext, SEXP actualParameters, SEXP
    SET_VECTOR_ELT(population, (sortedNumbersA[i]-1), VECTOR_ELT(winnerA, i - (sampleSize/4)));
    SET_VECTOR_ELT(population, (sortedNumbersB[i]-1), VECTOR_ELT(winnerB, i - (sampleSize/4)));
   } 
-  
-/* PROTECT(loserPop= createPopulation(sampleSize_ext, funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext));
-for(int i=(sampleSize/4); i < (sampleSize/2); i++) {
-Rprintf(" sortedNumbersA: %d, sortedNumbersB: %d",(sortedNumbersA[i]),(sortedNumbersB[i]));
-SET_VECTOR_ELT(population, (sortedNumbersA[i]),VECTOR_ELT(loserPop,i));
-SET_VECTOR_ELT(population, (sortedNumbersB[i]),VECTOR_ELT(loserPop,i));
-} */
+
+
 
   Free(x);
   Free(y);
@@ -142,6 +161,8 @@ SET_VECTOR_ELT(population, (sortedNumbersB[i]),VECTOR_ELT(loserPop,i));
   Free(sampleNumbersB);
   Free(sortedNumbersA);
   Free(sortedNumbersB);
+  Free(sortedRMSEA);
+  Free(sortedRMSEB);
   UNPROTECT(5 + sampleSize/2);
 
 return population;

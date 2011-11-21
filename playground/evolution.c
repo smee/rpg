@@ -15,11 +15,12 @@ SET_VECTOR_ELT(rmseVectorSum, i, evalVectorizedRmse(VECTOR_ELT(population, i), a
 }
 int *numbersRMSE= Calloc(popSize * sizeof(int), int);
 int *sortedNumbersRMSE= Calloc(popSize * sizeof(int), int);
+double *sortedRMSE= Calloc(popSize * sizeof(double), double);
 for(int i=0; i < popSize; i++) {
 numbersRMSE[i]=i + 1;
 }
 
-sortByRmse(numbersRMSE, sortedNumbersRMSE, popSize, rmseVectorSum);
+sortByRmse(numbersRMSE, sortedNumbersRMSE, popSize, rmseVectorSum, sortedRMSE);
 
 PROTECT(rmseVectorSum= coerceVector(rmseVectorSum, REALSXP));
 double rmseArray[popSize];
@@ -30,7 +31,42 @@ for(int i= 0; i < popSize; i++) {
   int temp=sortedNumbersRMSE[i] - 1;
   printf("\n Number: %d, RMSE: %f ",sortedNumbersRMSE[i], rmseArray[temp]);
 }
+Free(numbersRMSE);
+Free(sortedNumbersRMSE);
+Free(sortedRMSE);
 UNPROTECT(2);
+}
+
+SEXP restartPopulation(SEXP population,SEXP actualParameters, SEXP targetValues,SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ext, SEXP subtreeProb_ext, SEXP constScaling_ext, double * bestRMSE) {
+
+int popSize= LENGTH(population);
+SEXP rmseVectorSum;
+PROTECT(rmseVectorSum= allocVector(VECSXP, popSize));
+
+for(int i= 0; i < popSize; i++) {
+SET_VECTOR_ELT(rmseVectorSum, i, evalVectorizedRmse(VECTOR_ELT(population, i), actualParameters, targetValues, bestRMSE)); 
+}
+int *numbersRMSE= Calloc(popSize * sizeof(int), int);
+int *sortedNumbersRMSE= Calloc(popSize * sizeof(int), int);
+double *sortedRMSE= Calloc(popSize * sizeof(double), double);
+for(int i=0; i < popSize; i++) {
+numbersRMSE[i]=i + 1;
+}
+sortByRmse(numbersRMSE, sortedNumbersRMSE, popSize, rmseVectorSum, sortedRMSE);
+
+double restartCrit = sortedRMSE[0];
+
+if (restartCrit == *bestRMSE)
+  for(int i=1; i < popSize; i++) {
+    if(sortedRMSE[i] == restartCrit) {
+       //Rprintf("restart%f", sortedRMSE[i]);
+       SET_VECTOR_ELT(population, sortedNumbersRMSE[i] - 1, randFuncGrow(funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext, constScaling_ext));
+    } }
+UNPROTECT(1);
+Free(numbersRMSE);
+Free(sortedNumbersRMSE);
+Free(sortedRMSE);
+return population;
 }
 
 
@@ -70,8 +106,15 @@ SEXP evolutionRun(SEXP numberOfRuns_ext, SEXP popSize_ext, SEXP sampleSize_ext, 
           REAL(returnRMSE)[0] = bestRMSE;
           UNPROTECT(1);
             return returnRMSE; } }
-        } UNPROTECT(1); 
-     } 
+        } 
+     /* if( (i % 1000) == 0 ) {  //Restart-Crit
+     //Rprintf("restart");
+     PROTECT(population= restartPopulation(population,actualParameters, targetValues,funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext, constScaling_ext, &bestRMSE));
+     UNPROTECT(1); } */
+     UNPROTECT(1); 
+}
+
+
   if(silent != 1) {
     summary(population, actualParameters, targetValues, &bestRMSE);
   }
