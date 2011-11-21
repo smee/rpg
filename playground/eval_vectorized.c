@@ -162,7 +162,7 @@ SEXP evalVectorizedRmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues
   // calculate RMSE...
   double diff, total = 0.0, rmse;
   PROTECT(targetValues = coerceVector(targetValues, REALSXP));
-
+  
   for (int i = 0; i < context.samples; i++) {
     diff = result[i] - REAL(targetValues)[i];
     total += diff * diff;
@@ -172,7 +172,16 @@ SEXP evalVectorizedRmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues
     *bestRMSE= rmse; }
   SEXP rResult;
   PROTECT(rResult = allocVector(REALSXP, 1));
+  
+  if(!isnan(rmse)) {  //nan-exception error handling
   REAL(rResult)[0] = rmse;
   UNPROTECT(6);
-  return rResult;
+  return rResult; } else { 
+    REAL(rResult)[0] = 10000000000000; //large number TODO: set to inf
+    UNPROTECT(6);
+    return rResult;
+    
+  }
 }
+
+
