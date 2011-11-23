@@ -117,19 +117,19 @@ SEXP selection(SEXP population, SEXP sampleSize_ext, SEXP actualParameters, SEXP
  
 
 // Restart if individual is duplicate
-  double restartCritA = sortedRMSEA[0];
-  double restartCritB = sortedRMSEB[0];
+ // double restartCritA = sortedRMSEA[0];
+ // double restartCritB = sortedRMSEB[0];
 
-  for(int i=1; i < (sampleSize/4); i++) {
-    if(sortedRMSEA[i] == restartCritA) {
-       //Rprintf("restartA %f", sortedRMSEA[i]);
-       SET_VECTOR_ELT(population, sortedNumbersA[i] - 1, randFuncGrow(funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext, constScaling_ext));
+  for(int i=0; i < ((sampleSize/4)-1); i++) {
+    if(sortedRMSEA[i] == sortedRMSEA[i+1]) {
+       //Rprintf("restartA: A: %f B: %f", sortedRMSEA[i], sortedRMSEA[i+1]);
+       SET_VECTOR_ELT(population, sortedNumbersA[i+1] - 1, randFuncGrow(funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext, constScaling_ext));
     } }
 
-  for(int i=1; i < (sampleSize/4); i++) {
-    if(sortedRMSEB[i] == restartCritB) {
-       //Rprintf("restartB %f", sortedRMSEB[i]);
-  SET_VECTOR_ELT(population, sortedNumbersB[i] - 1, PROTECT(deleteInsertChangeSubtree(VECTOR_ELT(population, sortedNumbersB[i] - 1), funcSet, inSet, constProb_ext, subtreeProb_ext, maxDepth_ext, maxLeafs_ext, maxNodes_ext,constScaling_ext))); 
+  for(int i=0; i < ((sampleSize/4)-1); i++) {
+    if(sortedRMSEB[i] == sortedRMSEB[i+1]) {
+       //Rprintf("restartB: A: %f B: %f", sortedRMSEB[i], sortedRMSEB[i+1]);
+  SET_VECTOR_ELT(population, sortedNumbersB[i+1] - 1, PROTECT(deleteInsertChangeSubtree(VECTOR_ELT(population, sortedNumbersB[i+1] - 1), funcSet, inSet, constProb_ext, subtreeProb_ext, maxDepth_ext, maxLeafs_ext, maxNodes_ext,constScaling_ext))); 
       UNPROTECT(1);
      //SET_VECTOR_ELT(population, sortedNumbersB[i] - 1, randFuncGrow(funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext, constScaling_ext));
     } }
