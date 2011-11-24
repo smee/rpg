@@ -222,9 +222,9 @@ void countNodes(SEXP rExpr, int *counter)  {
       return;
   } else if (isLanguage(rExpr)){
          *counter= *counter + 1; } 
-      countLeafs(CADR(rExpr), counter);
+      countNodes(CADR(rExpr), counter);
       if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
-        countLeafs(CADDR(rExpr), counter);
+        countNodes(CADDR(rExpr), counter);
     }
 }
 
@@ -419,7 +419,7 @@ SEXP deleteInsertChangeSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constP
 }
 
 // Crossover functions
-
+// Single point crossover Subtreedepth=2
 
 void selectSubtreeRecursive(SEXP rExpr, SEXP * returnExpr, int subtree, int * counter) {
 if(isNumeric(rExpr)) { // numeric constant...
@@ -520,6 +520,235 @@ countSubtrees(BODY(rFunc2), &subtreeFunc2);
 return R_NilValue;
 }
 
+// Crossover random node, no depth control! do not use! 
+
+void selectNodeRecursive(SEXP rExpr, SEXP * returnExpr, int node, int * counter) {
+if(isNumeric(rExpr)) { // numeric constant...
+    return; // nothing to do
+  } else if(isSymbol(rExpr)) { // 
+    return; // nothing to do
+  } else if (isLanguage(rExpr)) {// composite...
+          *counter= *counter + 1;
+          if(*counter == node) { // selected subtree is found
+           *returnExpr= CADR(rExpr); 
+  
+      }
+    if(*counter <= node) {
+      selectNodeRecursive(CADR(rExpr), returnExpr, node, counter);
+      if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+        selectNodeRecursive(CADDR(rExpr),returnExpr, node, counter);
+      }
+    }
+  }
+}
+
+void crossNodeRecursive(SEXP rExpr, SEXP rExpr2, int node, int * counter) {
+if(isNumeric(rExpr)) { // numeric constant...
+    return; // nothing to do
+  } else if(isSymbol(rExpr)) { // 
+    return; // nothing to do
+  } else if (isLanguage(rExpr)) {// composite...
+          *counter= *counter + 1;
+            if(*counter == node) { // selected subtree is found
+               SETCAR(CDR(rExpr), rExpr2);  
+         
+      }
+    if(*counter <= node) {
+      crossNodeRecursive(CADR(rExpr),rExpr2 , node, counter);
+      if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+        crossNodeRecursive(CADDR(rExpr), rExpr2 , node, counter);
+      }
+    }
+  }
+}
+
+void selectInsertNodeRecursive(SEXP rExpr, SEXP rExpr2,  SEXP * returnExpr,  int node, int * counter) {
+if(isNumeric(rExpr)) { // numeric constant...
+    return; // nothing to do
+  } else if(isSymbol(rExpr)) { // 
+    return; // nothing to do
+  } else if (isLanguage(rExpr)) {// composite...
+          *counter= *counter + 1;
+            if(*counter == node) { // selected subtree is found
+               *returnExpr= CADR(rExpr); 
+               SETCAR(CDR(rExpr), rExpr2); 
+      }
+    if(*counter <= node) {
+      selectInsertNodeRecursive(CADR(rExpr), rExpr2, returnExpr, node, counter);
+      if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+        selectInsertNodeRecursive(CADDR(rExpr), rExpr2, returnExpr, node, counter);
+      }
+    }
+  }
+}
+
+SEXP crossoverRandomNode(SEXP rFunc1, SEXP rFunc2) {
+
+int nodeFunc1= 0, nodeFunc2= 0, rSubtree1= 0, rSubtree2= 0, counter= 0, counter2= 0, counter3 = 0, depth1=0, depth2=0;
+countNodes(BODY(rFunc1), &nodeFunc1);
+countNodes(BODY(rFunc2), &nodeFunc2);
+depth1= countDepth(BODY(rFunc1), depth1);
+depth2= countDepth(BODY(rFunc1), depth2);
+
+//Rprintf(" %d %d ", depth1, depth2);
+  if(nodeFunc1 >= 1 && nodeFunc2 >= 1 && (depth1 < 7 || depth2 < 7) ) {
+    GetRNGstate();
+    rSubtree1= rand_number(nodeFunc1); // get random subtree-number
+    rSubtree2= rand_number(nodeFunc2);
+    //Rprintf("rS1: %d rS2: %d", rSubtree1, rSubtree2);
+    PutRNGstate(); 
+    SEXP exprPointer1;
+    SEXP exprPointer2;
+    PROTECT(exprPointer1);
+    PROTECT(exprPointer2);
+    selectNodeRecursive(BODY(rFunc1), &exprPointer1, rSubtree1, &counter);
+    selectInsertNodeRecursive(BODY(rFunc2), exprPointer1,  &exprPointer2,  rSubtree2, &counter2);
+    crossNodeRecursive(BODY(rFunc1), exprPointer2, rSubtree1, &counter3);
+    //PROTECT(recreateSourceAttribute(rFunc1));
+    //PROTECT(recreateSourceAttribute(rFunc2));
+    //Rprintf("suc");
+    UNPROTECT(2);
+    } else {
+    crossover(rFunc1, rFunc2); }
+
+return R_NilValue;
+}
+
+//Cross with regard to treesize 
+
+void selectDPTRecursive(SEXP rExpr, SEXP * returnExpr, int node, int * counter, int depth, int * rdepth) {
+depth= depth+1;
+if(isNumeric(rExpr)) { // numeric constant...
+    return; // nothing to do
+  } else if(isSymbol(rExpr)) { // 
+    return; // nothing to do
+  } else if (isLanguage(rExpr)) {// composite...
+          *counter= *counter + 1;
+          if(*counter == node) { // selected subtree is found
+           *returnExpr= CADR(rExpr); 
+           *rdepth= depth;
+  
+      }
+    if(*counter <= node) {
+      selectDPTRecursive(CADR(rExpr), returnExpr, node, counter, depth, rdepth);
+      if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+        selectDPTRecursive(CADDR(rExpr),returnExpr, node, counter, depth, rdepth);
+      }
+    }
+  }
+}
+
+void crossDPTRecursive(SEXP rExpr, SEXP rExpr2, int node, int * counter) {
+if(isNumeric(rExpr)) { // numeric constant...
+    return; // nothing to do
+  } else if(isSymbol(rExpr)) { // 
+    return; // nothing to do
+  } else if (isLanguage(rExpr)) {// composite...
+          *counter= *counter + 1;
+            if(*counter == node) { // selected subtree is found
+               SETCAR(CDR(rExpr), rExpr2);  
+         
+      }
+    if(*counter <= node) {
+      crossDPTRecursive(CADR(rExpr),rExpr2 , node, counter);
+      if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+        crossDPTRecursive(CADDR(rExpr), rExpr2 , node, counter);
+      }
+    }
+  }
+}
+
+void selectInsertDPTRecursive(SEXP rExpr, SEXP rExpr2,  SEXP * returnExpr,  int node, int * counter, int maxSubtreeDepth, int depthcounter, int maximaldepth) {
+depthcounter= depthcounter+1;
+if(isNumeric(rExpr)) { // numeric constant...
+    return; // nothing to do
+  } else if(isSymbol(rExpr)) { // 
+    return; // nothing to do
+  } else if (isLanguage(rExpr)) {// composite...
+      if(depthcounter <= maximaldepth) {
+      int subtreedepth= countDepth(CADR(rExpr), subtreedepth);
+      if(subtreedepth <= maxSubtreeDepth) {
+          *counter= *counter + 1;
+            if(*counter == node) { // selected subtree is found
+               *returnExpr= CADR(rExpr); 
+               SETCAR(CDR(rExpr), rExpr2); 
+               
+      } } }
+    if(*counter <= node) {
+      selectInsertDPTRecursive(CADR(rExpr), rExpr2, returnExpr, node, counter, maxSubtreeDepth, depthcounter, maximaldepth);
+      if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+        selectInsertDPTRecursive(CADDR(rExpr), rExpr2, returnExpr, node, counter, maxSubtreeDepth, depthcounter, maximaldepth);
+      }
+    }
+  }
+}
+
+void countCrossPoints(SEXP rExpr, int *counter, int maxSubtreeDepth, int depthcounter, int maximaldepth)  {
+  depthcounter= depthcounter+1;
+  if(isNumeric(rExpr)) { // numeric constant...
+      return;
+  } else if(isSymbol(rExpr)) { // 
+      return;
+  } else if (isLanguage(rExpr)){
+    if(depthcounter <= maximaldepth) {
+      int subtreedepth= countDepth(CADR(rExpr), subtreedepth);
+      if( subtreedepth <= maxSubtreeDepth )  {
+         *counter= *counter + 1; }  } }
+      countCrossPoints(CADR(rExpr), counter, maxSubtreeDepth, depthcounter, maximaldepth);
+      if(!isNull(CADDR(rExpr))){ // for functions with arity one (sin, cos...)
+        countCrossPoints(CADDR(rExpr), counter, maxSubtreeDepth, depthcounter, maximaldepth);
+    }
+}
+
+
+SEXP crossoverDepthProof(SEXP rFunc1, SEXP rFunc2, SEXP maxDepth_ext) {
+
+int nodeFunc1= 0, nodeFunc2= 0, selectNode1= 0, selectNode2= 0, countNode= 0, counter= 0, counter2= 0, counter3 = 0;
+countNodes(BODY(rFunc1), &nodeFunc1);
+countNodes(BODY(rFunc2), &nodeFunc2);
+//Rprintf(" %d %d ", depth1, depth2);
+  if(nodeFunc1 >= 1 && nodeFunc2 >= 1) {
+
+    PROTECT(maxDepth_ext = coerceVector(maxDepth_ext, INTSXP));
+    int maxTreeDepth= INTEGER(maxDepth_ext)[0] + 1;
+
+    GetRNGstate();
+    selectNode1= rand_number(nodeFunc1); // get random subtree-number
+    //Rprintf("rS1: %d rS2: %d", rSubtree1, rSubtree2);
+    PutRNGstate(); 
+    SEXP exprPointer1;
+    SEXP exprPointer2;
+    PROTECT(exprPointer1);
+    PROTECT(exprPointer2);
+    
+    int subtreedepth= 0, depthcounter= 0, CrossPointDepth= 0, maxSubtreeDepth, maximalPointDepth;
+    selectDPTRecursive(BODY(rFunc1), &exprPointer1, selectNode1, &counter, depthcounter, &CrossPointDepth);
+    subtreedepth= countDepth(exprPointer1, subtreedepth);
+    maxSubtreeDepth= maxTreeDepth - CrossPointDepth;
+    maximalPointDepth= maxTreeDepth - subtreedepth;
+   // Rprintf(" maxSubtreeDepth %d, CrossPointDepth %d, maximalPointDepth %d, subtreedepth %d ", maxSubtreeDepth, CrossPointDepth, maximalPointDepth, subtreedepth);
+      depthcounter= 0;
+    countCrossPoints(BODY(rFunc2), &countNode, maxSubtreeDepth, depthcounter, maximalPointDepth);
+    selectNode2= rand_number(countNode);
+      depthcounter= 0;
+    selectInsertDPTRecursive(BODY(rFunc2), exprPointer1,  &exprPointer2,  selectNode2, &counter2, maxSubtreeDepth, depthcounter, maximalPointDepth);
+    crossDPTRecursive(BODY(rFunc1), exprPointer2, selectNode1, &counter3);
+    //PROTECT(recreateSourceAttribute(rFunc1));
+    //PROTECT(recreateSourceAttribute(rFunc2));
+    //Rprintf("suc");
+    UNPROTECT(3);
+    }
+
+return R_NilValue;
+}
+
+
+/*
+dyn.load("evolution.so")
+test1 <- function(x) 1+2+3+4+5+6
+test2 <- function(x) 1*2*3*4*5*6
+.Call("crossoverDepthProof",test1,test2) 
+*/
 
 
 

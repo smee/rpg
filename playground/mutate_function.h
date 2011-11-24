@@ -6,6 +6,8 @@
 
 
 SEXP crossover(SEXP, SEXP);
+SEXP crossoverRandomNode(SEXP, SEXP);
+SEXP crossoverDepthProof(SEXP, SEXP, SEXP);
 
 SEXP mutateConstants(SEXP, SEXP);
 
