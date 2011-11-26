@@ -72,16 +72,16 @@ sampleMatrix <- function(dim, xs = seq(from = -1, to = 1, by = 0.1)) {
 }
 
 
-#.Call("changeNode",foo,funcset= c("+","-","*","/","sin"),inset=c("x"),constprob= 0.2, subtreeProb= 0.5, maxDepth_ext = 7, constScaling= 10)
+.Call("changeNode",foo,funcset= c("+","-","*","/","sin"),inset=c("x"),constprob= 0.2, subtreeProb= 0.5, maxDepth_ext = 7, constScaling= 10)
 
-#require(rgp)
+require(rgp)
 
-#data1 <- {
-#  x1 <- seq(0, 4*pi, length.out=201)
-#  y <- sin(x1) + cos(2*x1)
-#  data.frame(y=y, x1=x1)
-#}
+data1 <- {
+  x <- seq(from=0, to=12, length= 512)
+  y <- exp(-1*x)*x*x*x*sin(x)*cos(x)*(sin(x)*sin(x)*cos(x)-1)
+  data.frame(y=y, x=x)
+}
 
-#mdl <- symbolicRegression(y ~ x1, data=data1,
-#                          functionSet=mathFunctionSet,
-#                          stopCondition=makeTimeStopCondition(120))
+mdl <- symbolicRegression(y ~ x, data=data1,
+                          functionSet=mathFunctionSet,
+                         stopCondition=makeStepsStopCondition(15000))
