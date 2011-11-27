@@ -170,7 +170,7 @@ SEXP randExprGrow(SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ex
   PROTECT(constScaling_ext = coerceVector(constScaling_ext, REALSXP));
   TreeParams.constScaling= REAL(constScaling_ext)[0];
  
- int currentDepth= 1;
+ int currentDepth= 0;
   GetRNGstate();
     PROTECT(rfun= randExprGrowRecursive(&TreeParams, currentDepth));
   PutRNGstate();
@@ -276,7 +276,7 @@ SEXP randFuncGrow(SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ex
   PROTECT(constScaling_ext = coerceVector(constScaling_ext, REALSXP));
   TreeParams.constScaling= REAL(constScaling_ext)[0];
  
- int currentDepth= 1;
+ int currentDepth= 0;
   GetRNGstate();
     PROTECT(rfun= randExprGrowRecursive(&TreeParams, currentDepth));
   PutRNGstate();
