@@ -79,9 +79,9 @@ SEXP selection(SEXP population, SEXP sampleSize_ext, SEXP actualParameters, SEXP
   GetRNGstate();
   snr(sampleSize, (popSize), y, x);
   PutRNGstate();
-  for(int i=0; i < (sampleSize) ; i++) {
+  //for(int i=0; i < (sampleSize) ; i++) {
   //Rprintf(" %d", y[i]);
-  }
+  //}
 
   for(int i=0; i < (sampleSize / 2) ; i++) {
     sampleNumbersA[i]=y[i];
