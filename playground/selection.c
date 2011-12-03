@@ -105,9 +105,9 @@ SEXP selection(SEXP population, SEXP sampleSize_ext, SEXP actualParameters, SEXP
   double *sortedRMSEB= Calloc((sampleSize/2)*sizeof(double), double);
   sortByRmse(sampleNumbersA, sortedNumbersA, (sampleSize/2), rmseVectorA, sortedRMSEA);
   sortByRmse(sampleNumbersB, sortedNumbersB, (sampleSize/2), rmseVectorB, sortedRMSEB);
-  for(int i=0; i < (sampleSize/2); i++) {
+  //for(int i=0; i < (sampleSize/2); i++) {
   //Rprintf(" SortA: %f, SortB %f", sortedRMSEA[i], sortedRMSEB[i]);
-  }
+  //}
  
  SEXP winnerA,winnerB,loserA,loserB;
  PROTECT(winnerA= allocVector(VECSXP, (sampleSize/4)));
