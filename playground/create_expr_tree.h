@@ -25,7 +25,7 @@ void getArities(const char **, int *, int);
 
 int randIndex(int);
 
-SEXP randomNumber();
+SEXP randomNumber(double);
 
 SEXP randExprGrowRecursive(struct RandExprGrowContext *, int);
 

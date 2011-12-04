@@ -89,6 +89,79 @@ SEXP mutateConstants(SEXP rFunc, SEXP constScaling_ext) { // TODO add parameter 
   return rFunc;
 }
 
+void mutateLeavesRec(SEXP rExpr, double constScaling, int nVariables, const char **arrayOfVariables) {
+  SEXP replacement;
+  if(isNumeric(rExpr)) { // numeric constant...
+    return;
+  } else if(isSymbol(rExpr)) { // 
+    return;}
+  if(isLanguage(rExpr)) {
+     if (isLanguage(CADR(rExpr))) {  
+       mutateLeavesRec(CADR(rExpr), constScaling, nVariables, arrayOfVariables);
+     } else if(isNumeric(CADR(rExpr))) {
+       if (unif_rand() <= 0.3) {
+         if(unif_rand() <= 0.5) {
+           REAL(CADR(rExpr))[0]= REAL(CADR(rExpr))[0] + (constScaling/10) *((unif_rand() * 2) - 1); 
+         } else {
+           int varIdx= randIndex(nVariables);
+           PROTECT(replacement= install(arrayOfVariables[varIdx]));
+           SETCAR(CDR(rExpr), replacement);
+           UNPROTECT(1);
+        }}
+     } else if(isSymbol(CAR(rExpr))) {
+       if (unif_rand() <= 0.3) {
+         if(unif_rand() <= 0.5) {
+           replacement= randomNumber(constScaling);
+           SETCAR(CDR(rExpr), replacement);
+         } else {
+           int varIdx= randIndex(nVariables);
+           PROTECT(replacement= install(arrayOfVariables[varIdx]));
+           SETCAR(CDR(rExpr), replacement);
+           UNPROTECT(1);
+     } } }
+     if(!isNull(CADDR(rExpr))){
+     if (isLanguage(CADDR(rExpr))) {
+       mutateLeavesRec(CADDR(rExpr), constScaling, nVariables, arrayOfVariables);
+     } else if(isNumeric(CADDR(rExpr))) {
+       if (unif_rand() <= 0.3) {
+         if(unif_rand() <= 0.5) {
+           REAL(CADDR(rExpr))[0]= REAL(CADDR(rExpr))[0] + (constScaling/10) *((unif_rand() * 2) - 1); 
+         } else {
+           int varIdx= randIndex(nVariables);
+           PROTECT(replacement= install(arrayOfVariables[varIdx]));
+           SETCAR(CDDR(rExpr), replacement);
+           UNPROTECT(1);
+        }}
+     } else if(isSymbol(CAR(rExpr))) {
+       if (unif_rand() <= 0.3) {
+         if(unif_rand() <= 0.5) {
+           replacement= randomNumber(constScaling);
+           SETCAR(CDDR(rExpr), replacement);
+         } else {
+           int varIdx= randIndex(nVariables);
+           PROTECT(replacement= install(arrayOfVariables[varIdx]));
+           SETCAR(CDDR(rExpr), replacement);
+           UNPROTECT(1);
+} } } } } }
+
+SEXP mutateLeaves(SEXP rFunc, SEXP constScaling_ext, SEXP inSet) { // TODO add parameter for RandomDistributionKind
+  
+  PROTECT(constScaling_ext = coerceVector(constScaling_ext, REALSXP));
+  double constScaling= REAL(constScaling_ext)[0];
+
+  int nVariables= LENGTH(inSet);
+  const char *arrayOfVariables[nVariables];
+  for (int i= 0; i < nVariables; i++) {
+    arrayOfVariables[i]= CHAR(STRING_ELT(inSet,i));
+  }
+  GetRNGstate();
+    mutateLeavesRec(BODY(rFunc), constScaling, nVariables, arrayOfVariables);
+  PutRNGstate();
+  //PROTECT(recreateSourceAttribute(rFunc));
+  UNPROTECT(1);
+  return rFunc;
+}
+
 void countSubtrees(SEXP rExpr, int* counter) { // count matching Subtrees for random selection
 if(isNumeric(rExpr)) { // numeric constant...
     return;
@@ -409,7 +482,7 @@ SEXP deleteInsertChangeSubtree(SEXP rFunc, SEXP funcSet, SEXP inSet, SEXP constP
     PROTECT(rFunc= insertSubtree(rFunc, funcSet, inSet, constProb_ext, subtreeProb_ext, maxDepth_ext, maxLeafs_ext, maxNodes_ext, constScaling_ext));
     UNPROTECT(1); }
   else if (mutateop == 3) {
-    PROTECT(rFunc= mutateConstants(rFunc, constScaling_ext));
+    PROTECT(rFunc= mutateLeaves(rFunc, constScaling_ext, inSet));
     UNPROTECT(1); }
   else if (mutateop == 4) {
     PROTECT(rFunc= changeNodes(rFunc, funcSet, inSet, constProb_ext, subtreeProb_ext, maxDepth_ext, constScaling_ext));
@@ -752,26 +825,10 @@ countNodes(BODY(rFunc2), &nodeFunc2);
 return R_NilValue;
 }
 
-SEXP test(SEXP test, SEXP test2)  {
-
-SEXP expr;
-SEXP expr2;
-expr= CADR(BODY(test));
-expr2= CADR(BODY(test2));
-expr= duplicate(expr2);
-
-return test;
-}
-/*
-dyn.load("evolution.so")
-test1 <- function(x) 1+2+3+4+5+6+7
-test2 <- function(x) x*x*x*x*x*x*x
-.Call("crossoverDepthProof",test1,test2, 7) 
-*/
 
 
 
- 
+
  
 
 
