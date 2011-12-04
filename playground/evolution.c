@@ -3,6 +3,7 @@
 #include "selection.h"
 #include "population.h"
 #include "create_expr_tree.h"
+#include <time.h> 
 
 void summary(SEXP population,SEXP actualParameters, SEXP targetValues, double * bestRMSE) {
 
@@ -69,8 +70,7 @@ Free(sortedRMSE);
 return population;
 }
 
-
-SEXP evolutionRun(SEXP numberOfRuns_ext, SEXP popSize_ext, SEXP sampleSize_ext, SEXP actualParameters, SEXP targetValues, SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP maxLeafs_ext, SEXP maxNodes_ext, SEXP constProb_ext, SEXP constScaling_ext,  SEXP subtreeProb_ext, SEXP RMSElimit_ext, SEXP returnRMSE_ext, SEXP silent_ext) {
+SEXP evolutionRun(SEXP numberOfRuns_ext, SEXP popSize_ext, SEXP sampleSize_ext, SEXP actualParameters, SEXP targetValues, SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP maxLeafs_ext, SEXP maxNodes_ext, SEXP constProb_ext, SEXP constScaling_ext,  SEXP subtreeProb_ext, SEXP RMSElimit_ext, SEXP returnRMSE_ext, SEXP silent_ext, SEXP timeLimit_ext) {
 
   SEXP population;
 
@@ -84,8 +84,14 @@ SEXP evolutionRun(SEXP numberOfRuns_ext, SEXP popSize_ext, SEXP sampleSize_ext, 
     PROTECT(silent_ext= coerceVector(silent_ext, INTSXP));
     int silent= INTEGER(silent_ext)[0]; 
 
+    PROTECT(timeLimit_ext= coerceVector(timeLimit_ext, INTSXP));
+    int timeLimit= INTEGER(timeLimit_ext)[0]; 
+
     PROTECT(returnRMSE_ext= coerceVector(returnRMSE_ext, INTSXP));
     int rRMSE= INTEGER(returnRMSE_ext)[0]; 
+  
+    clock_t prgstart, prgende;
+    prgstart=clock();
 
     double bestRMSE= 1000000;
   for(int i=0; i < numberOfRuns; i++) {
@@ -97,8 +103,11 @@ SEXP evolutionRun(SEXP numberOfRuns_ext, SEXP popSize_ext, SEXP sampleSize_ext, 
         }
       if(RMSElimit > 0) {
         if (RMSElimit >= bestRMSE) {
-          UNPROTECT(6);
+          UNPROTECT(7);
           if(rRMSE == 0) {
+            if(silent != 1) {
+              summary(population, actualParameters, targetValues, &bestRMSE);
+            }
             return population; 
           } else {
           SEXP returnRMSE;
@@ -107,10 +116,26 @@ SEXP evolutionRun(SEXP numberOfRuns_ext, SEXP popSize_ext, SEXP sampleSize_ext, 
           UNPROTECT(1);
             return returnRMSE; } }
         } 
-     /* if( (i % 1000) == 0 ) {  //Restart-Crit
-     //Rprintf("restart");
-     PROTECT(population= restartPopulation(population,actualParameters, targetValues,funcSet, inSet, maxDepth_ext, constProb_ext, subtreeProb_ext, constScaling_ext, &bestRMSE));
-     UNPROTECT(1); } */
+     
+     prgende=clock();
+     float runtime= (float)(prgende-prgstart) / CLOCKS_PER_SEC;
+     Rprintf(" runtime: %.2f sec", runtime);
+
+      if(timeLimit > 0) {
+        if ((int)runtime >= timeLimit) {
+          UNPROTECT(7);
+          if(rRMSE == 0) {
+            if(silent != 1) {
+              summary(population, actualParameters, targetValues, &bestRMSE);
+            }
+            return population; 
+          } else {
+          SEXP returnRMSE;
+          PROTECT(returnRMSE = allocVector(REALSXP, 1));
+          REAL(returnRMSE)[0] = bestRMSE;
+          UNPROTECT(1);
+          return returnRMSE; } }
+        } 
      UNPROTECT(1); 
 }
 
@@ -118,7 +143,7 @@ SEXP evolutionRun(SEXP numberOfRuns_ext, SEXP popSize_ext, SEXP sampleSize_ext, 
   if(silent != 1) {
     summary(population, actualParameters, targetValues, &bestRMSE);
   }
-  UNPROTECT(5);
+  UNPROTECT(6);
   if(rRMSE == 0) {
    return population; 
   } else {
