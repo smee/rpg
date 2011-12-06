@@ -1,0 +1,12 @@
+HOWTO.txt
+
+Howto perform SPO experiments for CRGP:
+
+1.) edit parameters in sudo cp spotAlgStartRgp.R:
+   vi spotAlgStartRgp.R
+2.) submit the experiment run to the batch system:
+   qsub RGPspot.pbs 
+   (or use start.sh)
+
+You can follow the run after the first design point has been evaluated:
+tail -f rgp0001.res

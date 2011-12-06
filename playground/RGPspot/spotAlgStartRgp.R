@@ -29,7 +29,7 @@ spotCRgpTargetFunction <- function(populationSize = 200, selectionSize = 20, max
     constprob= 0.3, constScaling= 2, subtreeprob= 0.7,
     rmselimit= 0, Returnrmse= 1,
     silent= 1,
-    runtime= 20) #runtime= 720)
+    runtime= 10) #runtime= 720)
   if (debugOutput) message("rmse= ", rmse)
   rmse
 }

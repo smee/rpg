@@ -1,10 +1,12 @@
 ## Load package
 require("SPOT")
+## Load RGP interface
+source("~/repos/rgp/playground/RGPspot/spotAlgStartRgp.R")
 ## (for calls from demo():) disable interactive confirmation of plots
 old.demo.ask <- options("demo.ask" = FALSE)
 ## get path of test project
 testPath<-.find.package("SPOT")
-testPath<-file.path("~/repos/rgp/playground/RGPspot","")
+testPath<-file.path("~/repos/rgp/playground","RGPspot")
 ## show path
 testPath
 ## remember workdir

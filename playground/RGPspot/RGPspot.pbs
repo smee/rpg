@@ -1,0 +1,4 @@
+#!/bin/sh
+#PBS -l walltime=48:00:00
+
+Rscript /home/oflasch/repos/rgp/playground/RGPspot/spotDemo17Rgp.R
