@@ -119,7 +119,9 @@ SEXP evolutionRun(SEXP numberOfRuns_ext, SEXP popSize_ext, SEXP sampleSize_ext, 
      
      prgende=clock();
      float runtime= (float)(prgende-prgstart) / CLOCKS_PER_SEC;
-     Rprintf(" runtime: %.2f sec", runtime);
+     if(silent != 1) {
+       Rprintf(" runtime: %.2f sec", runtime);
+     }
 
       if(timeLimit > 0) {
         if ((int)runtime >= timeLimit) {
