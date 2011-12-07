@@ -10,3 +10,4 @@ Howto perform SPO experiments for CRGP:
 
 You can follow the run after the first design point has been evaluated:
 tail -f rgp0001.res
+(or use watchrun.sh)
