@@ -20,7 +20,7 @@ mutationFunction1 <- function(ind) {
 }
 
 sr1 <- symbolicRegression(y ~ x1, data = df1,
-                          functionSet = functionSet("+", "-"),
+                          functionSet = functionSet1,
                           stopCondition = makeStepsStopCondition(500), # makeTimeStopCondition(seconds)
                           populationSize = 200,
                           individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
