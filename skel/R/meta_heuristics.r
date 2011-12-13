@@ -23,6 +23,10 @@
 ##' @param selectionFunction The selection function to use in meta-heuristics that support
 ##'   different selection functions. Defaults to tournament selection. See
 ##'   \link{makeTournamentSelection} for details.
+##' @param crossoverProbability The crossover probability for meta-heuristics that support
+##'   this setting (i.e. TinyGP). Defaults to \code{0.9}.
+##  @param tournamentSize The tournament size for meta-heuristics that support this setting
+##'   (i.e. TinyGP). Defaults to \code{2}.
 ##'
 ##' @rdname metaHeuristics 
 ##' @export
@@ -34,6 +38,8 @@ function(logFunction, stopCondition, pop, fitnessFunction,
          restartCondition, restartStrategy,
          breedingFitness, breedingTries,
          progressMonitor) {
+  logFunction("STARTING genetic programming evolution run (exploitative steady state meta-heuristic) ...")
+
   ## Initialize statistic counters...
   stepNumber <- 1
   evaluationNumber <- 0
@@ -45,7 +51,6 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   startTime <- proc.time()["elapsed"]
 
   ## Execute GP run...
-  logFunction("STARTING genetic programming evolution run (exploitative steady state meta-heuristic) ...")
   while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
     # Select two sets of individuals and divide each into winners and losers...
@@ -105,7 +110,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   }
   elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
   logFunction("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
-         stepNumber, evaluationNumber, formatSeconds(timeElapsed))
+              stepNumber, evaluationNumber, formatSeconds(timeElapsed))
 
   ## Return result list...
   list(timeElapsed = timeElapsed,
@@ -119,7 +124,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 
 ##' @rdname metaHeuristics 
 ##' @export
-makeTinyGpMetaHeuristic <- function()
+makeTinyGpMetaHeuristic <- function(crossoverProbability = 0.9, tournamentSize = 2)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
          archive, extinctionPrevention,
@@ -127,6 +132,39 @@ function(logFunction, stopCondition, pop, fitnessFunction,
          restartCondition, restartStrategy,
          breedingFitness, breedingTries,
          progressMonitor) {
+  logFunction("STARTING genetic programming evolution run (TinyGP meta-heuristic) ...")
+  
+  ## Tool functions...
+  randomIndex <- function(maxIndex) as.integer(runif(1, min = 1, max = maxIndex + 1)) 
+  tournament <- function(fintessValues, popSize, tournamentSize) {
+    bestIndex <- randomIndex(popSize) 
+    bestFitness <- Inf
+    for (i in 1:tournamentSize) {
+      competitorIndex <- randomIndex(popSize)
+      if (fitnessValues[competitorIndex] < bestFitness) {
+        bestFitness <- fitnessValues[competitorIndex]
+        bestIndex <- competitorIndex
+      }
+    }
+    bestIndex
+  }
+  negativeTournament <- function(fintessValues, popSize, tournamentSize) {
+    worstIndex <- randomIndex(popSize) 
+    worstFitness <- -Inf
+    for (i in 1:tournamentSize) {
+      competitorIndex <- randomIndex(popSize)
+      if (fitnessValues[competitorIndex] > worstFitness) {
+        worstFitness <- fitnessValues[competitorIndex]
+        worstIndex <- competitorIndex
+      }
+    }
+    worstIndex
+  }
+
+  ## Global variables...
+  popSize <- length(pop)
+  fitnessValues <- sapply(pop, fitnessFunction)
+
   ## Initialize statistic counters...
   stepNumber <- 1
   evaluationNumber <- 0
@@ -134,15 +172,50 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   archiveList <- list() # the archive of all individuals selected in this run, only used if archive == TRUE
   archiveIndexOf <- function(archive, individual)
     Position(function(a) identical(body(a$individual), body(individual)), archive)
-  bestFitness <- Inf # best fitness value seen in this run, if multi-criterial, only the first component counts
+  bestFitness <- min(fitnessValues) # best fitness value seen in this run, if multi-criterial, only the first component counts
   startTime <- proc.time()["elapsed"]
 
   ## Execute GP run...
-  logFunction("STARTING genetic programming evolution run (TinyGP meta-heuristic) ...")
   while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
-    stop() # TODO
+    for (i in 1:popSize) {
+      child <- NULL
+      if (runif(1) < crossoverProbability) {
+        # create child via crossover
+        motherIndex <- tournament(fitnessValues, popSize, tournamentSize)
+        fatherIndex <- tournament(fitnessValues, popSize, tournamentSize)
+        child <- crossoverFunction(pop[[motherIndex]], pop[[fatherIndex]],
+                                   breedingFitness = breedingFitness,
+                                   breedingTries = breedingTries)
+      } else {
+        # create child via mutation
+        parentIndex <- tournament(fitnessValues, popSize, tournamentSize)
+        child <- mutationFunction(pop[[parentIndex]])
+      }
+
+      childFitness <- fitnessFunction(child)
+      bestFitness <- if (childFitness < bestFitness) childFitness else bestFitness
+
+      offspringIndex <- negativeTournament(fitnessValues, popSize, tournamentSize)
+      fitnessValues[offspringIndex] <- childFitness
+      pop[[offspringIndex]] <- child
+
+      if (archive) {
+        archiveList[[length(archiveList) + 1]] <- list(individual = child,
+                                                       fitness = childFitness)
+      }
+    }
+
+    timeElapsed <- proc.time()["elapsed"] - startTime
+    stepNumber <- 1 + stepNumber
+    evaluationNumber <- popSize + evaluationNumber
+    progressMonitor(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+                    evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
   }
+  
+  elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
+  logFunction("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
+              stepNumber, evaluationNumber, formatSeconds(timeElapsed))
 
   ## Return result list...
   list(timeElapsed = timeElapsed,
