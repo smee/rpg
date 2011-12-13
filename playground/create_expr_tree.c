@@ -273,9 +273,7 @@ SEXP randFuncGrow(SEXP funcSet, SEXP inSet, SEXP maxDepth_ext, SEXP constProb_ex
   PROTECT(subtreeProb_ext = coerceVector(subtreeProb_ext, REALSXP));
   TreeParams.probSubtree= REAL(subtreeProb_ext)[0];
 
-  printf("before: in randFuncGrow\n");
   PROTECT(constScaling_ext = coerceVector(constScaling_ext, REALSXP));
-  printf("after: in randFuncGrow\n");
   TreeParams.constScaling= REAL(constScaling_ext)[0];
  
  int currentDepth= 0;
