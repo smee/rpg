@@ -7,6 +7,8 @@
 ## released under the GPL v2
 ##
 
+##' @include meta_heuristics.r
+NA
 ##' @include evolution.r
 NA
 
@@ -49,10 +51,6 @@ NA
 ##'   operation might be expensive with larger population sizes.
 ##' @param archive If set to \code{TRUE}, all GP individuals evaluated are stored in an
 ##'   archive list \code{archiveList} that is returned as part of the result of this function. 
-##' @param genealogy If set to \code{TRUE}, the parent(s) of each indiviudal is stored in
-##'   an archive \code{genealogyList} as part of the result of this function, enabling
-##'   the reconstruction of the complete genealogy of the result population. This
-##'   parameter implies \code{archive = TRUE}.
 ##' @param functionSet The function set.
 ##' @param constantSet The set of constant factory functions.
 ##' @param selectionFunction The selection function to use. Defaults to
@@ -63,6 +61,9 @@ NA
 ##'   \link{makeEmptyRestartCondition} for details.
 ##' @param restartStrategy The strategy for doing restarts. See
 ##'   \link{makeLocalRestartStrategy} for details.
+##' @param metaHeuristic The meta-heuristic (i.e. optimization algorithm) to use
+##'   in the search of solutions. See \link{metaHeuristics} for available
+##'   algorithms.
 ##' @param breedingFitness A "breeding" function. This function is applied after
 ##'   every stochastic operation \emph{Op} that creates or modifies an individal
 ##'   (typically, \emph{Op} is a initialization, mutation, or crossover operation). If
@@ -94,7 +95,6 @@ dataDrivenGeneticProgramming <- function(formula, data, fitnessFunctionFactory,
                                          elite = list(),
                                          extinctionPrevention = FALSE,
                                          archive = FALSE,
-                                         genealogy = FALSE,
                                          functionSet = mathFunctionSet,
                                          constantSet = numericConstantSet,
                                          selectionFunction = makeTournamentSelection(),
@@ -102,6 +102,7 @@ dataDrivenGeneticProgramming <- function(formula, data, fitnessFunctionFactory,
                                          mutationFunction = NULL,
                                          restartCondition = makeEmptyRestartCondition(),
                                          restartStrategy = makeLocalRestartStrategy(),
+                                         metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(),
                                          breedingFitness = function(individual) TRUE,
                                          breedingTries = 50,
                                          progressMonitor = NULL,
@@ -129,11 +130,11 @@ dataDrivenGeneticProgramming <- function(formula, data, fitnessFunctionFactory,
                                 mutationFunction = mutationFunction,
                                 restartCondition = restartCondition,
                                 restartStrategy = restartStrategy,
+                                metaHeuristic = metaHeuristic,
                                 breedingFitness = breedingFitness,
                                 breedingTries = breedingTries,
                                 extinctionPrevention = extinctionPrevention,
                                 archive = archive,
-                                genealogy = genealogy,
                                 progressMonitor = progressMonitor,
                                 verbose = verbose)
   

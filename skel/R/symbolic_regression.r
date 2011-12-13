@@ -7,6 +7,8 @@
 ## released under the GPL v2
 ##
 
+##' @include meta_heuristics.r
+NA
 ##' @include evolution.r
 NA
 ##' @include data_driven_gp.r
@@ -43,10 +45,6 @@ NA
 ##'   operation might be expensive with larger population sizes.
 ##' @param archive If set to \code{TRUE}, all GP individuals evaluated are stored in an
 ##'   archive list \code{archiveList} that is returned as part of the result of this function. 
-##' @param genealogy If set to \code{TRUE}, the parent(s) of each indiviudal is stored in
-##'   an archive \code{genealogyList} as part of the result of this function, enabling
-##'   the reconstruction of the complete genealogy of the result population. This
-##'   parameter implies \code{archive = TRUE}.
 ##' @param individualSizeLimit Individuals with a number of tree nodes that
 ##'   exceeds this size limit will get a fitness of \code{Inf}.
 ##' @param penalizeGenotypeConstantIndividuals Individuals that do not contain
@@ -61,6 +59,9 @@ NA
 ##'   \link{makeEmptyRestartCondition} for details.
 ##' @param restartStrategy The strategy for doing restarts. See
 ##'   \link{makeLocalRestartStrategy} for details.
+##' @param metaHeuristic The meta-heuristic (i.e. optimization algorithm) to use
+##'   in the search of solutions. See \link{metaHeuristics} for available
+##'   algorithms.
 ##' @param breedingFitness A "breeding" function. This function is applied after
 ##'   every stochastic operation \emph{Op} that creates or modifies an individal
 ##'   (typically, \emph{Op} is a initialization, mutation, or crossover operation). If
@@ -92,7 +93,6 @@ symbolicRegression <- function(formula, data,
                                elite = list(),
                                extinctionPrevention = FALSE,
                                archive = FALSE,
-                               genealogy = FALSE,
                                individualSizeLimit = 64,
                                penalizeGenotypeConstantIndividuals = FALSE,
                                functionSet = mathFunctionSet,
@@ -102,6 +102,7 @@ symbolicRegression <- function(formula, data,
                                mutationFunction = NULL,
                                restartCondition = makeEmptyRestartCondition(),
                                restartStrategy = makeLocalRestartStrategy(),
+                               metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(),
                                breedingFitness = function(individual) TRUE,
                                breedingTries = 50,
                                errorMeasure = rmse,
@@ -118,7 +119,6 @@ symbolicRegression <- function(formula, data,
                                                           elite = elite,
                                                           extinctionPrevention = extinctionPrevention,
                                                           archive = archive,
-                                                          genealogy = genealogy,
                                                           functionSet = functionSet,
                                                           constantSet = constantSet,
                                                           selectionFunction = selectionFunction,
@@ -126,6 +126,7 @@ symbolicRegression <- function(formula, data,
                                                           mutationFunction = mutationFunction,
                                                           restartCondition = restartCondition,
                                                           restartStrategy = restartStrategy,
+                                                          metaHeuristic = metaHeuristic,
                                                           breedingFitness = breedingFitness,
                                                           breedingTries = breedingTries,
                                                           progressMonitor = progressMonitor,

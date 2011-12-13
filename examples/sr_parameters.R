@@ -43,11 +43,12 @@ progressMonitor1 <- function(pop, fitnessFunction, stepNumber, evaluationNumber,
 
 sr1 <- symbolicRegression(y ~ x1, data = df1,
                           functionSet = functionSet1,
-                          stopCondition = makeStepsStopCondition(5000), # makeTimeStopCondition(seconds)
+                          stopCondition = makeStepsStopCondition(500), # makeTimeStopCondition(seconds)
                           populationSize = 200,
                           individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
                           selectionFunction = makeTournamentSelection(tournamentSize = 10),
                           mutationFunction = mutationFunction1,
+                          metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(),
                           verbose = FALSE,
                           progressMonitor = progressMonitor1)
 

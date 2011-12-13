@@ -8,6 +8,8 @@
 ## released under the GPL v2
 ##
 
+##' @include meta_heuristics.r
+NA
 ##' @include search_space.r
 NA
 ##' @include time_utils.r
@@ -62,6 +64,9 @@ NA
 ##'   \link{makeEmptyRestartCondition} for details.
 ##' @param restartStrategy The strategy for doing restarts. See
 ##'   \link{makeLocalRestartStrategy} for details.
+##' @param metaHeuristic The meta-heuristic (i.e. optimization algorithm) to use
+##'   in the search of solutions. See \link{metaHeuristics} for available
+##'   algorithms.
 ##' @param breedingFitness A "breeding" function. This function is applied after
 ##'   every stochastic operation \emph{Op} that creates or modifies an individal
 ##'   (typically, \emph{Op} is a initialization, mutation, or crossover operation). If
@@ -82,10 +87,6 @@ NA
 ##'   operation might be expensive with larger population sizes.
 ##' @param archive If set to \code{TRUE}, all GP individuals evaluated are stored in an
 ##'   archive list \code{archiveList} that is returned as part of the result of this function. 
-##' @param genealogy If set to \code{TRUE}, the parent(s) of each indiviudal is stored in
-##'   an archive \code{genealogyList} as part of the result of this function, enabling
-##'   the reconstruction of the complete genealogy of the result population. This
-##'   parameter implies \code{archive = TRUE}.
 ##' @param progressMonitor A function of signature
 ##'   \code{function(population, fitnessfunction, stepNumber, evaluationNumber,
 ##'   bestFitness, timeElapsed)} to be called with each evolution step.
@@ -110,16 +111,13 @@ geneticProgramming <- function(fitnessFunction,
                                mutationFunction = NULL,
                                restartCondition = makeEmptyRestartCondition(),
                                restartStrategy = makeLocalRestartStrategy(),
+                               metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(),
                                breedingFitness = function(individual) TRUE,
                                breedingTries = 50,
                                extinctionPrevention = FALSE,
                                archive = FALSE,
-                               genealogy = FALSE,
                                progressMonitor = NULL,
                                verbose = TRUE) {
-  ## Check parameters...
-  if (genealogy && !archive) stop("geneticProgramming: genealogy == TRUE implies archive == TRUE")
-  if (genealogy) stop("geneticProgramming: genealogy tracking not implemented.") # TODO
   ## Provide default parameters and initialize GP run...
   logmsg <- function(msg, ...) {
     if (verbose)
@@ -152,88 +150,26 @@ geneticProgramming <- function(fitnessFunction,
                      breedingFitness = breedingFitness, breedingTries = breedingTries)
     else
       population
-  stepNumber <- 1
-  evaluationNumber <- 0
-  startTime <- proc.time()["elapsed"]
-  timeElapsed <- 0
-  archiveList <- list() # the archive of all individuals selected in this run, only used if archive == TRUE
-  archiveIndexOf <- function(archive, individual)
-    Position(function(a) identical(body(a$individual), body(individual)), archive)
-  genealogyList <- list() # an adjacency list of representing the genealogy of all individuals in the archive
-  bestFitness <- Inf # best fitness value seen in this run, if multi-criterial, only the first component counts
 
-  ## Execute GP run...
-  logmsg("STARTING standard genetic programming evolution run...")
-  while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
-                        evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
-    # Select two sets of individuals and divide each into winners and losers...
-    selA <- selectionFunction(pop, fitnessFunction); selB <- selectionFunction(pop, fitnessFunction)
-    if (archive) { # add the evaluated individuals to the archive...
-      evaluatedIndices <- c(selA$selected[, 1], selB$selected[, 1], selA$discarded[, 1], selB$discarded[, 1])
-      evaluatedFitnesses <- c(selA$selected[, 2], selB$selected[, 2], selA$discarded[, 2], selB$discarded[, 2])
-      for (i in 1:length(evaluatedIndices))
-        archiveList[[length(archiveList) + 1]] <- list(individual = pop[[evaluatedIndices[i]]],
-                                                       fitness = evaluatedFitnesses[i])
-    }
-    winnersA <- selA$selected[, 1]; winnersB <- selB$selected[, 1]
-    bestFitness <- min(c(bestFitness, selA$selected[, 2], selB$selected[, 2]))
-    losersA <- selA$discarded[, 1]; losersB <- selB$discarded[, 1]
-    losers <- c(losersA, losersB)
-    # Create winner children through crossover and mutation...
-    makeWinnerChildren <- function(winnersA, winnersB)
-                            Map(function(winnerA, winnerB)
-                                  mutatefunc(crossoverFunction(pop[[winnerA]], pop[[winnerB]],
-                                                               breedingFitness = breedingFitness,
-                                                               breedingTries = breedingTries)),
-                                winnersA, winnersB)
-    winnerChildrenA <- makeWinnerChildren(winnersA, winnersB) 
-    winnerChildrenB <- makeWinnerChildren(winnersA, winnersB) 
-    winnerChildren <- c(winnerChildrenA, winnerChildrenB)
-    # Replace losers with winner children...
-    if (extinctionPrevention) {
-      numberOfLosers <- length(losers)
-      winnerChildrenAndLosers <- c(winnerChildren, pop[losers])
-      uniqueWinnerChildrenAndLosers <- unique(winnerChildrenAndLosers) # unique() does not change the order of it's argument
-      numberOfUniqueWinnerChildrenAndLosers <- length(uniqueWinnerChildrenAndLosers)
-      if (numberOfUniqueWinnerChildrenAndLosers < numberOfLosers) { # not enough unique individuals...
-        numberMissing <- numberOfLosers - numberOfUniqueWinnerChildrenAndLosers
-        warning(sprintf("geneticProgramming: not enough unique individuals for extinction prevention (%d individuals missing)", numberMissing))
-        # we have to fill up with duplicates...
-        uniqueWinnerChildrenAndLosers <- c(uniqueWinnerChildrenAndLosers, winnerChildrenAndLosers[1:numberMissing])
-      }
-      uniqueChildren <- uniqueWinnerChildrenAndLosers[1:numberOfLosers] # fill up duplicated winner children with losers
-      pop[losers] <- uniqueChildren
-    } else {
-      pop[losers] <- winnerChildren
-    }
-    # Apply restart strategy...
-    if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
-                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
-      restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
-      pop <- restartResult[[1]]
-      elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
-      logmsg("restarted run")
-    }
-    
-    timeElapsed <- proc.time()["elapsed"] - startTime
-    stepNumber <- 1 + stepNumber
-    evaluationNumber <- selA$numberOfFitnessEvaluations + selB$numberOfFitnessEvaluations + evaluationNumber
-    progmon(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
-            evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
-  }
-  elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
-  logmsg("Standard genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
-         stepNumber, evaluationNumber, formatSeconds(timeElapsed))
+  ## Execute meta-heuristic...
+  result <- metaHeuristic(logFunction = logmsg, stopCondition = stopCondition,
+                          pop = pop, fitnessFunction = fitnessFunction, selectionFunction = selectionFunction,
+                          mutationFunction = mutatefunc, crossoverFunction = crossoverFunction,
+                          archive = archive, extinctionPrevention = extinctionPrevention,
+                          elite = elite, eliteSize = eliteSize,
+                          restartCondition = restartCondition, restartStrategy = restartStrategy,
+                          breedingFitness = breedingFitness, breedingTries = breedingTries,
+                          progressMonitor = progmon)
 
   ## Return GP run result...
   structure(list(fitnessFunction = fitnessFunction,
                  stopCondition = stopCondition,
-                 timeElapsed = timeElapsed,
-                 stepNumber = stepNumber,
-                 evaluationNumber = evaluationNumber,
-                 bestFitness = bestFitness,
-                 population = pop,
-                 elite = elite,
+                 timeElapsed = result$timeElapsed,
+                 stepNumber = result$stepNumber,
+                 evaluationNumber = result$evaluationNumber,
+                 bestFitness = result$bestFitness,
+                 population = result$population,
+                 elite = result$elite,
                  functionSet = functionSet,
                  constantSet = constantSet,
                  crossoverFunction = crossoverFunction,
@@ -243,9 +179,7 @@ geneticProgramming <- function(fitnessFunction,
                  breedingTries = breedingTries,
                  extinctionPrevention = extinctionPrevention,
                  archive = archive,
-                 genealogy = genealogy,
-                 archiveList = archiveList,
-                 genealogyList = genealogyList,
+                 archiveList = result$archiveList,
                  restartStrategy = restartStrategy), class = "geneticProgrammingResult")
 }
 
@@ -266,11 +200,11 @@ typedGeneticProgramming <- function(fitnessFunction,
                                     mutationFunction = NULL,
                                     restartCondition = makeEmptyRestartCondition(),
                                     restartStrategy = makeLocalRestartStrategy(populationType = type),
+                                    metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(),
                                     breedingFitness = function(individual) TRUE,
                                     breedingTries = 50,
                                     extinctionPrevention = FALSE,
                                     archive = FALSE,
-                                    genealogy = FALSE,
                                     progressMonitor = NULL,
                                     verbose = TRUE) {
   if (is.null(type)) stop("typedGeneticProgramming: Type must not be NULL.")
@@ -296,9 +230,10 @@ typedGeneticProgramming <- function(fitnessFunction,
                      constantSet = constantSet, selectionFunction = selectionFunction,
                      crossoverFunction = crossoverFunction, mutationFunction = mutatefunc,
                      restartCondition = restartCondition, restartStrategy = restartStrategy,
+                     metaHeuristic = metaHeuristic,
                      breedingFitness = breedingFitness, breedingTries = breedingTries,
                      extinctionPrevention = extinctionPrevention,
-                     archive = archive, genealogy = genealogy,
+                     archive = archive,
                      progressMonitor = progressMonitor, verbose = verbose)
 }
 
