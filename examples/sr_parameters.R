@@ -46,9 +46,8 @@ sr1 <- symbolicRegression(y ~ x1, data = df1,
                           stopCondition = makeStepsStopCondition(500), # makeTimeStopCondition(seconds)
                           populationSize = 200,
                           individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
-                          selectionFunction = makeTournamentSelection(tournamentSize = 10),
                           mutationFunction = mutationFunction1,
-                          metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(),
+                          metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(selectionFunction = makeTournamentSelection(tournamentSize = 10)),
                           verbose = FALSE,
                           progressMonitor = progressMonitor1)
 

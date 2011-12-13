@@ -51,8 +51,6 @@ NA
 ##'   any input variables will get a fitness of \code{Inf}.
 ##' @param functionSet The function set.
 ##' @param constantSet The set of constant factory functions.
-##' @param selectionFunction The selection function to use. Defaults to
-##'   tournament selection. See \code{\link{makeTournamentSelection}} for details.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param restartCondition The restart condition for the evolution main loop. See
@@ -97,12 +95,11 @@ symbolicRegression <- function(formula, data,
                                penalizeGenotypeConstantIndividuals = FALSE,
                                functionSet = mathFunctionSet,
                                constantSet = numericConstantSet,
-                               selectionFunction = makeTournamentSelection(),
                                crossoverFunction = crossover,
                                mutationFunction = NULL,
                                restartCondition = makeEmptyRestartCondition(),
                                restartStrategy = makeLocalRestartStrategy(),
-                               metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(),
+                               metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(selectionFunction = makeTournamentSelection()),
                                breedingFitness = function(individual) TRUE,
                                breedingTries = 50,
                                errorMeasure = rmse,
@@ -121,7 +118,6 @@ symbolicRegression <- function(formula, data,
                                                           archive = archive,
                                                           functionSet = functionSet,
                                                           constantSet = constantSet,
-                                                          selectionFunction = selectionFunction,
                                                           crossoverFunction = crossoverFunction,
                                                           mutationFunction = mutationFunction,
                                                           restartCondition = restartCondition,

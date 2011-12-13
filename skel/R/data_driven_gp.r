@@ -53,8 +53,6 @@ NA
 ##'   archive list \code{archiveList} that is returned as part of the result of this function. 
 ##' @param functionSet The function set.
 ##' @param constantSet The set of constant factory functions.
-##' @param selectionFunction The selection function to use. Defaults to
-##'   tournament selection. See \link{makeTournamentSelection} for details.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param restartCondition The restart condition for the evolution main loop. See
@@ -97,12 +95,11 @@ dataDrivenGeneticProgramming <- function(formula, data, fitnessFunctionFactory,
                                          archive = FALSE,
                                          functionSet = mathFunctionSet,
                                          constantSet = numericConstantSet,
-                                         selectionFunction = makeTournamentSelection(),
                                          crossoverFunction = crossover,
                                          mutationFunction = NULL,
                                          restartCondition = makeEmptyRestartCondition(),
                                          restartStrategy = makeLocalRestartStrategy(),
-                                         metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(),
+                                         metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(selectionFunction = makeTournamentSelection()),
                                          breedingFitness = function(individual) TRUE,
                                          breedingTries = 50,
                                          progressMonitor = NULL,
@@ -125,7 +122,6 @@ dataDrivenGeneticProgramming <- function(formula, data, fitnessFunctionFactory,
                                 functionSet = functionSet,
                                 inputVariables = inVarSet,
                                 constantSet = constantSet,
-                                selectionFunction = selectionFunction,
                                 crossoverFunction = crossoverFunction,
                                 mutationFunction = mutationFunction,
                                 restartCondition = restartCondition,

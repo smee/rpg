@@ -20,10 +20,14 @@
 ##' \code{makeTinyGpMetaHeuristic} creates an RGP meta-heuristic that mimics the search heuristic
 ##' implemented in Riccardo Poli's TinyGP system. TODO describe this heuristic
 ##'
+##' @param selectionFunction The selection function to use in meta-heuristics that support
+##'   different selection functions. Defaults to tournament selection. See
+##'   \link{makeTournamentSelection} for details.
+##'
 ##' @rdname metaHeuristics 
 ##' @export
-makeExploitativeSteadyStateMetaHeuristic <- function()
-function(logFunction, stopCondition, pop, fitnessFunction, selectionFunction,
+makeExploitativeSteadyStateMetaHeuristic <- function(selectionFunction = makeTournamentSelection())
+function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
          archive, extinctionPrevention,
          elite, eliteSize,
@@ -116,7 +120,7 @@ function(logFunction, stopCondition, pop, fitnessFunction, selectionFunction,
 ##' @rdname metaHeuristics 
 ##' @export
 makeTinyGpMetaHeuristic <- function()
-function(logFunction, stopCondition, pop, fitnessFunction, selectionFunction,
+function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
          archive, extinctionPrevention,
          elite, eliteSize,

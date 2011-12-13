@@ -56,8 +56,6 @@ NA
 ##' @param functionSet The function set.
 ##' @param inputVariables The input variable set.
 ##' @param constantSet The set of constant factory functions.
-##' @param selectionFunction The selection function to use. Defaults to
-##'   tournament selection. See \link{makeTournamentSelection} for details.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param restartCondition The restart condition for the evolution main loop. See
@@ -106,12 +104,11 @@ geneticProgramming <- function(fitnessFunction,
                                functionSet = mathFunctionSet,
                                inputVariables = inputVariableSet("x"),
                                constantSet = numericConstantSet,
-                               selectionFunction = makeTournamentSelection(),
                                crossoverFunction = crossover,
                                mutationFunction = NULL,
                                restartCondition = makeEmptyRestartCondition(),
                                restartStrategy = makeLocalRestartStrategy(),
-                               metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(),
+                               metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(selectionFunction = makeTournamentSelection()),
                                breedingFitness = function(individual) TRUE,
                                breedingTries = 50,
                                extinctionPrevention = FALSE,
@@ -153,7 +150,7 @@ geneticProgramming <- function(fitnessFunction,
 
   ## Execute meta-heuristic...
   result <- metaHeuristic(logFunction = logmsg, stopCondition = stopCondition,
-                          pop = pop, fitnessFunction = fitnessFunction, selectionFunction = selectionFunction,
+                          pop = pop, fitnessFunction = fitnessFunction,
                           mutationFunction = mutatefunc, crossoverFunction = crossoverFunction,
                           archive = archive, extinctionPrevention = extinctionPrevention,
                           elite = elite, eliteSize = eliteSize,
@@ -195,12 +192,11 @@ typedGeneticProgramming <- function(fitnessFunction,
                                     functionSet,
                                     inputVariables,
                                     constantSet,
-                                    selectionFunction = makeTournamentSelection(),
                                     crossoverFunction = crossoverTyped,
                                     mutationFunction = NULL,
                                     restartCondition = makeEmptyRestartCondition(),
                                     restartStrategy = makeLocalRestartStrategy(populationType = type),
-                                    metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(),
+                                    metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(selectionFunction = makeTournamentSelection()),
                                     breedingFitness = function(individual) TRUE,
                                     breedingTries = 50,
                                     extinctionPrevention = FALSE,
@@ -227,7 +223,7 @@ typedGeneticProgramming <- function(fitnessFunction,
                      populationSize = populationSize, eliteSize = eliteSize, elite = elite,
                      functionSet = functionSet,
                      inputVariables = inputVariables,
-                     constantSet = constantSet, selectionFunction = selectionFunction,
+                     constantSet = constantSet,
                      crossoverFunction = crossoverFunction, mutationFunction = mutatefunc,
                      restartCondition = restartCondition, restartStrategy = restartStrategy,
                      metaHeuristic = metaHeuristic,
