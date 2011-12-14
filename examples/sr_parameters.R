@@ -11,6 +11,7 @@ df1 <- data.frame(x1 = 1:100*0.1, y=Salutowicz1d(1:100*0.1))
 
 #metaHeuristic1 <- makeExploitativeSteadyStateMetaHeuristic(selectionFunction = makeTournamentSelection(tournamentSize = 10))
 metaHeuristic1 <- makeTinyGpMetaHeuristic()
+#metaHeuristic1 <- makeCommaEvolutionStrategyMetaHeuristic(mu = 25)
 
 functionSet1 <- functionSet("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt") 
 inputVariableSet1 <- inputVariableSet("x1")

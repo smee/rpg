@@ -18,7 +18,11 @@
 ##' RGP and is provided mainly for reasons of backward-compatiblity. TODO describe this heuristic
 ##'
 ##' \code{makeTinyGpMetaHeuristic} creates an RGP meta-heuristic that mimics the search heuristic
-##' implemented in Riccardo Poli's TinyGP system. TODO describe this heuristic
+##' implemented in Riccardo Poli's TinyGP system. TODO describe this heuristic, cite TinyGP
+##'
+##' \code{makeCommaEvolutionStrategyMetaHeuristic} creates a RGP meta-heuristic that implements a
+##' (mu, lambda) Evolution Strategy. The lambda parameter is fixed to the population size.
+##' TODO description based on Luke09a
 ##'
 ##' @param selectionFunction The selection function to use in meta-heuristics that support
 ##'   different selection functions. Defaults to tournament selection. See
@@ -27,6 +31,8 @@
 ##'   this setting (i.e. TinyGP). Defaults to \code{0.9}.
 ##  @param tournamentSize The tournament size for meta-heuristics that support this setting
 ##'   (i.e. TinyGP). Defaults to \code{2}.
+##' @param mu The number of surviving parents for the Evolution Strategy meta-heuristic. Note that
+##'   lambda is fixed to the population size, i.e. \code{length(pop)}.
 ##'
 ##' @rdname metaHeuristics 
 ##' @export
@@ -206,6 +212,15 @@ function(logFunction, stopCondition, pop, fitnessFunction,
       }
     }
 
+    # Apply restart strategy...
+    if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
+      restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
+      pop <- restartResult[[1]]
+      elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
+      logFunction("restarted run")
+    }
+
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- popSize + evaluationNumber
@@ -213,6 +228,86 @@ function(logFunction, stopCondition, pop, fitnessFunction,
                     evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
   }
   
+  elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
+  logFunction("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
+              stepNumber, evaluationNumber, formatSeconds(timeElapsed))
+
+  ## Return result list...
+  list(timeElapsed = timeElapsed,
+       stepNumber = stepNumber,
+       evaluationNumber = evaluationNumber,
+       bestFitness = bestFitness,
+       population = pop,
+       elite = elite,
+       archiveList = archiveList)
+}
+
+##' @rdname metaHeuristics 
+##' @export
+makeCommaEvolutionStrategyMetaHeuristic <- function(mu = 1)
+function(logFunction, stopCondition, pop, fitnessFunction,
+         mutationFunction, crossoverFunction,
+         archive, extinctionPrevention,
+         elite, eliteSize,
+         restartCondition, restartStrategy,
+         breedingFitness, breedingTries,
+         progressMonitor) {
+  logFunction("STARTING genetic programming evolution run (Evolution Strategy meta-heuristic) ...")
+  
+  ## Tool functions...
+  truncationSelect <- function(mu, fitnessValues) order(fitnessValues)[1:mu]
+
+  ## Global variables...
+  lambda <- length(pop)
+  if(mu > lambda) stop("makeCommaEvolutionStrategyMetaHeuristic: mu must be less or equal to the population size")
+  childrenPerParent <- ceiling(lambda / mu)
+  fitnessValues <- sapply(pop, fitnessFunction)
+
+  ## Initialize statistic counters...
+  stepNumber <- 1
+  evaluationNumber <- 0
+  timeElapsed <- 0
+  archiveList <- list() # the archive of all individuals selected in this run, only used if archive == TRUE
+  archiveIndexOf <- function(archive, individual)
+    Position(function(a) identical(body(a$individual), body(individual)), archive)
+  bestFitness <- min(fitnessValues) # best fitness value seen in this run, if multi-criterial, only the first component counts
+  startTime <- proc.time()["elapsed"]
+
+  ## Execute GP run...
+  while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+                        evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
+    parentIndices <- truncationSelect(mu, fitnessValues)
+    nextGeneration <- list()
+    for (i in 1:mu) {
+      nextGeneration <- c(nextGeneration,
+                          replicate(childrenPerParent, mutationFunction(pop[[i]])))
+    }
+    elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite
+    pop <- nextGeneration[1:lambda] # replace entire population with next generation
+    fitnessValues <- sapply(pop, fitnessFunction)
+    bestFitness <- if (min(fitnessValues) < bestFitness) min(fitnessValues) else bestFitness
+ 
+    if (archive) {
+      archiveList[[length(archiveList) + 1]] <- list(individual = child,
+                                                       fitness = childFitness)
+    }
+
+    # Apply restart strategy...
+    if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
+      restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
+      pop <- restartResult[[1]]
+      elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
+      logFunction("restarted run")
+    }
+
+    timeElapsed <- proc.time()["elapsed"] - startTime
+    stepNumber <- 1 + stepNumber
+    evaluationNumber <- lambda + evaluationNumber
+    progressMonitor(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+                    evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
+  }
+ 
   elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
   logFunction("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
               stepNumber, evaluationNumber, formatSeconds(timeElapsed))
