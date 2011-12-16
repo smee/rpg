@@ -24,6 +24,10 @@
 ##' (mu, lambda) Evolution Strategy. The lambda parameter is fixed to the population size.
 ##' TODO description based on Luke09a
 ##'
+##' \code{makeAgeFintessComplexityParetoGpMetaHeuristic} creates a RGP meta-heuristic that implements
+##' an evolutionary multi objective optimization algorithm (EMOA) that selects on three criteria:
+##' Individual age, individual fitness, and individual complexity. TODO description
+##'
 ##' @param selectionFunction The selection function to use in meta-heuristics that support
 ##'   different selection functions. Defaults to tournament selection. See
 ##'   \link{makeTournamentSelection} for details.
@@ -32,7 +36,9 @@
 ##  @param tournamentSize The tournament size for meta-heuristics that support this setting
 ##'   (i.e. TinyGP). Defaults to \code{2}.
 ##' @param mu The number of surviving parents for the Evolution Strategy meta-heuristic. Note that
-##'   lambda is fixed to the population size, i.e. \code{length(pop)}.
+##'   with \code{makeCommaEvolutionStrategyMetaHeuristic}, lambda is fixed to the population size,
+##'   i.e. \code{length(pop)}.
+##' @param lambda The number of children to create in each generation.
 ##'
 ##' @rdname metaHeuristics 
 ##' @export
@@ -304,6 +310,73 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- lambda + evaluationNumber
+    progressMonitor(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+                    evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
+  }
+ 
+  elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
+  logFunction("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
+              stepNumber, evaluationNumber, formatSeconds(timeElapsed))
+
+  ## Return result list...
+  list(timeElapsed = timeElapsed,
+       stepNumber = stepNumber,
+       evaluationNumber = evaluationNumber,
+       bestFitness = bestFitness,
+       population = pop,
+       elite = elite,
+       archiveList = archiveList)
+}
+
+##' @rdname metaHeuristics 
+##' @export
+makeAgeFintessComplexityParetoGpMetaHeuristic <- function(lambda = 20,
+                                                          complexityMesaure = funcVisitationLength,
+                                                          ageMergeFunction = max)
+function(logFunction, stopCondition, pop, fitnessFunction,
+         mutationFunction, crossoverFunction,
+         archive, extinctionPrevention,
+         elite, eliteSize,
+         restartCondition, restartStrategy,
+         breedingFitness, breedingTries,
+         progressMonitor) {
+  logFunction("STARTING genetic programming evolution run (Age/Fitness/Complexity Pareto GP  meta-heuristic) ...")
+
+  ## Initialize run-global variables...
+  mu <- length(pop)
+  fitnessValues <- sapply(pop, fitnessFunction)
+  complexityValues <- sapply(pop, complexityMesaure) 
+  ageValues <- integer(mu)
+
+  ## Initialize statistic counters...
+  stepNumber <- 1
+  evaluationNumber <- 0
+  timeElapsed <- 0
+  archiveList <- list() # the archive of all individuals selected in this run, only used if archive == TRUE
+  archiveIndexOf <- function(archive, individual)
+    Position(function(a) identical(body(a$individual), body(individual)), archive)
+  bestFitness <- min(fitnessValues) # best fitness value seen in this run, if multi-criterial, only the first component counts
+  startTime <- proc.time()["elapsed"]
+
+  ## Execute GP run...
+  while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+                        evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
+
+# TODO
+stop("not implmented")
+
+    # Apply restart strategy...
+    if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
+      restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
+      pop <- restartResult[[1]]
+      elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
+      logFunction("restarted run")
+    }
+
+    timeElapsed <- proc.time()["elapsed"] - startTime
+    stepNumber <- 1 + stepNumber
+    evaluationNumber <- 1 + evaluationNumber
     progressMonitor(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                     evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
   }
