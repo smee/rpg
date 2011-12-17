@@ -24,7 +24,7 @@
 ##' (mu, lambda) Evolution Strategy. The lambda parameter is fixed to the population size.
 ##' TODO description based on Luke09a
 ##'
-##' \code{makeAgeFintessComplexityParetoGpMetaHeuristic} creates a RGP meta-heuristic that implements
+##' \code{makeAgeFitnessComplexityParetoGpMetaHeuristic} creates a RGP meta-heuristic that implements
 ##' an evolutionary multi objective optimization algorithm (EMOA) that selects on three criteria:
 ##' Individual age, individual fitness, and individual complexity. TODO description
 ##'
@@ -330,7 +330,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 
 ##' @rdname metaHeuristics 
 ##' @export
-makeAgeFintessComplexityParetoGpMetaHeuristic <- function(lambda = 20,
+makeAgeFitnessComplexityParetoGpMetaHeuristic <- function(lambda = 20,
                                                           complexityMesaure = funcVisitationLength,
                                                           ageMergeFunction = max)
 function(logFunction, stopCondition, pop, fitnessFunction,
@@ -344,9 +344,10 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 
   ## Initialize run-global variables...
   mu <- length(pop)
+  if (mu < 2 * lambda) stop("makeAgeFitnessComplexityParetoGpMetaHeuristic: condition mu < 2 * lambda must be fulfilled")
   fitnessValues <- sapply(pop, fitnessFunction)
   complexityValues <- sapply(pop, complexityMesaure) 
-  ageValues <- integer(mu)
+  ageValues <- integer(mu) # initialize ages with zeros
 
   ## Initialize statistic counters...
   stepNumber <- 1
@@ -362,7 +363,23 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
 
+    # Sample (without replacement) 2 * lambda parent inviduals...
+    parentIndices <- sample(1:mu, 2 * lambda, replace = FALSE)
+    motherIndices <- parentIndices[1:lambda]
+    fatherIndices <- parentIndices[(lambda + 1):(2 * lambda)]
+
+    # Create and evaluate children...
+    children <- Map(function(motherIndex, fatherIndex)
+                      mutationFunction(crossoverFunction(pop[[motherIndex]], pop[[fatherIndex]],
+                                       breedingFitness = breedingFitness,
+                                       breedingTries = breedingTries)),
+                    motherIndices, fatherIndices)
+    childrenFitnessValues <- sapply(children, fitnessFunction)
+    childrenComplexityValues <- sapply(children, complexityMesaure)
+    childrenAgeValues <- 1 + as.integer(Map(ageMergeFunction, ageValues[motherIndices], ageValues[fatherIndices]))
+
 # TODO
+browser()
 stop("not implmented")
 
     # Apply restart strategy...

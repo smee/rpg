@@ -10,8 +10,9 @@ Salutowicz1d <- function(x) exp(-1*x)*x*x*x*sin(x)*cos(x)*(sin(x)*sin(x)*cos(x)-
 df1 <- data.frame(x1 = 1:100*0.1, y=Salutowicz1d(1:100*0.1))
 
 #metaHeuristic1 <- makeExploitativeSteadyStateMetaHeuristic(selectionFunction = makeTournamentSelection(tournamentSize = 10))
-metaHeuristic1 <- makeTinyGpMetaHeuristic()
+#metaHeuristic1 <- makeTinyGpMetaHeuristic()
 #metaHeuristic1 <- makeCommaEvolutionStrategyMetaHeuristic(mu = 25)
+metaHeuristic1 <- makeAgeFitnessComplexityParetoGpMetaHeuristic(lambda = 25)
 
 functionSet1 <- functionSet("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt") 
 inputVariableSet1 <- inputVariableSet("x1")
