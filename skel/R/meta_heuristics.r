@@ -45,6 +45,7 @@
 makeExploitativeSteadyStateMetaHeuristic <- function(selectionFunction = makeTournamentSelection())
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
+         functionSet, inputVariables, constantSet,
          archive, extinctionPrevention,
          elite, eliteSize,
          restartCondition, restartStrategy,
@@ -131,7 +132,8 @@ function(logFunction, stopCondition, pop, fitnessFunction,
        bestFitness = bestFitness,
        population = pop,
        elite = elite,
-       archiveList = archiveList)
+       archiveList = archiveList,
+       metaHeuristicResults = list())
 }
 
 ##' @rdname metaHeuristics 
@@ -139,6 +141,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 makeTinyGpMetaHeuristic <- function(crossoverProbability = 0.9, tournamentSize = 2)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
+         functionSet, inputVariables, constantSet,
          archive, extinctionPrevention,
          elite, eliteSize,
          restartCondition, restartStrategy,
@@ -245,7 +248,8 @@ function(logFunction, stopCondition, pop, fitnessFunction,
        bestFitness = bestFitness,
        population = pop,
        elite = elite,
-       archiveList = archiveList)
+       archiveList = archiveList,
+       metaHeuristicResults = list())
 }
 
 ##' @rdname metaHeuristics 
@@ -253,6 +257,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 makeCommaEvolutionStrategyMetaHeuristic <- function(mu = 1)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
+         functionSet, inputVariables, constantSet,
          archive, extinctionPrevention,
          elite, eliteSize,
          restartCondition, restartStrategy,
@@ -325,28 +330,45 @@ function(logFunction, stopCondition, pop, fitnessFunction,
        bestFitness = bestFitness,
        population = pop,
        elite = elite,
-       archiveList = archiveList)
+       archiveList = archiveList,
+       metaHeuristicResults = list())
 }
 
 ##' @rdname metaHeuristics 
 ##' @export
 makeAgeFitnessComplexityParetoGpMetaHeuristic <- function(lambda = 20,
                                                           complexityMesaure = funcVisitationLength,
-                                                          ageMergeFunction = max)
+                                                          ageMergeFunction = max,
+                                                          newIndividualsPerGeneration = 1,
+                                                          plotFront = TRUE)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
+         functionSet, inputVariables, constantSet,
          archive, extinctionPrevention,
          elite, eliteSize,
          restartCondition, restartStrategy,
          breedingFitness, breedingTries,
          progressMonitor) {
+  ## Tool functions...
+  plotParetoFront <- function(x, y, ranks,
+                              xlab = "X", ylab = "Y") { #,
+                              #xlim = c(0, 2), ylim = c(0, 100)) {
+    #plot(x[ranks > 1], y[ranks > 1], xlim = xlim, ylim = ylim,
+    #     xlab = xlab, ylab = ylab, col = "gray", pch = 4, main = "Pareto Plot")
+    #points(x[ranks == 1], y[ranks == 1], col = "red", pch = 1)
+    plot(x[ranks == 1], y[ranks == 1],
+         xlab = xlab, ylab = ylab,
+         col = "red", pch = 1, main = "Pareto Plot")
+    points(x[ranks > 1], y[ranks > 1], col = "gray", pch = 4)
+  }
+
   logFunction("STARTING genetic programming evolution run (Age/Fitness/Complexity Pareto GP  meta-heuristic) ...")
 
   ## Initialize run-global variables...
   mu <- length(pop)
   if (mu < 2 * lambda) stop("makeAgeFitnessComplexityParetoGpMetaHeuristic: condition mu < 2 * lambda must be fulfilled")
-  fitnessValues <- sapply(pop, fitnessFunction)
-  complexityValues <- sapply(pop, complexityMesaure) 
+  fitnessValues <- as.numeric(sapply(pop, fitnessFunction))
+  complexityValues <- as.numeric(sapply(pop, complexityMesaure))
   ageValues <- integer(mu) # initialize ages with zeros
 
   ## Initialize statistic counters...
@@ -368,19 +390,44 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     motherIndices <- parentIndices[1:lambda]
     fatherIndices <- parentIndices[(lambda + 1):(2 * lambda)]
 
-    # Create and evaluate children...
+    # Create and evaluate children individuals...
     children <- Map(function(motherIndex, fatherIndex)
                       mutationFunction(crossoverFunction(pop[[motherIndex]], pop[[fatherIndex]],
                                        breedingFitness = breedingFitness,
                                        breedingTries = breedingTries)),
                     motherIndices, fatherIndices)
-    childrenFitnessValues <- sapply(children, fitnessFunction)
-    childrenComplexityValues <- sapply(children, complexityMesaure)
+    childrenFitnessValues <- as.numeric(sapply(children, fitnessFunction))
+    childrenComplexityValues <- as.numeric(sapply(children, complexityMesaure))
     childrenAgeValues <- 1 + as.integer(Map(ageMergeFunction, ageValues[motherIndices], ageValues[fatherIndices]))
 
-# TODO
-browser()
-stop("not implmented")
+    # Create and evaluate new individuals...
+    newIndividuals <- makePopulation(newIndividualsPerGeneration, functionSet, inputVariables, constantSet,
+                                     extinctionPrevention = extinctionPrevention,
+                                     breedingFitness = breedingFitness, breedingTries = breedingTries)
+    newIndividualsFitnessValues <- as.numeric(sapply(newIndividuals, fitnessFunction))
+    newIndividualsComplexityValues <- as.numeric(sapply(newIndividuals, complexityMesaure))
+    newIndividualsAgeValues <- integer(newIndividualsPerGeneration) # initialize ages with zeros
+
+    # Create the pool of individuals to select the next generation from...
+    pool <- c(pop, children, newIndividuals)
+    poolFitnessValues <- c(fitnessValues, childrenFitnessValues, newIndividualsFitnessValues)
+    poolComplexityValues <- c(complexityValues, childrenComplexityValues, newIndividualsComplexityValues) 
+    poolAgeValues <- c(ageValues, childrenAgeValues, newIndividualsAgeValues)
+
+    # Sort the pool via the non-domination relation and select individuals for removal...
+    poolPoints <- rbind(poolFitnessValues, poolComplexityValues, poolAgeValues)
+    if (plotFront) {
+      poolNdsRanks <- nds_rank(poolPoints)
+      plotParetoFront(poolFitnessValues, poolComplexityValues, poolNdsRanks,
+                      xlab = "Fitness", ylab = "Complexity")
+    }
+    poolIndicesToRemove <- nds_cd_selection(poolPoints, lambda + newIndividualsPerGeneration)
+
+    # Replace current population with next generation...
+    pop <- pool[-poolIndicesToRemove]
+    fitnessValues <- poolFitnessValues[-poolIndicesToRemove]
+    complexityValues <- poolComplexityValues[-poolIndicesToRemove]
+    ageValues <- poolAgeValues[-poolIndicesToRemove]
 
     # Apply restart strategy...
     if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
@@ -399,6 +446,7 @@ stop("not implmented")
   }
  
   elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
+  bestFitness <- min(fitnessValues)
   logFunction("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
               stepNumber, evaluationNumber, formatSeconds(timeElapsed))
 
@@ -409,5 +457,8 @@ stop("not implmented")
        bestFitness = bestFitness,
        population = pop,
        elite = elite,
-       archiveList = archiveList)
+       archiveList = archiveList,
+       metaHeuristicResults = list(fitnessValues = fitnessValues,
+                                   complexityValues = complexityValues,
+                                   ageValues = ageValues))
 }

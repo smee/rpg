@@ -7,12 +7,12 @@ require("rgp")
 
 
 Salutowicz1d <- function(x) exp(-1*x)*x*x*x*sin(x)*cos(x)*(sin(x)*sin(x)*cos(x)-1)
-df1 <- data.frame(x1 = 1:100*0.1, y=Salutowicz1d(1:100*0.1))
+df1 <- data.frame(x1 = 1:100*0.1, y = Salutowicz1d(1:100 * 0.1))
 
 #metaHeuristic1 <- makeExploitativeSteadyStateMetaHeuristic(selectionFunction = makeTournamentSelection(tournamentSize = 10))
 #metaHeuristic1 <- makeTinyGpMetaHeuristic()
 #metaHeuristic1 <- makeCommaEvolutionStrategyMetaHeuristic(mu = 25)
-metaHeuristic1 <- makeAgeFitnessComplexityParetoGpMetaHeuristic(lambda = 25)
+metaHeuristic1 <- makeAgeFitnessComplexityParetoGpMetaHeuristic(lambda = 20, newIndividualsPerGeneration = 2)
 
 functionSet1 <- functionSet("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt") 
 inputVariableSet1 <- inputVariableSet("x1")
@@ -48,7 +48,9 @@ progressMonitor1 <- function(pop, fitnessFunction, stepNumber, evaluationNumber,
 
 sr1 <- symbolicRegression(y ~ x1, data = df1,
                           functionSet = functionSet1,
-                          stopCondition = makeStepsStopCondition(250), # makeTimeStopCondition(seconds)
+                          errorMeasure = mae,
+                          #stopCondition = makeStepsStopCondition(250),
+                          stopCondition = makeTimeStopCondition(10 * 60),
                           populationSize = 200,
                           individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
                           mutationFunction = mutationFunction1,

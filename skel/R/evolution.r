@@ -152,6 +152,7 @@ geneticProgramming <- function(fitnessFunction,
   result <- metaHeuristic(logFunction = logmsg, stopCondition = stopCondition,
                           pop = pop, fitnessFunction = fitnessFunction,
                           mutationFunction = mutatefunc, crossoverFunction = crossoverFunction,
+                          functionSet = functionSet, inputVariables = inputVariables, constantSet = constantSet,
                           archive = archive, extinctionPrevention = extinctionPrevention,
                           elite = elite, eliteSize = eliteSize,
                           restartCondition = restartCondition, restartStrategy = restartStrategy,
@@ -177,7 +178,9 @@ geneticProgramming <- function(fitnessFunction,
                  extinctionPrevention = extinctionPrevention,
                  archive = archive,
                  archiveList = result$archiveList,
-                 restartStrategy = restartStrategy), class = "geneticProgrammingResult")
+                 restartStrategy = restartStrategy,
+                 metaHeuristicResults = result$metaHeuristicResults),
+            class = "geneticProgrammingResult")
 }
 
 ##' @rdname geneticProgramming
