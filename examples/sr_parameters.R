@@ -50,7 +50,7 @@ sr1 <- symbolicRegression(y ~ x1, data = df1,
                           functionSet = functionSet1,
                           errorMeasure = mae,
                           #stopCondition = makeStepsStopCondition(250),
-                          stopCondition = makeTimeStopCondition(10 * 60),
+                          stopCondition = makeTimeStopCondition(15 * 60),
                           populationSize = 200,
                           individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
                           mutationFunction = mutationFunction1,
@@ -58,6 +58,7 @@ sr1 <- symbolicRegression(y ~ x1, data = df1,
                           verbose = TRUE,
                           progressMonitor = progressMonitor1)
 
+quartz()
 old.par <- par(mfcol = c(2, 1))
 plot(statistics1[,"Mean"], type = "b", main = "Mean Individual Size", xlab = "step * 100", ylab = "Mean Ind. Size (Nodes")
 plot(statistics1[,"Time"], type = "b", main = "Compute Time", xlab = "step * 100", ylab = "Compute Time (Secs)")

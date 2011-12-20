@@ -350,15 +350,15 @@ function(logFunction, stopCondition, pop, fitnessFunction,
          breedingFitness, breedingTries,
          progressMonitor) {
   ## Tool functions...
-  plotParetoFront <- function(x, y, ranks,
-                              xlab = "X", ylab = "Y") { #,
-                              #xlim = c(0, 2), ylim = c(0, 100)) {
-    #plot(x[ranks > 1], y[ranks > 1], xlim = xlim, ylim = ylim,
-    #     xlab = xlab, ylab = ylab, col = "gray", pch = 4, main = "Pareto Plot")
-    #points(x[ranks == 1], y[ranks == 1], col = "red", pch = 1)
-    plot(x[ranks == 1], y[ranks == 1],
+  plotParetoFront <- function(x, y, ranks, ages,
+                              xlab = "X", ylab = "Y",
+                              maxAge = 50) {
+    ageColorScale <- colorRamp(c("#00FF00", "#006600","#0000FF", "#000000"))
+    rankOneXs <- x[ranks == 1]; rankOneYs <- y[ranks == 1]; rankOneAges <- ages[ranks == 1]
+    rankOneAgeColors <- rgb(ageColorScale(rankOneAges / maxAge), maxColorValue = 255)
+    plot(rankOneXs, rankOneYs,
          xlab = xlab, ylab = ylab,
-         col = "red", pch = 1, main = "Pareto Plot")
+         col = rankOneAgeColors, pch = 1, main = "Pareto Plot")
     points(x[ranks > 1], y[ranks > 1], col = "gray", pch = 4)
   }
 
@@ -418,7 +418,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     poolPoints <- rbind(poolFitnessValues, poolComplexityValues, poolAgeValues)
     if (plotFront) {
       poolNdsRanks <- nds_rank(poolPoints)
-      plotParetoFront(poolFitnessValues, poolComplexityValues, poolNdsRanks,
+      plotParetoFront(poolFitnessValues, poolComplexityValues, poolNdsRanks, poolAgeValues,
                       xlab = "Fitness", ylab = "Complexity")
     }
     poolIndicesToRemove <- nds_cd_selection(poolPoints, lambda + newIndividualsPerGeneration)
