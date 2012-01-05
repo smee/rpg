@@ -193,32 +193,30 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   ## Execute GP run...
   while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
-    for (i in 1:popSize) {
-      child <- NULL
-      if (runif(1) < crossoverProbability) {
-        # create child via crossover
-        motherIndex <- tournament(fitnessValues, popSize, tournamentSize)
-        fatherIndex <- tournament(fitnessValues, popSize, tournamentSize)
-        child <- crossoverFunction(pop[[motherIndex]], pop[[fatherIndex]],
-                                   breedingFitness = breedingFitness,
-                                   breedingTries = breedingTries)
-      } else {
-        # create child via mutation
-        parentIndex <- tournament(fitnessValues, popSize, tournamentSize)
-        child <- mutationFunction(pop[[parentIndex]])
-      }
+    child <- NULL
+    if (runif(1) < crossoverProbability) {
+      # create child via crossover
+      motherIndex <- tournament(fitnessValues, popSize, tournamentSize)
+      fatherIndex <- tournament(fitnessValues, popSize, tournamentSize)
+      child <- crossoverFunction(pop[[motherIndex]], pop[[fatherIndex]],
+                                 breedingFitness = breedingFitness,
+                                 breedingTries = breedingTries)
+    } else {
+      # create child via mutation
+      parentIndex <- tournament(fitnessValues, popSize, tournamentSize)
+      child <- mutationFunction(pop[[parentIndex]])
+    }
 
-      childFitness <- fitnessFunction(child)
-      bestFitness <- if (childFitness < bestFitness) childFitness else bestFitness
+    childFitness <- fitnessFunction(child)
+    bestFitness <- if (childFitness < bestFitness) childFitness else bestFitness
 
-      offspringIndex <- negativeTournament(fitnessValues, popSize, tournamentSize)
-      fitnessValues[offspringIndex] <- childFitness
-      pop[[offspringIndex]] <- child
+    offspringIndex <- negativeTournament(fitnessValues, popSize, tournamentSize)
+    fitnessValues[offspringIndex] <- childFitness
+    pop[[offspringIndex]] <- child
 
-      if (archive) {
-        archiveList[[length(archiveList) + 1]] <- list(individual = child,
-                                                       fitness = childFitness)
-      }
+    if (archive) {
+      archiveList[[length(archiveList) + 1]] <- list(individual = child,
+                                                     fitness = childFitness)
     }
 
     # Apply restart strategy...
