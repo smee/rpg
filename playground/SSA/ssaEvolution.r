@@ -4,8 +4,7 @@ source("evalSsa.r")
 source("fitnessSsa.r")
 source("helpingFunctions.r")
 source("mutateSsa.r")
-source("ssaEvolution.r")
-#source("ssaGp.r")
+source("expression_utils.r")
 
 
 ssaSymbolicRegression <- function(formula, data,
