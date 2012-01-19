@@ -426,6 +426,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     fitnessValues <- poolFitnessValues[-poolIndicesToRemove]
     complexityValues <- poolComplexityValues[-poolIndicesToRemove]
     ageValues <- poolAgeValues[-poolIndicesToRemove]
+    if (min(fitnessValues) < bestFitness) bestFitness <- min(fitnessValues) # update best fitness
 
     # Apply restart strategy...
     if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
