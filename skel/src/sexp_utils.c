@@ -3,6 +3,7 @@
  */
 
 #include "sexp_utils.h"
+#include <setjmp.h>
 
 
 SEXP deep_copy_closxp(SEXP closxp) {
@@ -78,7 +79,7 @@ static SEXP map_sexp_shortcut_depth_recursive(SEXP (*const f)(SEXP, int), SEXP s
   case LANGSXP: // fall-through to next case
   case LISTSXP: {
     SEXP mapped_sexp = f(sexp, current_depth);
-    if (sexp == mapped_sexp)
+    if (sexp == mapped_sexp) // recurse iff the current sexp was not replaced
       return LCONS(map_sexp_shortcut_depth_recursive(f, CAR(sexp), current_depth + 1),
                    map_sexp_shortcut_depth_recursive(f, CDR(sexp), current_depth + 1)); // recurse
     else
@@ -93,3 +94,38 @@ static SEXP map_sexp_shortcut_depth_recursive(SEXP (*const f)(SEXP, int), SEXP s
 SEXP map_sexp_shortcut_depth(SEXP (*const f)(SEXP, int), SEXP sexp) {
   return map_sexp_shortcut_depth_recursive(f, sexp, 0);
 }
+
+void modify_sexp_shortcut(void (*const f)(SEXP), SEXP sexp) {
+  switch (TYPEOF(sexp)) { // switch for speed
+  case NILSXP:
+    return; // do nothing with nils
+  case LANGSXP: // fall-through to next case
+  case LISTSXP:
+    f(sexp); // modify (entire) expression
+    modify_sexp_shortcut(f, CAR(sexp)); // recurse on first element of expression
+    modify_sexp_shortcut(f, CDR(sexp)); // recurse on rest elements of expression
+  default: // base case
+    f(sexp); // map leafs
+  }
+}
+
+int sexp_size(SEXP sexp) {
+  switch (TYPEOF(sexp)) { // switch for speed
+  case NILSXP:
+    return 0;
+  case LANGSXP: // fall-through to next case
+  case LISTSXP:
+    return sexp_size(CAR(sexp)) + sexp_size(CDR(sexp));
+  default: // base case
+    return 1; 
+  }
+}
+
+SEXP sexp_size_R(SEXP sexp) {
+  SEXP s;
+  PROTECT(s = allocVector(INTSXP, 1));
+  INTEGER(s)[0] = sexp_size(sexp);
+  UNPROTECT(1);
+  return s;
+}
+
