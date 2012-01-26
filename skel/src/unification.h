@@ -16,3 +16,4 @@ SEXP unify_match(SEXP a, SEXP b, SEXP sigma,
                  Rboolean (*const is_variable)(SEXP), Rboolean contains_check);
 
 #endif
+

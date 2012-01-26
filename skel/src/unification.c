@@ -76,3 +76,4 @@ static R_INLINE Rboolean is_na_logical(SEXP a) {
 static R_INLINE Rboolean is_compound_expression(SEXP a) {
   return isList(a) || (!isSymbol(a) && isLanguage(a));
 }
+
