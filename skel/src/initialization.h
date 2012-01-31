@@ -9,11 +9,21 @@
 #include <Rinternals.h>
 
 
-/* initialize_ 
+/* initialize_expression_grow
  *
  */
-SEXP mutate_subtrees(SEXP sexp, double p, double mu, double sigma, SEXP input_variable_list);
-SEXP mutate_subtrees_R(SEXP sexp, SEXP p, SEXP mu, SEXP sigma, SEXP input_variable_list);
+SEXP initialize_expression_grow(SEXP function_symbol_list,
+                                SEXP function_arities,
+                                SEXP input_variable_list,
+                                double constant_min, double constant_max,
+                                double p_subtree, double p_constant,
+                                int depth_max);
+SEXP initialize_expression_grow_R(SEXP function_symbol_list,
+                                  SEXP function_arities,
+                                  SEXP input_variable_list,
+                                  SEXP constant_min, SEXP constant_max,
+                                  SEXP p_subtree, SEXP p_constant,
+                                  SEXP depth_max);
 
 #endif
 
