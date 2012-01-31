@@ -129,3 +129,21 @@ SEXP sexp_size_R(SEXP sexp) {
   return s;
 }
 
+SEXP make_closure(SEXP body, SEXP formal_parameter_list) {
+  SEXP closure, formals;
+  PROTECT(closure = allocSExp(CLOSXP));
+  SET_CLOENV(closure, R_GlobalEnv);
+  const int number_of_formals = length(formal_parameter_list);
+  PROTECT(formals = allocList(number_of_formals));
+  SEXP formals_iterator = formals;
+  for (int i = 0; i < number_of_formals; i++, formals_iterator = CDR(formals_iterator)) {
+    SEXP formal = STRING_ELT(VECTOR_ELT(formal_parameter_list, i), 0);
+    SET_TAG(formals_iterator, CreateTag(formal));
+    SETCAR(formals_iterator, R_MissingArg);
+  }
+  SET_FORMALS(closure, formals);
+  SET_BODY(closure, body);
+  UNPROTECT(2);
+  return closure;
+}
+

@@ -40,6 +40,10 @@ void modify_sexp_shortcut(void (*const f)(SEXP), SEXP sexp);
 int sexp_size(SEXP sexp);
 SEXP sexp_size_R(SEXP sexp);
 
-// TODO
+/* make_closure
+ *
+ */
+SEXP make_closure(SEXP body, SEXP formal_parameter_list);
 
 #endif
+
