@@ -11,6 +11,9 @@
 # Ignore Emacs backup files
 *~
 
+# Ignore VI temporaries
+*.swp
+
 # Ignore object files
 *.o
 *.so
