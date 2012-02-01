@@ -40,6 +40,18 @@ void modify_sexp_shortcut(void (*const f)(SEXP), SEXP sexp);
 int sexp_size(SEXP sexp);
 SEXP sexp_size_R(SEXP sexp);
 
+/* get_sexp_subtree
+ *
+ */
+SEXP get_sexp_subtree(SEXP sexp, int index);
+SEXP get_sexp_subtree_R(SEXP sexp, SEXP index);
+
+/* replace_sexp_subtree
+ *
+ */
+SEXP replace_sexp_subtree(SEXP sexp, int index, SEXP replacement);
+SEXP replace_sexp_subtree_R(SEXP sexp, SEXP index, SEXP replacement);
+
 /* make_closure
  *
  */

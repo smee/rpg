@@ -129,6 +129,77 @@ SEXP sexp_size_R(SEXP sexp) {
   return s;
 }
 
+SEXP get_sexp_subtree_recursive(SEXP sexp, int index, int *current_index) {
+  switch (TYPEOF(sexp)) { // switch for speed
+  case NILSXP:
+    return R_NilValue; // nil := index not found
+  case LANGSXP:
+    if (index == *current_index) {
+      return sexp;
+    }
+    return get_sexp_subtree_recursive(CDR(sexp), index, current_index); // search parameters
+  case LISTSXP:
+    if (index == *current_index) {
+      return sexp;
+    }
+    *current_index += 1;
+    SEXP car_sexp_result = get_sexp_subtree_recursive(CAR(sexp), index, current_index);
+    if (R_NilValue != car_sexp_result) {
+      return car_sexp_result;
+    } else {
+      return get_sexp_subtree_recursive(CDR(sexp), index, current_index);
+    }
+  default: // base case
+    if (index == *current_index) {
+      return sexp;
+    } else {
+      return R_NilValue; // nil := index not found
+    }
+  }
+}
+
+SEXP get_sexp_subtree(SEXP sexp, int index) {
+  int current_index = 0;
+  return get_sexp_subtree_recursive(sexp, index, &current_index);
+}
+
+SEXP get_sexp_subtree_R(SEXP sexp, SEXP index) {
+  return get_sexp_subtree(sexp, INTEGER(index)[0]);
+}
+
+SEXP replace_sexp_subtree_recursive(SEXP sexp, int index, SEXP replacement, int *current_index) {
+  switch (TYPEOF(sexp)) { // switch for speed
+  case NILSXP:
+    return sexp;
+  case LANGSXP:
+    if (index == *current_index) {
+      return replacement;
+    }
+    return LCONS(CAR(sexp),
+                 replace_sexp_subtree_recursive(CDR(sexp), index, replacement, current_index));
+  case LISTSXP:
+    *current_index += 1;
+    SEXP car_sexp_result = replace_sexp_subtree_recursive(CAR(sexp), index, replacement, current_index);
+    SEXP cdr_sexp_result = replace_sexp_subtree_recursive(CDR(sexp), index, replacement, current_index);
+    return LCONS(car_sexp_result, cdr_sexp_result);
+  default: // base case
+    if (index == *current_index) {
+      return replacement;
+    } else {
+      return sexp;
+    }
+  }
+}
+
+SEXP replace_sexp_subtree(SEXP sexp, int index, SEXP replacement) {
+  int current_index = 0;
+  return replace_sexp_subtree_recursive(sexp, index, replacement, &current_index);
+}
+
+SEXP replace_sexp_subtree_R(SEXP sexp, SEXP index, SEXP replacement) {
+  return replace_sexp_subtree(sexp, INTEGER(index)[0], replacement);
+}
+
 SEXP make_closure(SEXP body, SEXP formal_parameter_list) {
   SEXP closure, formals;
   PROTECT(closure = allocSExp(CLOSXP));
