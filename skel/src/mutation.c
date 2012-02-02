@@ -15,6 +15,8 @@ SEXP random_function_symbol_of_arity(int arity, SEXP function_symbol_list, SEXP 
 SEXP mutate_constants_normal(SEXP sexp, double p, double mu, double sigma) {
   SEXP c;
   switch (TYPEOF(sexp)) { // switch for speed
+  case NILSXP:
+    return sexp; // do nothing with nils
   case REALSXP:
     if (unif_rand() < p) { // mutate constant with probability p
       PROTECT(c = allocVector(REALSXP, 1));
@@ -24,12 +26,12 @@ SEXP mutate_constants_normal(SEXP sexp, double p, double mu, double sigma) {
     } else {
       return sexp;
     }
-  case NILSXP:
-    return sexp; // do nothing with nils
-  case LANGSXP: // fall-through to next case
-  case LISTSXP:
+  case LANGSXP:
     return LCONS(mutate_constants_normal(CAR(sexp), p, mu, sigma),
                  mutate_constants_normal(CDR(sexp), p, mu, sigma)); // do nothing with inner nodes, recurse
+  case LISTSXP:
+    return CONS(mutate_constants_normal(CAR(sexp), p, mu, sigma),
+                mutate_constants_normal(CDR(sexp), p, mu, sigma)); // do nothing with inner nodes, recurse
   default: // base case
     return sexp; // do nothing
   }
@@ -55,7 +57,7 @@ SEXP mutate_subtrees(SEXP sexp,
   switch (TYPEOF(sexp)) { // switch for speed
   case NILSXP:
     return sexp; // do nothing with nils
-  case LANGSXP: // fall-through to next case
+  case LANGSXP:
     if (unif_rand() < p) { // mutate inner node with probability p
       if (unif_rand() < p_insert_delete) { // replace with new subtree (insert)
         return initialize_expression_grow(function_symbol_list, function_arities,
@@ -80,18 +82,18 @@ SEXP mutate_subtrees(SEXP sexp,
                                    depth_max)); // recurse on parameters
     }
   case LISTSXP:
-    return LCONS(mutate_subtrees(CAR(sexp), p, p_insert_delete,
-                                 function_symbol_list, function_arities,
-                                 input_variable_list,
-                                 constant_min, constant_max,
-                                 p_subtree, p_constant,
-                                 depth_max),
-                 mutate_subtrees(CDR(sexp), p, p_insert_delete,
-                                 function_symbol_list, function_arities,
-                                 input_variable_list,
-                                 constant_min, constant_max,
-                                 p_subtree, p_constant,
-                                 depth_max)); // recurse on parameters
+    return CONS(mutate_subtrees(CAR(sexp), p, p_insert_delete,
+                                function_symbol_list, function_arities,
+                                input_variable_list,
+                                constant_min, constant_max,
+                                p_subtree, p_constant,
+                                depth_max),
+                mutate_subtrees(CDR(sexp), p, p_insert_delete,
+                                function_symbol_list, function_arities,
+                                input_variable_list,
+                                constant_min, constant_max,
+                                p_subtree, p_constant,
+                                depth_max)); // recurse on parameters
   default: // base case
     if (unif_rand() < p) { // mutate leaf with probability p
       if (unif_rand() < p_insert_delete) { // replace with new subtree (insert)
@@ -148,8 +150,8 @@ SEXP mutate_functions(SEXP sexp, double p, SEXP function_symbol_list, SEXP funct
                    mutate_functions(CDR(sexp), p, function_symbol_list, function_arities)); // recurse on parameters
     }
   case LISTSXP:
-    return LCONS(mutate_functions(CAR(sexp), p, function_symbol_list, function_arities),
-                 mutate_functions(CDR(sexp), p, function_symbol_list, function_arities)); // do nothing with parameter lists, just recurse
+    return CONS(mutate_functions(CAR(sexp), p, function_symbol_list, function_arities),
+                mutate_functions(CDR(sexp), p, function_symbol_list, function_arities)); // do nothing with parameter lists, just recurse
   default: // base case
     return sexp; // do nothing
   }

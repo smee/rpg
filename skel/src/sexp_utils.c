@@ -17,10 +17,12 @@ SEXP map_sexp(SEXP (*const f)(SEXP), SEXP sexp) {
   switch (TYPEOF(sexp)) { // switch for speed
   case NILSXP:
     return sexp; // do nothing with nils
-  case LANGSXP: // fall-through to next case
-  case LISTSXP:
+  case LANGSXP:
     return f(LCONS(map_sexp(f, CAR(sexp)),
                    map_sexp(f, CDR(sexp)))); // map inner nodes, recurse
+  case LISTSXP:
+    return f(CONS(map_sexp(f, CAR(sexp)),
+                  map_sexp(f, CDR(sexp)))); // map inner nodes, recurse
   default: // base case
     return f(sexp); // map leafs
   }
@@ -30,10 +32,12 @@ SEXP map_sexp_leafs(SEXP (*const f)(SEXP), SEXP sexp) {
   switch (TYPEOF(sexp)) { // switch for speed
   case NILSXP:
     return sexp; // do nothing with nils
-  case LANGSXP: // fall-through to next case
-  case LISTSXP:
+  case LANGSXP:
     return LCONS(map_sexp_leafs(f, CAR(sexp)),
                  map_sexp_leafs(f, CDR(sexp))); // do nothing with inner nodes, recurse
+  case LISTSXP:
+    return CONS(map_sexp_leafs(f, CAR(sexp)),
+                map_sexp_leafs(f, CDR(sexp))); // do nothing with inner nodes, recurse
   default: // base case
     return f(sexp); // map leafs
   }
@@ -43,10 +47,12 @@ SEXP map_sexp_inner_nodes(SEXP (*const f)(SEXP), SEXP sexp) {
   switch (TYPEOF(sexp)) { // switch for speed
   case NILSXP:
     return sexp; // do nothing with nils
-  case LANGSXP: // fall-through to next case
-  case LISTSXP:
+  case LANGSXP:
     return f(LCONS(map_sexp_inner_nodes(f, CAR(sexp)),
                    map_sexp_inner_nodes(f, CDR(sexp)))); // map inner nodes, recurse
+  case LISTSXP:
+    return f(CONS(map_sexp_inner_nodes(f, CAR(sexp)),
+                  map_sexp_inner_nodes(f, CDR(sexp)))); // map inner nodes, recurse
   default: // base case
     return sexp; // do noting with leafs
   }
@@ -57,12 +63,19 @@ SEXP map_sexp_shortcut(SEXP (*const f)(SEXP), SEXP sexp) {
   switch (TYPEOF(sexp)) { // switch for speed
   case NILSXP:
     return sexp; // do nothing with nils
-  case LANGSXP: // fall-through to next case
-  case LISTSXP: {
+  case LANGSXP: {
     SEXP mapped_sexp = f(sexp);
     if (sexp == mapped_sexp)
       return LCONS(map_sexp_shortcut(f, CAR(sexp)),
                    map_sexp_shortcut(f, CDR(sexp))); // recurse
+    else
+      return mapped_sexp; // shortcut
+  }
+  case LISTSXP: {
+    SEXP mapped_sexp = f(sexp);
+    if (sexp == mapped_sexp)
+      return CONS(map_sexp_shortcut(f, CAR(sexp)),
+                  map_sexp_shortcut(f, CDR(sexp))); // recurse
     else
       return mapped_sexp; // shortcut
   }
@@ -76,12 +89,19 @@ static SEXP map_sexp_shortcut_depth_recursive(SEXP (*const f)(SEXP, int), SEXP s
   switch (TYPEOF(sexp)) { // switch for speed
   case NILSXP:
     return sexp; // do nothing with nils
-  case LANGSXP: // fall-through to next case
-  case LISTSXP: {
+  case LANGSXP: {
     SEXP mapped_sexp = f(sexp, current_depth);
     if (sexp == mapped_sexp) // recurse iff the current sexp was not replaced
       return LCONS(map_sexp_shortcut_depth_recursive(f, CAR(sexp), current_depth + 1),
                    map_sexp_shortcut_depth_recursive(f, CDR(sexp), current_depth + 1)); // recurse
+    else
+      return mapped_sexp; // shortcut
+  }
+  case LISTSXP: {
+    SEXP mapped_sexp = f(sexp, current_depth);
+    if (sexp == mapped_sexp) // recurse iff the current sexp was not replaced
+      return CONS(map_sexp_shortcut_depth_recursive(f, CAR(sexp), current_depth + 1),
+                  map_sexp_shortcut_depth_recursive(f, CDR(sexp), current_depth + 1)); // recurse
     else
       return mapped_sexp; // shortcut
   }
@@ -181,7 +201,7 @@ SEXP replace_sexp_subtree_recursive(SEXP sexp, int index, SEXP replacement, int 
     *current_index += 1;
     SEXP car_sexp_result = replace_sexp_subtree_recursive(CAR(sexp), index, replacement, current_index);
     SEXP cdr_sexp_result = replace_sexp_subtree_recursive(CDR(sexp), index, replacement, current_index);
-    return LCONS(car_sexp_result, cdr_sexp_result);
+    return CONS(car_sexp_result, cdr_sexp_result);
   default: // base case
     if (index == *current_index) {
       return replacement;

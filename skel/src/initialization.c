@@ -25,7 +25,7 @@ SEXP initialize_expression_grow_recursive(int current_depth,
                                                                    input_variable_list, constant_min, constant_max,
                                                                    p_subtree, p_constant,
                                                                    depth_max));
-      PROTECT(e = LCONS(new_parameter, e));
+      PROTECT(e = CONS(new_parameter, e));
     }
     PROTECT(e = LCONS(install(CHAR(STRING_ELT(VECTOR_ELT(function_symbol_list, function_index), 0))), e));
     UNPROTECT(2 * function_arity + 2);

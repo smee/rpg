@@ -13,7 +13,7 @@ SEXP crossover_single_point(SEXP sexp_a, SEXP sexp_b) {
   const int sexp_a_point = random_index(sexp_a_size);
   const int sexp_b_size = sexp_size(sexp_b);
   const int sexp_b_point = random_index(sexp_b_size);
-  Rprintf("sexp_a point (#%d of %d), sexp_b point: (#%d of %d)\n", sexp_a_point, sexp_a_size, sexp_b_point, sexp_b_size);
+  //Rprintf("sexp_a point (#%d of %d), sexp_b point: (#%d of %d)\n", sexp_a_point, sexp_a_size, sexp_b_point, sexp_b_size);
   SEXP child_sexp_a = replace_sexp_subtree(sexp_a, sexp_a_point,
                                            get_sexp_subtree(sexp_b, sexp_b_point));
   SEXP child_sexp_b = replace_sexp_subtree(sexp_b, sexp_b_point,

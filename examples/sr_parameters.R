@@ -24,6 +24,28 @@ mutationFunction1 <- function(ind) {
                            changeProbability = 1/3, deleteProbability = 1/3, insertProbability = 1/3)
 }
 
+mutationFunction2 <- function(ind) {
+  subtreeMutantBody <- .Call("mutate_subtrees_R", body(ind), 0.33, 0.75,
+                             functionSet1$all, as.integer(functionSet1$arities),
+                             inputVariableSet1$all, -1, 1, 1.0, 0.5, 2L)
+  #print("--1"); print(subtreeMutantBody)
+  functionMutantBody <- .Call("mutate_functions_R", subtreeMutantBody, 0.33,
+                              functionSet1$all, as.integer(functionSet1$arities))
+  #print("--2"); print(functionMutantBody)
+  constantMutantBody <- .Call("mutate_constants_normal_R", functionMutantBody, 0.33, 0, 1)
+  #print("--3"); print(constantMutantBody)
+  mutant <- .Call("make_closure", constantMutantBody, inputVariableSet1$all)
+  mutant
+}
+
+crossoverFunction1 <- function(func1, func2, crossoverprob = 1,
+                               breedingFitness = function(individual) TRUE,
+                               breedingTries = 1) {
+  childBody <- .Call("crossover_single_point_R", body(func1), body(func2))[[1]]
+  child <- .Call("make_closure", childBody, inputVariableSet1$all)
+  child
+}
+
 statistics1 <- NULL 
 startTime1 <- Sys.time()
 
@@ -53,7 +75,9 @@ sr1 <- symbolicRegression(y ~ x1, data = df1,
                           stopCondition = makeTimeStopCondition(15 * 60),
                           populationSize = 200,
                           individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
-                          mutationFunction = mutationFunction1,
+                          #mutationFunction = mutationFunction1,
+                          mutationFunction = mutationFunction2,
+                          crossoverFunction = crossoverFunction1,
                           metaHeuristic = metaHeuristic1,
                           verbose = TRUE,
                           progressMonitor = progressMonitor1)
