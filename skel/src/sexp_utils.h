@@ -29,6 +29,33 @@ SEXP map_sexp_leafs(SEXP (*const f)(SEXP), SEXP sexp);
  */
 SEXP map_sexp_inner_nodes(SEXP (*const f)(SEXP), SEXP sexp);
 
-// TODO
+/* modify_sexp_shortcut
+ *
+ */
+void modify_sexp_shortcut(void (*const f)(SEXP), SEXP sexp);
+
+/* sexp_size
+ *
+ */
+int sexp_size(SEXP sexp);
+SEXP sexp_size_R(SEXP sexp);
+
+/* get_sexp_subtree
+ *
+ */
+SEXP get_sexp_subtree(SEXP sexp, int index);
+SEXP get_sexp_subtree_R(SEXP sexp, SEXP index);
+
+/* replace_sexp_subtree
+ *
+ */
+SEXP replace_sexp_subtree(SEXP sexp, int index, SEXP replacement);
+SEXP replace_sexp_subtree_R(SEXP sexp, SEXP index, SEXP replacement);
+
+/* make_closure
+ *
+ */
+SEXP make_closure(SEXP body, SEXP formal_parameter_list);
 
 #endif
+

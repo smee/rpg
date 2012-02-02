@@ -3,6 +3,7 @@
  */
 
 #include "sexp_utils.h"
+#include <setjmp.h>
 
 
 SEXP deep_copy_closxp(SEXP closxp) {
@@ -78,7 +79,7 @@ static SEXP map_sexp_shortcut_depth_recursive(SEXP (*const f)(SEXP, int), SEXP s
   case LANGSXP: // fall-through to next case
   case LISTSXP: {
     SEXP mapped_sexp = f(sexp, current_depth);
-    if (sexp == mapped_sexp)
+    if (sexp == mapped_sexp) // recurse iff the current sexp was not replaced
       return LCONS(map_sexp_shortcut_depth_recursive(f, CAR(sexp), current_depth + 1),
                    map_sexp_shortcut_depth_recursive(f, CDR(sexp), current_depth + 1)); // recurse
     else
@@ -93,3 +94,127 @@ static SEXP map_sexp_shortcut_depth_recursive(SEXP (*const f)(SEXP, int), SEXP s
 SEXP map_sexp_shortcut_depth(SEXP (*const f)(SEXP, int), SEXP sexp) {
   return map_sexp_shortcut_depth_recursive(f, sexp, 0);
 }
+
+void modify_sexp_shortcut(void (*const f)(SEXP), SEXP sexp) {
+  switch (TYPEOF(sexp)) { // switch for speed
+  case NILSXP:
+    return; // do nothing with nils
+  case LANGSXP: // fall-through to next case
+  case LISTSXP:
+    f(sexp); // modify (entire) expression
+    modify_sexp_shortcut(f, CAR(sexp)); // recurse on first element of expression
+    modify_sexp_shortcut(f, CDR(sexp)); // recurse on rest elements of expression
+  default: // base case
+    f(sexp); // map leafs
+  }
+}
+
+int sexp_size(SEXP sexp) {
+  switch (TYPEOF(sexp)) { // switch for speed
+  case NILSXP:
+    return 0;
+  case LANGSXP: // fall-through to next case
+  case LISTSXP:
+    return sexp_size(CAR(sexp)) + sexp_size(CDR(sexp));
+  default: // base case
+    return 1; 
+  }
+}
+
+SEXP sexp_size_R(SEXP sexp) {
+  SEXP s;
+  PROTECT(s = allocVector(INTSXP, 1));
+  INTEGER(s)[0] = sexp_size(sexp);
+  UNPROTECT(1);
+  return s;
+}
+
+SEXP get_sexp_subtree_recursive(SEXP sexp, int index, int *current_index) {
+  switch (TYPEOF(sexp)) { // switch for speed
+  case NILSXP:
+    return R_NilValue; // nil := index not found
+  case LANGSXP:
+    if (index == *current_index) {
+      return sexp;
+    }
+    return get_sexp_subtree_recursive(CDR(sexp), index, current_index); // search parameters
+  case LISTSXP:
+    if (index == *current_index) {
+      return sexp;
+    }
+    *current_index += 1;
+    SEXP car_sexp_result = get_sexp_subtree_recursive(CAR(sexp), index, current_index);
+    if (R_NilValue != car_sexp_result) {
+      return car_sexp_result;
+    } else {
+      return get_sexp_subtree_recursive(CDR(sexp), index, current_index);
+    }
+  default: // base case
+    if (index == *current_index) {
+      return sexp;
+    } else {
+      return R_NilValue; // nil := index not found
+    }
+  }
+}
+
+SEXP get_sexp_subtree(SEXP sexp, int index) {
+  int current_index = 0;
+  return get_sexp_subtree_recursive(sexp, index, &current_index);
+}
+
+SEXP get_sexp_subtree_R(SEXP sexp, SEXP index) {
+  return get_sexp_subtree(sexp, INTEGER(index)[0]);
+}
+
+SEXP replace_sexp_subtree_recursive(SEXP sexp, int index, SEXP replacement, int *current_index) {
+  switch (TYPEOF(sexp)) { // switch for speed
+  case NILSXP:
+    return sexp;
+  case LANGSXP:
+    if (index == *current_index) {
+      return replacement;
+    }
+    return LCONS(CAR(sexp),
+                 replace_sexp_subtree_recursive(CDR(sexp), index, replacement, current_index));
+  case LISTSXP:
+    *current_index += 1;
+    SEXP car_sexp_result = replace_sexp_subtree_recursive(CAR(sexp), index, replacement, current_index);
+    SEXP cdr_sexp_result = replace_sexp_subtree_recursive(CDR(sexp), index, replacement, current_index);
+    return LCONS(car_sexp_result, cdr_sexp_result);
+  default: // base case
+    if (index == *current_index) {
+      return replacement;
+    } else {
+      return sexp;
+    }
+  }
+}
+
+SEXP replace_sexp_subtree(SEXP sexp, int index, SEXP replacement) {
+  int current_index = 0;
+  return replace_sexp_subtree_recursive(sexp, index, replacement, &current_index);
+}
+
+SEXP replace_sexp_subtree_R(SEXP sexp, SEXP index, SEXP replacement) {
+  return replace_sexp_subtree(sexp, INTEGER(index)[0], replacement);
+}
+
+SEXP make_closure(SEXP body, SEXP formal_parameter_list) {
+  SEXP closure, formals;
+  PROTECT(closure = allocSExp(CLOSXP));
+  SET_CLOENV(closure, R_GlobalEnv);
+  const int number_of_formals = length(formal_parameter_list);
+  PROTECT(formals = allocList(number_of_formals));
+  SEXP formals_iterator = formals;
+  for (int i = 0; i < number_of_formals; i++, formals_iterator = CDR(formals_iterator)) {
+    SEXP formal = STRING_ELT(VECTOR_ELT(formal_parameter_list, i), 0);
+    SET_TAG(formals_iterator, CreateTag(formal));
+    SETCAR(formals_iterator, R_MissingArg);
+  }
+  SET_FORMALS(closure, formals);
+  SET_BODY(closure, body);
+  UNPROTECT(2);
+  return closure;
+}
+

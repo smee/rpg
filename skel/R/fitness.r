@@ -7,6 +7,14 @@
 ## released under the GPL v2
 ##
 
+##' Mean absolute error (MAE)
+##'
+##' @param x A numeric vector or list.
+##' @param y A numeric vector or list.
+##' @return The MAE between \code{x} and \code{y}.
+##' @export
+mae <- function(x, y) mean(abs(x - y))
+
 ##' Mean squared error (MSE)
 ##'
 ##' @param x A numeric vector or list.

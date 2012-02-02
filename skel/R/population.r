@@ -47,7 +47,9 @@ makePopulation <- function(size, funcset, inset, conset,
                            funcfactory = function() randfuncRampedHalfAndHalf(funcset, inset, conset,
                              maxfuncdepth, constprob = constprob,
                              breedingFitness = breedingFitness, breedingTries = breedingTries)) {
-  pop <- if (extinctionPrevention) {
+  pop <- if (size <= 0) {
+    list()
+  } else if (extinctionPrevention) {
     resultPop <- list()
     l <- 0
     repeat {
