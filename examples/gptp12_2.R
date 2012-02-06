@@ -1,5 +1,5 @@
-# gptp_12_1.R
-# experiments for GPTP-12 (setup 1)
+# gptp_12_2.R
+# experiments for GPTP-12 (setup 2)
 # 2012 Oiver Flasch
 #
 
@@ -8,15 +8,18 @@ require("rgp")
 
 set.seed(1) # controlled random seed (the evoke the air of reproducability)
 
-Salutowicz1d <- function(x) exp(-1*x)*x*x*x*sin(x)*cos(x)*(sin(x)*sin(x)*cos(x)-1)
-df1 <- data.frame(x1 = 1:100*0.1, y = Salutowicz1d(1:100 * 0.1))
+#Salutowicz1d <- function(x) exp(-1*x)*x*x*x*sin(x)*cos(x)*(sin(x)*sin(x)*cos(x)-1)
+#df1 <- data.frame(x1 = 1:100*0.1, y = Salutowicz1d(1:100 * 0.1))
+x1 <- seq(from = 0, to = 6.2, length.out = 63)
+df1 <- data.frame(x1 = x1, y = sin(x1)) # single sine period
 
 #metaHeuristic1 <- makeExploitativeSteadyStateMetaHeuristic(selectionFunction = makeTournamentSelection(tournamentSize = 10))
-#metaHeuristic1 <- makeTinyGpMetaHeuristic()
+metaHeuristic1 <- makeTinyGpMetaHeuristic()
 #metaHeuristic1 <- makeCommaEvolutionStrategyMetaHeuristic(mu = 25)
-metaHeuristic1 <- makeAgeFitnessComplexityParetoGpMetaHeuristic(lambda = 20, newIndividualsPerGeneration = 2)
+#metaHeuristic1 <- makeAgeFitnessComplexityParetoGpMetaHeuristic(lambda = 20, newIndividualsPerGeneration = 2)
 
-functionSet1 <- functionSet("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt") 
+#functionSet1 <- functionSet("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")
+functionSet1 <- functionSet("+", "-", "*", "/")
 inputVariableSet1 <- inputVariableSet("x1")
 constantFactorySet1 <- numericConstantSet
 
@@ -74,10 +77,11 @@ sr1 <- symbolicRegression(y ~ x1, data = df1,
                           functionSet = functionSet1,
                           errorMeasure = mae,
                           #stopCondition = makeTimeStopCondition(15 * 60),
-                          #stopCondition = makeEvaluationsStopCondition(10e+06), # 10M evaluations
-                          stopCondition = makeEvaluationsStopCondition(1e+05), # 100K evaluations
+                          stopCondition = makeEvaluationsStopCondition(10e+06), # 10M evaluations
+                          #stopCondition = makeEvaluationsStopCondition(1e+05), # 100K evaluations
                           populationSize = 300,
-                          individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
+                          #populationSize = 5000, # 5K individuals
+                          individualSizeLimit = 64, # individuals with more than 64 nodes (inner and leafs) get fitness Inf
                           #mutationFunction = mutationFunction1,
                           mutationFunction = mutationFunction2,
                           crossoverFunction = crossoverFunction1,
