@@ -6,6 +6,7 @@
 #include "random_utils.h"
 #include <Rmath.h>
 
+
 SEXP initialize_expression_grow_recursive(int current_depth,
                                           SEXP function_symbol_list,
                                           SEXP function_arities,
@@ -37,8 +38,11 @@ SEXP initialize_expression_grow_recursive(int current_depth,
     UNPROTECT(1);
     return c;
   } else { // create input variable terminal node
-    return install(CHAR(STRING_ELT(VECTOR_ELT(input_variable_list,
-                                              random_index(length(input_variable_list))), 0)));
+    SEXP v;
+    PROTECT(v = install(CHAR(STRING_ELT(VECTOR_ELT(input_variable_list,
+                                                   random_index(length(input_variable_list))), 0))));
+    UNPROTECT(1);
+    return v;
   }
 }
 

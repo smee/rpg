@@ -191,13 +191,13 @@ SEXP replace_sexp_subtree_recursive(SEXP sexp, int index, SEXP replacement, int 
   switch (TYPEOF(sexp)) { // switch for speed
   case NILSXP:
     return sexp;
-  case LANGSXP:
+  case LANGSXP: // TODO this is buggy, as intermediates are not protected from GC. see mutation.c for a fix!
     if (index == *current_index) {
       return replacement;
     }
     return LCONS(CAR(sexp),
                  replace_sexp_subtree_recursive(CDR(sexp), index, replacement, current_index));
-  case LISTSXP:
+  case LISTSXP: // TODO
     *current_index += 1;
     SEXP car_sexp_result = replace_sexp_subtree_recursive(CAR(sexp), index, replacement, current_index);
     SEXP cdr_sexp_result = replace_sexp_subtree_recursive(CDR(sexp), index, replacement, current_index);

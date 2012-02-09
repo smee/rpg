@@ -26,12 +26,22 @@ SEXP mutate_constants_normal(SEXP sexp, double p, double mu, double sigma) {
     } else {
       return sexp;
     }
-  case LANGSXP:
-    return LCONS(mutate_constants_normal(CAR(sexp), p, mu, sigma),
-                 mutate_constants_normal(CDR(sexp), p, mu, sigma)); // do nothing with inner nodes, recurse
+  case LANGSXP: {
+    int function_arity = 0;
+    SEXP tail_e, e;
+    PROTECT(tail_e = R_NilValue);
+    for (SEXP iterator = CDR(sexp); !isNull(iterator); iterator = CDR(iterator)) { // recurse on actual parameters
+      function_arity++; // determine arity on the fly
+      SEXP mutated_parameter;
+      PROTECT(mutated_parameter = mutate_constants_normal(CAR(iterator), p, mu, sigma));
+      PROTECT(tail_e = CONS(mutated_parameter, tail_e));
+    }
+    PROTECT(e = LCONS(CAR(sexp), tail_e));
+    UNPROTECT(2 * function_arity + 2);
+    return e;
+  }
   case LISTSXP:
-    return CONS(mutate_constants_normal(CAR(sexp), p, mu, sigma),
-                mutate_constants_normal(CDR(sexp), p, mu, sigma)); // do nothing with inner nodes, recurse
+    error("mutate_constants_normal: unexpected LISTSXP");
   default: // base case
     return sexp; // do nothing
   }
@@ -54,62 +64,85 @@ SEXP mutate_subtrees(SEXP sexp,
                      double constant_min, double constant_max,
                      double p_subtree, double p_constant,
                      int depth_max) {
+  Rprintf("->\n"); // DEBUG
   switch (TYPEOF(sexp)) { // switch for speed
   case NILSXP:
     return sexp; // do nothing with nils
   case LANGSXP:
     if (unif_rand() < p) { // mutate inner node with probability p
       if (unif_rand() < p_insert_delete) { // replace with new subtree (insert)
-        return initialize_expression_grow(function_symbol_list, function_arities,
-                                          input_variable_list,
-                                          constant_min, constant_max,
-                                          p_subtree, p_constant,
-                                          depth_max);
+        Rprintf("insert\n"); // DEBUG
+        SEXP new_subtree = PROTECT(initialize_expression_grow(function_symbol_list, function_arities,
+                                                              input_variable_list,
+                                                              constant_min, constant_max,
+                                                              p_subtree, p_constant,
+                                                              depth_max));
+        UNPROTECT(1);
+        return new_subtree;
       } else { // replace with new leaf (delete)
-        return initialize_expression_grow(function_symbol_list, function_arities,
-                                          input_variable_list,
-                                          constant_min, constant_max,
-                                          p_subtree, p_constant,
-                                          0);
+        Rprintf("delete\n"); // DEBUG
+        SEXP new_leaf = PROTECT(initialize_expression_grow(function_symbol_list, function_arities,
+                                                           input_variable_list,
+                                                           constant_min, constant_max,
+                                                           p_subtree, p_constant,
+                                                           0));
+        UNPROTECT(1);
+        return new_leaf;
       }
     } else {
-      return LCONS(CAR(sexp),
-                   mutate_subtrees(CDR(sexp), p, p_insert_delete,
-                                   function_symbol_list, function_arities,
-                                   input_variable_list,
-                                   constant_min, constant_max,
-                                   p_subtree, p_constant,
-                                   depth_max)); // recurse on parameters
+      Rprintf("pass\n"); // DEBUG
+      int function_arity = 0;
+      SEXP e;
+      PROTECT(e = R_NilValue);
+      for (SEXP iterator = CDR(sexp); !isNull(iterator); iterator = CDR(iterator)) { // recurse on actual parameters
+        function_arity++; // determine arity on the fly
+        SEXP mutated_parameter;
+        PROTECT(mutated_parameter = mutate_subtrees(CAR(iterator), p, p_insert_delete,
+                                                    function_symbol_list, function_arities,
+                                                    input_variable_list,
+                                                    constant_min, constant_max,
+                                                    p_subtree, p_constant,
+                                                    depth_max));
+        PROTECT(e = CONS(mutated_parameter, e));
+      }
+      PROTECT(e = LCONS(CAR(sexp), e));
+      UNPROTECT(2 * function_arity + 2);
+      return e;
     }
   case LISTSXP:
-    return CONS(mutate_subtrees(CAR(sexp), p, p_insert_delete,
-                                function_symbol_list, function_arities,
-                                input_variable_list,
-                                constant_min, constant_max,
-                                p_subtree, p_constant,
-                                depth_max),
-                mutate_subtrees(CDR(sexp), p, p_insert_delete,
-                                function_symbol_list, function_arities,
-                                input_variable_list,
-                                constant_min, constant_max,
-                                p_subtree, p_constant,
-                                depth_max)); // recurse on parameters
+    error("mutate_subtrees: unexpected LISTSXP");
   default: // base case
+    Rprintf("default type %d\n", TYPEOF(sexp)); // DEBUG
+    if (REALSXP == TYPEOF(sexp)) {
+      Rprintf("real %f\n", REAL(sexp)[0]); // DEBUG
+    }
+    if (SYMSXP == TYPEOF(sexp)) {
+      Rprintf("symbol %s\n", CHAR(PRINTNAME(sexp))); // DEBUG
+    }
     if (unif_rand() < p) { // mutate leaf with probability p
       if (unif_rand() < p_insert_delete) { // replace with new subtree (insert)
-        return initialize_expression_grow(function_symbol_list, function_arities,
-                                          input_variable_list,
-                                          constant_min, constant_max,
-                                          p_subtree, p_constant,
-                                          depth_max);
+        Rprintf("insert at default\n"); // DEBUG
+        SEXP new_subtree;
+        new_subtree = PROTECT(initialize_expression_grow(function_symbol_list, function_arities,
+                                                         input_variable_list,
+                                                         constant_min, constant_max,
+                                                         p_subtree, p_constant,
+                                                         depth_max));
+        UNPROTECT(1);
+        return new_subtree;
       } else { // replace with new leaf (delete)
-        return initialize_expression_grow(function_symbol_list, function_arities,
-                                          input_variable_list,
-                                          constant_min, constant_max,
-                                          p_subtree, p_constant,
-                                          0);
+        Rprintf("delete at default\n"); // DEBUG
+        SEXP new_leaf;
+        new_leaf = PROTECT(initialize_expression_grow(function_symbol_list, function_arities,
+                                                      input_variable_list,
+                                                      constant_min, constant_max,
+                                                      p_subtree, p_constant,
+                                                      0));
+        UNPROTECT(1);
+        return new_leaf;
       }
     } else {
+      Rprintf("pass at default\n"); // DEBUG
       return sexp; // do nothing
     }
   }
@@ -139,19 +172,29 @@ SEXP mutate_subtrees_R(SEXP sexp,
 SEXP mutate_functions(SEXP sexp, double p, SEXP function_symbol_list, SEXP function_arities) {
   int arity;
   switch (TYPEOF(sexp)) { // switch for speed
-  case LANGSXP:
+  case LANGSXP: {
+    SEXP new_function_symbol;
     if (unif_rand() < p) { // mutate function symbol with probability p
       arity = length(sexp) - 1;
-      SEXP new_function_symbol = install(CHAR(STRING_ELT(random_function_symbol_of_arity(arity, function_symbol_list, function_arities), 0)));
-      return LCONS(new_function_symbol,
-                   mutate_functions(CDR(sexp), p, function_symbol_list, function_arities)); // recurse on parameters
+      new_function_symbol = install(CHAR(STRING_ELT(random_function_symbol_of_arity(arity, function_symbol_list, function_arities), 0)));
     } else {
-      return LCONS(CAR(sexp),
-                   mutate_functions(CDR(sexp), p, function_symbol_list, function_arities)); // recurse on parameters
+      new_function_symbol = CAR(sexp);
     }
+    int function_arity = 0;
+    SEXP tail_e, e;
+    PROTECT(tail_e = R_NilValue);
+    for (SEXP iterator = CDR(sexp); !isNull(iterator); iterator = CDR(iterator)) { // recurse on actual parameters
+      function_arity++; // determine arity on the fly
+      SEXP mutated_parameter;
+      PROTECT(mutated_parameter = mutate_functions(CAR(iterator), p, function_symbol_list, function_arities));
+      PROTECT(tail_e = CONS(mutated_parameter, tail_e));
+    }
+    PROTECT(e = LCONS(new_function_symbol, tail_e));
+    UNPROTECT(2 * function_arity + 2);
+    return e;
+  }
   case LISTSXP:
-    return CONS(mutate_functions(CAR(sexp), p, function_symbol_list, function_arities),
-                mutate_functions(CDR(sexp), p, function_symbol_list, function_arities)); // do nothing with parameter lists, just recurse
+    error("mutate_functions: unexpected LISTSXP");
   default: // base case
     return sexp; // do nothing
   }
