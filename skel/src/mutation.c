@@ -64,14 +64,14 @@ SEXP mutate_subtrees(SEXP sexp,
                      double constant_min, double constant_max,
                      double p_subtree, double p_constant,
                      int depth_max) {
-  Rprintf("->\n"); // DEBUG
+  // Rprintf("->\n"); // DEBUG
   switch (TYPEOF(sexp)) { // switch for speed
   case NILSXP:
     return sexp; // do nothing with nils
   case LANGSXP:
     if (unif_rand() < p) { // mutate inner node with probability p
       if (unif_rand() < p_insert_delete) { // replace with new subtree (insert)
-        Rprintf("insert\n"); // DEBUG
+        // Rprintf("insert\n"); // DEBUG
         SEXP new_subtree = PROTECT(initialize_expression_grow(function_symbol_list, function_arities,
                                                               input_variable_list,
                                                               constant_min, constant_max,
@@ -80,7 +80,7 @@ SEXP mutate_subtrees(SEXP sexp,
         UNPROTECT(1);
         return new_subtree;
       } else { // replace with new leaf (delete)
-        Rprintf("delete\n"); // DEBUG
+        // Rprintf("delete\n"); // DEBUG
         SEXP new_leaf = PROTECT(initialize_expression_grow(function_symbol_list, function_arities,
                                                            input_variable_list,
                                                            constant_min, constant_max,
@@ -90,7 +90,7 @@ SEXP mutate_subtrees(SEXP sexp,
         return new_leaf;
       }
     } else {
-      Rprintf("pass\n"); // DEBUG
+      // Rprintf("pass\n"); // DEBUG
       int function_arity = 0;
       SEXP e;
       PROTECT(e = R_NilValue);
@@ -112,16 +112,16 @@ SEXP mutate_subtrees(SEXP sexp,
   case LISTSXP:
     error("mutate_subtrees: unexpected LISTSXP");
   default: // base case
-    Rprintf("default type %d\n", TYPEOF(sexp)); // DEBUG
-    if (REALSXP == TYPEOF(sexp)) {
-      Rprintf("real %f\n", REAL(sexp)[0]); // DEBUG
-    }
-    if (SYMSXP == TYPEOF(sexp)) {
-      Rprintf("symbol %s\n", CHAR(PRINTNAME(sexp))); // DEBUG
-    }
+    // Rprintf("default type %d\n", TYPEOF(sexp)); // DEBUG
+    // if (REALSXP == TYPEOF(sexp)) {
+    //   Rprintf("real %f\n", REAL(sexp)[0]); // DEBUG
+    // }
+    // if (SYMSXP == TYPEOF(sexp)) {
+    //   Rprintf("symbol %s\n", CHAR(PRINTNAME(sexp))); // DEBUG
+    // }
     if (unif_rand() < p) { // mutate leaf with probability p
       if (unif_rand() < p_insert_delete) { // replace with new subtree (insert)
-        Rprintf("insert at default\n"); // DEBUG
+        // Rprintf("insert at default\n"); // DEBUG
         SEXP new_subtree;
         new_subtree = PROTECT(initialize_expression_grow(function_symbol_list, function_arities,
                                                          input_variable_list,
@@ -131,7 +131,7 @@ SEXP mutate_subtrees(SEXP sexp,
         UNPROTECT(1);
         return new_subtree;
       } else { // replace with new leaf (delete)
-        Rprintf("delete at default\n"); // DEBUG
+        // Rprintf("delete at default\n"); // DEBUG
         SEXP new_leaf;
         new_leaf = PROTECT(initialize_expression_grow(function_symbol_list, function_arities,
                                                       input_variable_list,
@@ -142,7 +142,7 @@ SEXP mutate_subtrees(SEXP sexp,
         return new_leaf;
       }
     } else {
-      Rprintf("pass at default\n"); // DEBUG
+      // Rprintf("pass at default\n"); // DEBUG
       return sexp; // do nothing
     }
   }

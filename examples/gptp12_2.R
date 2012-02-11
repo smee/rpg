@@ -6,7 +6,7 @@
 require("rgp")
 
 
-gctorture(on = TRUE) # DEBUG
+#gctorture(on = TRUE) # DEBUG
 set.seed(1) # controlled random seed (the evoke the air of reproducability)
 
 #Salutowicz1d <- function(x) exp(-1*x)*x*x*x*sin(x)*cos(x)*(sin(x)*sin(x)*cos(x)-1)
@@ -15,7 +15,7 @@ x1 <- seq(from = 0, to = 6.2, length.out = 63)
 df1 <- data.frame(x1 = x1, y = sin(x1)) # single sine period
 
 #metaHeuristic1 <- makeExploitativeSteadyStateMetaHeuristic(selectionFunction = makeTournamentSelection(tournamentSize = 10))
-metaHeuristic1 <- makeTinyGpMetaHeuristic(crossoverProbability = 0, tournamentSize = 2)
+metaHeuristic1 <- makeTinyGpMetaHeuristic(crossoverProbability = 0.9, tournamentSize = 2)
 #metaHeuristic1 <- makeCommaEvolutionStrategyMetaHeuristic(mu = 25)
 #metaHeuristic1 <- makeAgeFitnessComplexityParetoGpMetaHeuristic(lambda = 20, newIndividualsPerGeneration = 2)
 
@@ -31,9 +31,9 @@ mutationFunction1 <- function(ind) {
 }
 
 mutationFunction2 <- function(ind) {
-  mutantBody <- body(ind) # DEBUG
-  print("-----------------------------------------------------------------") # DEBUG
-  print(mutantBody) # DEBUG
+  #mutantBody <- body(ind) # DEBUG
+  #print("-----------------------------------------------------------------") # DEBUG
+  #print(mutantBody) # DEBUG
   mutantBody <- .Call("mutate_subtrees_R", body(ind), 0.33, 0.75,
                       functionSet1$all, as.integer(functionSet1$arities),
                       inputVariableSet1$all, -1, 1, 1.0, 0.5, 2L)
@@ -43,8 +43,8 @@ mutationFunction2 <- function(ind) {
   #print("--2"); print(mutantBody)
   mutantBody <- .Call("mutate_constants_normal_R", mutantBody, 0.33, 0, 1) # okay
   #print("--3"); print(mutantBody)
-  print("====>") # DEBUG
-  print(mutantBody) # DEBUG
+  #print("====>") # DEBUG
+  #print(mutantBody) # DEBUG
   mutant <- .Call("make_closure", mutantBody, inputVariableSet1$all)
   mutant
   #ind # DEBUG 
@@ -57,8 +57,8 @@ crossoverFunction1 <- function(func1, func2, crossoverprob = 1,
   #print(body(func1)) # DEBUG 
   #print("XXXXX")
   #print(body(func2)) # DEBUG 
-  #childBody <- .Call("crossover_single_point_R", body(func1), body(func2))[[1]]
-  #child <- .Call("make_closure", childBody, inputVariableSet1$all)
+  childBody <- .Call("crossover_single_point_R", body(func1), body(func2))[[1]]
+  child <- .Call("make_closure", childBody, inputVariableSet1$all)
   #print("====>")
   #print(childBody) # DEBUG 
   
@@ -66,8 +66,8 @@ crossoverFunction1 <- function(func1, func2, crossoverprob = 1,
   #child <- new.function()
   #formals(child) <- formals(func1)
   #body(child) <- body(func1)
-  #child
-  func1
+  child
+  #func1 # DEBUG
 }
 
 statistics1 <- NULL 
@@ -98,7 +98,7 @@ sr1 <- symbolicRegression(y ~ x1, data = df1,
                           #stopCondition = makeTimeStopCondition(15 * 60),
                           stopCondition = makeEvaluationsStopCondition(1e+06), # 1M evaluations
                           #populationSize = 300,
-                          populationSize = 2,
+                          populationSize = 4,
                           #populationSize = 5000, # 5K individuals
                           individualSizeLimit = 128, # individuals with more than 64 nodes (inner and leafs) get fitness Inf
                           #mutationFunction = mutationFunction1,
