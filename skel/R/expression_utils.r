@@ -25,6 +25,9 @@
 ##' \code{AnyExpressionNode} checks if any node in the tree of \code{expr}
 ##' satisfies the predicate \code{p}. This function short-cuts returning
 ##' \code{TRUE} as soon as a node that satisfies \code{p} is encountered.
+##' \code{subtreeAt} returns the subtree at \code{index}.
+##' \code{replaceSubtreeAt} replaces the subtree at \code{index} with
+##' \code{replacement} and returns the result. 
 ##'
 ##' @param f The function to apply.
 ##' @param functions Whether to apply \code{f} to the function symbols
@@ -35,6 +38,8 @@
 ##'   Defaults to \code{TRUE}.
 ##' @param p The predicate to check.
 ##' @param expr The expression to transform.
+##' @param index An in-order subtree index starting from \code{0} (the root).
+##' @param replacement An expression. 
 ##' @return The transformed expression.
 ##'
 ##' @rdname expressionTransformation
@@ -94,6 +99,41 @@ AnyExpressionNode <- function(p, expr) {
     p(expr)
   }
 }
+
+##' @rdname expressionTransformation
+subtreeAt <- function(expr, index) subtreeAtRecursive(expr, index)
+
+subtreeAtRecursive <- function(expr, index, currentIndex = 0)
+  if (currentIndex == index) {
+    expr
+  } else if (is.call(expr)) { 
+    for (i in 2:length(expr)) {
+      result <- subtreeAtRecursive(expr[[i]], index, currentIndex + (i - 1))
+      if (!is.null(result)) {
+        return (result)
+      }
+    }
+    NULL # NULL := subtree not found
+  } else {
+    NULL # NULL := subtree not found
+  }
+
+##' @rdname expressionTransformation
+replaceSubtreeAt <- function(expr, index, replacement) replaceSubtreeAtRecursive(expr, index, replacement)
+
+replaceSubtreeAtRecursive <- function(expr, index, replacement, currentIndex = 0)
+  if (currentIndex == index) {
+    replacement 
+  } else if (is.call(expr)) { 
+    as.call(append(expr[[1]],
+                   Map(function(e, i) if (index == i) {
+                                        replacement
+                                      } else {
+                                        replaceSubtreeAtRecursive(e, index, replacement, currentIndex + i)
+                                      }, expr[-1], 1:(length(expr) - 1))))
+  } else {
+    expr 
+  }
 
 ##' Functions for decomposing and recombining R expressions
 ##'
