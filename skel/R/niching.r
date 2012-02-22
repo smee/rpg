@@ -70,7 +70,7 @@ NA
 ##' @param restartStrategy The strategy for doing restarts. See
 ##'   \link{makeLocalRestartStrategy} for details.
 ##' @param progressMonitor A function of signature
-##'   \code{function(population, fitnessFunction, stepNumber, evaluationNumber,
+##'   \code{function(population, fitnessValues, fitnessFunction, stepNumber, evaluationNumber,
 ##'   bestFitness, timeElapsed)} to be called with each evolution step.
 ##' @param verbose Whether to print progress messages.
 ##' @param clusterApply The cluster apply function that is used to distribute the
@@ -109,19 +109,19 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
     if (verbose)
       message(sprintf(msg, ...))
   }
-  quietProgmon <- function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) NULL
+  quietProgmon <- function(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) NULL
   environment(quietProgmon) <- globalenv() # prevent a possible memory-leak
   progmon <-
     if (verbose) {
-      function(pop, fitnessFunction, evaluationNumber, stepNumber, bestFitness, timeElapsed) {
+      function(pop, fitnessValues, fitnessFunction, evaluationNumber, stepNumber, bestFitness, timeElapsed) {
         if (!is.null(progressMonitor))
-          progressMonitor(pop, fitnessFunction, evaluationNumber, stepNumber, bestFitness, timeElapsed)
+          progressMonitor(pop, fitnessValues, fitnessFunction, evaluationNumber, stepNumber, bestFitness, timeElapsed)
         if (stepNumber %% 100 == 0)
           logmsg("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %s",
                  stepNumber, evaluationNumber, bestFitness, formatSeconds(timeElapsed))
       }
     } else if (is.null(progressMonitor)) {
-      function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) NULL # verbose == FALSE, do not show progress
+      function(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) NULL # verbose == FALSE, do not show progress
     } else
       progressMonitor
   mutatefunc <-

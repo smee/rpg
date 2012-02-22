@@ -52,6 +52,8 @@ function(logFunction, stopCondition, pop, fitnessFunction,
          breedingFitness, breedingTries,
          progressMonitor) {
   logFunction("STARTING genetic programming evolution run (exploitative steady state meta-heuristic) ...")
+  
+  fitnessValues <- sapply(pop, fitnessFunction)
 
   ## Initialize statistic counters...
   stepNumber <- 1
@@ -89,6 +91,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     winnerChildrenA <- makeWinnerChildren(winnersA, winnersB) 
     winnerChildrenB <- makeWinnerChildren(winnersA, winnersB) 
     winnerChildren <- c(winnerChildrenA, winnerChildrenB)
+    fitnessValues[c(winnersA, winnersB)] <- c(selA$selected[, 2], selB$selected[, 2])
     # Replace losers with winner children...
     if (extinctionPrevention) {
       numberOfLosers <- length(losers)
@@ -118,7 +121,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- selA$numberOfFitnessEvaluations + selB$numberOfFitnessEvaluations + evaluationNumber
-    progressMonitor(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+    progressMonitor(pop = pop, fitnessValues = fitnessValues, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                     evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
   }
   elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
@@ -151,7 +154,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   
   ## Tool functions...
   randomIndex <- function(maxIndex) as.integer(runif(1, min = 1, max = maxIndex + 1)) 
-  tournament <- function(fintessValues, popSize, tournamentSize) {
+  tournament <- function(fitnessValues, popSize, tournamentSize) {
     bestIndex <- randomIndex(popSize) 
     bestFitness <- Inf
     for (i in 1:tournamentSize) {
@@ -163,7 +166,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     }
     bestIndex
   }
-  negativeTournament <- function(fintessValues, popSize, tournamentSize) {
+  negativeTournament <- function(fitnessValues, popSize, tournamentSize) {
     worstIndex <- randomIndex(popSize) 
     worstFitness <- -Inf
     for (i in 1:tournamentSize) {
@@ -231,7 +234,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- 1 + evaluationNumber
-    progressMonitor(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+    progressMonitor(pop = pop, fitnessValues = fitnessValues, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                     evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
   }
   
@@ -313,7 +316,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- lambda + evaluationNumber
-    progressMonitor(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+    progressMonitor(pop = pop, fitnessValues = fitnessValues, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                     evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
   }
  
@@ -440,7 +443,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- mu + newIndividualsPerGeneration + evaluationNumber
-    progressMonitor(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+    progressMonitor(pop = pop, fitnessValues = fitnessValues, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                     evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
   }
  

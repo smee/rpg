@@ -86,7 +86,7 @@ NA
 ##' @param archive If set to \code{TRUE}, all GP individuals evaluated are stored in an
 ##'   archive list \code{archiveList} that is returned as part of the result of this function. 
 ##' @param progressMonitor A function of signature
-##'   \code{function(population, fitnessfunction, stepNumber, evaluationNumber,
+##'   \code{function(population, fintessValues, fitnessfunction, stepNumber, evaluationNumber,
 ##'   bestFitness, timeElapsed)} to be called with each evolution step.
 ##' @param verbose Whether to print progress messages.
 ##' @return A genetic programming result object that contains a GP population in the
@@ -122,15 +122,15 @@ geneticProgramming <- function(fitnessFunction,
   }
   progmon <-
     if (verbose) {
-      function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) {
+      function(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) {
         if (!is.null(progressMonitor))
-          progressMonitor(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
+          progressMonitor(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
         if (stepNumber %% 100 == 0)
           logmsg("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %s",
                  stepNumber, evaluationNumber, bestFitness, formatSeconds(timeElapsed))
       }
     } else if (is.null(progressMonitor)) {
-      function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) NULL # verbose == FALSE, do not show progress
+      function(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) NULL # verbose == FALSE, do not show progress
     } else
       progressMonitor
   mutatefunc <-

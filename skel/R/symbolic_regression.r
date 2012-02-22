@@ -76,7 +76,7 @@ NA
 ##'   parameter. Defaults to \code{50}.
 ##' @param errorMeasure A function to use as an error measure, defaults to RMSE.
 ##' @param progressMonitor A function of signature
-##'   \code{function(population, fitnessfunction, stepNumber, evaluationNumber,
+##'   \code{function(population, fitnessValues, fitnessFunction, stepNumber, evaluationNumber,
 ##'   bestFitness, timeElapsed)} to be called with each evolution step.
 ##' @param verbose Whether to print progress messages.
 ##' @return An symbolic regression model that contains an untyped GP population.
