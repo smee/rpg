@@ -84,6 +84,7 @@ seSymbolic <- function(f, g, lower, upper, subdivisions = 100) {
   seFunction <- seSymbolicFunction(f, g)
   tryCatch(integrate(seFunction, lower = lower, upper = upper, subdivisions = subdivisions)$value,
            error = function(error) Inf)
+           #error = function(error) { print(error); Inf }) # DEBUG
 }
 
 ##' Create a fitness function based on symbolic squared error (SE) 
