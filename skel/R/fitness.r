@@ -49,6 +49,70 @@ normalize <- function(x) (x - min(x)) / (max(x) - min(x))
 ##' @return The SMSE between \code{x} and \code{y}.
 smse <- function(x, y) mse(normalize(x), normalize(y))
 
+##' Symbolic squared error function (SE)
+##'
+##' Given to functions \code{f} and \code{g}, returns a function whose body
+##' is the symbolic representation of the squared error between \code{f} and
+##' \code{g}, i.e. \code{function(x) (f(x) - g(x))^2}.
+##'
+##' @param f An R function.
+##' @param g An R function with the same formal arguments as \code{f}.
+##' @return A function representing the squared error between \code{f} and \code{g}. 
+##' @export
+seSymbolicFunction <- function(f, g) {
+  newf <- new.function()
+  formals(newf) <- formals(f)
+  body(newf) <- call("^", call("-", body(f), body(g)), 2)
+  newf
+}
+
+##' Symbolic squared error (SE)
+##'
+##' Given to functions \code{f} and \code{g}, returns the area the squared
+##' differences between \code{f} and \code{g} in the integration limits
+##' \code{lower} and \code{upper}.
+##'
+##' @param f An R function.
+##' @param g An R function with the same formal arguments as \code{f}.
+##' @param lower The lower limit of integraion.
+##' @param upper The upper limit of integraion.
+##' @param subdivisions The maximum number of subintervals for numeric integration. 
+##' @return The area of the squared differences between \code{f} and \code{g}, or
+##'   \code{Inf} if integration is not possible in the limits given. 
+##' @export
+seSymbolic <- function(f, g, lower, upper, subdivisions = 100) {
+  seFunction <- seSymbolicFunction(f, g)
+  tryCatch(integrate(seFunction, lower = lower, upper = upper, subdivisions = subdivisions)$value,
+           error = function(error) Inf)
+}
+
+##' Create a fitness function based on symbolic squared error (SE) 
+##'
+##' Creates a fitness function that calculates the squared error of
+##' an individual with respect to a reference function \code{func}.
+##' When an \code{indsizelimit} is given, individuals exceeding this
+##' limit will receive a fitness of \code{Inf}.
+##'
+##' @param func The reference function.
+##' @param lower The lower limit of integraion.
+##' @param upper The upper limit of integraion.
+##' @param subdivisions The maximum number of subintervals for numeric integration. 
+##' @param indsizelimit Individuals exceeding this size limit will get
+##'   a fitness of \code{Inf}.
+##' @return A fitness function based on the reference function \code{func}.
+##' @export
+makeSeSymbolicFitnessFunction <- function(func, lower, upper, subdivisions = 100,
+                                          indsizelimit = NA) {
+  function(ind) {
+    errorind <- seSymbolic(ind, func,
+                           lower = lower, upper = upper,
+                           subdivisions = subdivisions)
+  	if (!is.na(indsizelimit) && funcSize(ind) > indsizelimit)
+  	  Inf # ind size limit exceeded
+  	else errorind
+  }
+}
+
 ##' Create a fitness function from a function of one variable
 ##'
 ##' Creates a fitness function that calculates an error measure with
