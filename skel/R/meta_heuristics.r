@@ -39,6 +39,12 @@
 ##'   with \code{makeCommaEvolutionStrategyMetaHeuristic}, lambda is fixed to the population size,
 ##'   i.e. \code{length(pop)}.
 ##' @param lambda The number of children to create in each generation.
+##' @param complexityMeasure The complexity measure, a function of signature \code{function(ind, fitness)}
+##'   returning a single numeric value.
+##' @param \code{newIndividualsPerGeneration} The number of new individuals per generation to
+##'   insert into the population.
+##' @param \code{newIndividualsMaxDepth} The maximum depth of new individuals inserted into the
+##'   population.
 ##'
 ##' @rdname metaHeuristics 
 ##' @export
@@ -338,9 +344,10 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##' @rdname metaHeuristics 
 ##' @export
 makeAgeFitnessComplexityParetoGpMetaHeuristic <- function(lambda = 20,
-                                                          complexityMesaure = funcVisitationLength,
+                                                          complexityMesaure = function(ind, fitness) funcVisitationLength(ind),
                                                           ageMergeFunction = max,
                                                           newIndividualsPerGeneration = 1,
+                                                          newIndividualsMaxDepth = 8,
                                                           plotFront = TRUE)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
@@ -369,7 +376,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   mu <- length(pop)
   if (mu < 2 * lambda) stop("makeAgeFitnessComplexityParetoGpMetaHeuristic: condition mu < 2 * lambda must be fulfilled")
   fitnessValues <- as.numeric(sapply(pop, fitnessFunction))
-  complexityValues <- as.numeric(sapply(pop, complexityMesaure))
+  complexityValues <- as.numeric(Map(complexityMesaure, pop, fitnessValues))
   ageValues <- integer(mu) # initialize ages with zeros
 
   ## Initialize statistic counters...
@@ -398,15 +405,16 @@ function(logFunction, stopCondition, pop, fitnessFunction,
                                        breedingTries = breedingTries)),
                     motherIndices, fatherIndices)
     childrenFitnessValues <- as.numeric(sapply(children, fitnessFunction))
-    childrenComplexityValues <- as.numeric(sapply(children, complexityMesaure))
+    childrenComplexityValues <- as.numeric(Map(complexityMesaure, children, childrenFitnessValues))
     childrenAgeValues <- 1 + as.integer(Map(ageMergeFunction, ageValues[motherIndices], ageValues[fatherIndices]))
 
     # Create and evaluate new individuals...
     newIndividuals <- makePopulation(newIndividualsPerGeneration, functionSet, inputVariables, constantSet,
+                                     maxfuncdepth = newIndividualsMaxDepth,
                                      extinctionPrevention = extinctionPrevention,
                                      breedingFitness = breedingFitness, breedingTries = breedingTries)
     newIndividualsFitnessValues <- as.numeric(sapply(newIndividuals, fitnessFunction))
-    newIndividualsComplexityValues <- as.numeric(sapply(newIndividuals, complexityMesaure))
+    newIndividualsComplexityValues <- as.numeric(Map(complexityMesaure, newIndividuals, newIndividualsFitnessValues))
     newIndividualsAgeValues <- integer(newIndividualsPerGeneration) # initialize ages with zeros
 
     # Create the pool of individuals to select the next generation from...
