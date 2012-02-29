@@ -450,7 +450,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
-    evaluationNumber <- mu + newIndividualsPerGeneration + evaluationNumber
+    evaluationNumber <- lambda + newIndividualsPerGeneration + evaluationNumber
     progressMonitor(pop = pop, fitnessValues = fitnessValues, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                     evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
   }
