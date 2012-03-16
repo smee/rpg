@@ -39,6 +39,9 @@
 ##'   with \code{makeCommaEvolutionStrategyMetaHeuristic}, lambda is fixed to the population size,
 ##'   i.e. \code{length(pop)}.
 ##' @param lambda The number of children to create in each generation.
+##' @param enableComplexityCriterion Whether to enable the complexity criterion in multi-criterial
+##'   search heuristics.
+##' @param enableAgeCriterion Whether to enable the age criterion in multi-criterial search heuristics.
 ##' @param complexityMeasure The complexity measure, a function of signature \code{function(ind, fitness)}
 ##'   returning a single numeric value.
 ##' @param \code{newIndividualsPerGeneration} The number of new individuals per generation to
@@ -344,6 +347,8 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##' @rdname metaHeuristics 
 ##' @export
 makeAgeFitnessComplexityParetoGpMetaHeuristic <- function(lambda = 20,
+                                                          enableComplexityCriterion = TRUE,
+                                                          enableAgeCriterion = TRUE,
                                                           complexityMesaure = function(ind, fitness) funcVisitationLength(ind),
                                                           ageMergeFunction = max,
                                                           newIndividualsPerGeneration = 1,
@@ -424,7 +429,14 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     poolAgeValues <- c(ageValues, childrenAgeValues, newIndividualsAgeValues)
 
     # Sort the pool via the non-domination relation and select individuals for removal...
-    poolPoints <- rbind(poolFitnessValues, poolComplexityValues, poolAgeValues)
+    poolPoints <- if (enableAgeCriterion & enableComplexityCriterion)
+      rbind(poolFitnessValues, poolComplexityValues, poolAgeValues)
+    else if (enableComplexityCriterion)
+      rbind(poolFitnessValues, poolComplexityValues)
+    else if (enableAgeCriterion)
+      rbind(poolFitnessValues, poolAgeValues)
+    else
+      rbind(poolFitnessValues) # TODO this fails at nds_rank!
     if (plotFront) {
       poolNdsRanks <- nds_rank(poolPoints)
       plotParetoFront(poolFitnessValues, poolComplexityValues, poolNdsRanks, poolAgeValues,
