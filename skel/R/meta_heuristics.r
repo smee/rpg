@@ -436,13 +436,19 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     else if (enableAgeCriterion)
       rbind(poolFitnessValues, poolAgeValues)
     else
-      rbind(poolFitnessValues) # TODO this fails at nds_rank!
+      rbind(poolFitnessValues)
     if (plotFront) {
       poolNdsRanks <- nds_rank(poolPoints)
       plotParetoFront(poolFitnessValues, poolComplexityValues, poolNdsRanks, poolAgeValues,
                       xlab = "Fitness", ylab = "Complexity")
     }
-    poolIndicesToRemove <- nds_cd_selection(poolPoints, lambda + newIndividualsPerGeneration)
+    poolIndicesToRemove <- if (!enableComplexityCriterion & !enableAgeCriterion) {
+      # single-criterial case
+      order(poolPoints, decreasing = TRUE)[1:(lambda + newIndividualsPerGeneration)]
+    } else {
+      # multi-criteral case
+      nds_cd_selection(poolPoints, lambda + newIndividualsPerGeneration)
+    }
 
     # Replace current population with next generation...
     pop <- pool[-poolIndicesToRemove]
