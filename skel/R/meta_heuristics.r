@@ -347,6 +347,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##' @rdname metaHeuristics 
 ##' @export
 makeAgeFitnessComplexityParetoGpMetaHeuristic <- function(lambda = 20,
+                                                          crossoverProbability = 0.9,
                                                           enableComplexityCriterion = TRUE,
                                                           enableAgeCriterion = TRUE,
                                                           complexityMesaure = function(ind, fitness) funcVisitationLength(ind),
@@ -399,16 +400,26 @@ function(logFunction, stopCondition, pop, fitnessFunction,
                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
 
     # Sample (without replacement) 2 * lambda parent inviduals...
+    # TODO add an option for pareto-tournaments here
     parentIndices <- sample(1:mu, 2 * lambda, replace = FALSE)
     motherIndices <- parentIndices[1:lambda]
     fatherIndices <- parentIndices[(lambda + 1):(2 * lambda)]
 
-    # Create and evaluate children individuals...
-    children <- Map(function(motherIndex, fatherIndex)
-                      mutationFunction(crossoverFunction(pop[[motherIndex]], pop[[fatherIndex]],
-                                       breedingFitness = breedingFitness,
-                                       breedingTries = breedingTries)),
+    # Create individuals...
+    children <- Map(function(motherIndex, fatherIndex) {
+                      if (runif(1) < crossoverProbability) {
+                        # create child via crossover
+                        crossoverFunction(pop[[motherIndex]], pop[[fatherIndex]],
+                                          breedingFitness = breedingFitness,
+                                          breedingTries = breedingTries)
+                      } else {
+                        # create child via mutation
+                        mutationFunction(pop[[motherIndex]])
+                      }
+                    },
                     motherIndices, fatherIndices)
+
+    # Evaluate children individuals...
     childrenFitnessValues <- as.numeric(sapply(children, fitnessFunction))
     childrenComplexityValues <- as.numeric(Map(complexityMesaure, children, childrenFitnessValues))
     childrenAgeValues <- 1 + as.integer(Map(ageMergeFunction, ageValues[motherIndices], ageValues[fatherIndices]))
