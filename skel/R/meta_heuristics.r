@@ -380,7 +380,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 
   ## Initialize run-global variables...
   mu <- length(pop)
-  if (mu < 2 * lambda) stop("makeAgeFitnessComplexityParetoGpMetaHeuristic: condition mu < 2 * lambda must be fulfilled")
+  if (mu < 2 * lambda) stop("makeAgeFitnessComplexityParetoGpMetaHeuristic: condition mu >= 2 * lambda must be fulfilled")
   fitnessValues <- as.numeric(sapply(pop, fitnessFunction))
   complexityValues <- as.numeric(Map(complexityMesaure, pop, fitnessValues))
   ageValues <- integer(mu) # initialize ages with zeros
