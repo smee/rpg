@@ -1,5 +1,5 @@
-## meta_heuristics.r
-##   - Functions defining meta heuristics (i.e. algorithmic frameworks) 
+## search_heuristics.r
+##   - Functions defining search heuristics (i.e. algorithmic frameworks) 
 ##     for Genetic Programming 
 ##
 ## RGP - a GP system for R
@@ -8,35 +8,39 @@
 ## released under the GPL v2
 ##
 
-##' Meta-heuristics for GP search
+##' Search-heuristics for GP
 ##'
-##' The meta-heuristic, i.e. the concrete GP search algorithm, is a modular component of RGP. RGP
-##' already provides a set of meta-heuristics for GP search, including the following:
+##' The search-heuristic, i.e. the concrete GP search algorithm, is a modular component of RGP. RGP
+##' already provides a set of search-heuristics for GP, including the following:
 ##'
-##' \code{makeExploitativeSteadyStateMetaHeuristic} creates a exploitative steady state
-##' meta-heuristic for use in RGP. This meta-heuristic was the only option in early versions of
-##' RGP and is provided mainly for reasons of backward-compatiblity. TODO describe this heuristic
+##' \code{makeExploitativeSteadyStateSearchHeuristic} creates a exploitative steady state
+##' search-heuristic for use in RGP. This search-heuristic was the only option in early versions of
+##' RGP and is provided mainly for reasons of backward-compatiblity.
 ##'
-##' \code{makeTinyGpMetaHeuristic} creates an RGP meta-heuristic that mimics the search heuristic
-##' implemented in Riccardo Poli's TinyGP system. TODO describe this heuristic, cite TinyGP
+##' \code{makeTinyGpSearchHeuristic} creates an RGP search-heuristic that mimics the search heuristic
+##' implemented in Riccardo Poli's TinyGP system.
 ##'
-##' \code{makeCommaEvolutionStrategyMetaHeuristic} creates a RGP meta-heuristic that implements a
+##' \code{makeCommaEvolutionStrategySearchHeuristic} creates a RGP search-heuristic that implements a
 ##' (mu, lambda) Evolution Strategy. The lambda parameter is fixed to the population size.
 ##' TODO description based on Luke09a
 ##'
-##' \code{makeAgeFitnessComplexityParetoGpMetaHeuristic} creates a RGP meta-heuristic that implements
-##' an evolutionary multi objective optimization algorithm (EMOA) that selects on three criteria:
-##' Individual age, individual fitness, and individual complexity. TODO description
+##' \code{makeAgeFitnessComplexityParetoGpSearchHeuristic} creates a RGP search-heuristic that implements
+##' a generational evolutionary multi objective optimization algorithm (EMOA) that selects on three criteria:
+##' Individual age, individual fitness, and individual complexity.
 ##'
-##' @param selectionFunction The selection function to use in meta-heuristics that support
+##' \code{makeSimpleParetoTournamentSearchHeuristic} creates a RGP search-heuristic that implements
+##' a simple Pareto tournament multi objective optimization algorithm (EMOA) that selects on three criteria:
+##' Individual individual fitness and individual complexity.
+##'
+##' @param selectionFunction The selection function to use in search-heuristics that support
 ##'   different selection functions. Defaults to tournament selection. See
 ##'   \link{makeTournamentSelection} for details.
-##' @param crossoverProbability The crossover probability for meta-heuristics that support
+##' @param crossoverProbability The crossover probability for search-heuristics that support
 ##'   this setting (i.e. TinyGP). Defaults to \code{0.9}.
-##  @param tournamentSize The tournament size for meta-heuristics that support this setting
+##  @param tournamentSize The tournament size for search-heuristics that support this setting
 ##'   (i.e. TinyGP). Defaults to \code{2}.
-##' @param mu The number of surviving parents for the Evolution Strategy meta-heuristic. Note that
-##'   with \code{makeCommaEvolutionStrategyMetaHeuristic}, lambda is fixed to the population size,
+##' @param mu The number of surviving parents for the Evolution Strategy search-heuristic. Note that
+##'   with \code{makeCommaEvolutionStrategySearchHeuristic}, lambda is fixed to the population size,
 ##'   i.e. \code{length(pop)}.
 ##' @param lambda The number of children to create in each generation.
 ##' @param enableComplexityCriterion Whether to enable the complexity criterion in multi-criterial
@@ -49,9 +53,9 @@
 ##' @param \code{newIndividualsMaxDepth} The maximum depth of new individuals inserted into the
 ##'   population.
 ##'
-##' @rdname metaHeuristics 
+##' @rdname searchHeuristics 
 ##' @export
-makeExploitativeSteadyStateMetaHeuristic <- function(selectionFunction = makeTournamentSelection())
+makeExploitativeSteadyStateSearchHeuristic <- function(selectionFunction = makeTournamentSelection())
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
          functionSet, inputVariables, constantSet,
@@ -60,7 +64,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
          restartCondition, restartStrategy,
          breedingFitness, breedingTries,
          progressMonitor) {
-  logFunction("STARTING genetic programming evolution run (exploitative steady state meta-heuristic) ...")
+  logFunction("STARTING genetic programming evolution run (exploitative steady state search-heuristic) ...")
   
   fitnessValues <- sapply(pop, fitnessFunction)
 
@@ -145,12 +149,12 @@ function(logFunction, stopCondition, pop, fitnessFunction,
        population = pop,
        elite = elite,
        archiveList = archiveList,
-       metaHeuristicResults = list())
+       searchHeuristicResults = list())
 }
 
-##' @rdname metaHeuristics 
+##' @rdname searchHeuristics 
 ##' @export
-makeTinyGpMetaHeuristic <- function(crossoverProbability = 0.9, tournamentSize = 2)
+makeTinyGpSearchHeuristic <- function(crossoverProbability = 0.9, tournamentSize = 2)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
          functionSet, inputVariables, constantSet,
@@ -159,7 +163,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
          restartCondition, restartStrategy,
          breedingFitness, breedingTries,
          progressMonitor) {
-  logFunction("STARTING genetic programming evolution run (TinyGP meta-heuristic) ...")
+  logFunction("STARTING genetic programming evolution run (TinyGP search-heuristic) ...")
   
   ## Tool functions...
   randomIndex <- function(maxIndex) as.integer(runif(1, min = 1, max = maxIndex + 1)) 
@@ -259,12 +263,12 @@ function(logFunction, stopCondition, pop, fitnessFunction,
        population = pop,
        elite = elite,
        archiveList = archiveList,
-       metaHeuristicResults = list())
+       searchHeuristicResults = list())
 }
 
-##' @rdname metaHeuristics 
+##' @rdname searchHeuristics 
 ##' @export
-makeCommaEvolutionStrategyMetaHeuristic <- function(mu = 1)
+makeCommaEvolutionStrategySearchHeuristic <- function(mu = 1)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
          functionSet, inputVariables, constantSet,
@@ -273,14 +277,14 @@ function(logFunction, stopCondition, pop, fitnessFunction,
          restartCondition, restartStrategy,
          breedingFitness, breedingTries,
          progressMonitor) {
-  logFunction("STARTING genetic programming evolution run (Evolution Strategy meta-heuristic) ...")
+  logFunction("STARTING genetic programming evolution run (Evolution Strategy search-heuristic) ...")
   
   ## Tool functions...
   truncationSelect <- function(mu, fitnessValues) order(fitnessValues)[1:mu]
 
   ## Global variables...
   lambda <- length(pop)
-  if(mu > lambda) stop("makeCommaEvolutionStrategyMetaHeuristic: mu must be less or equal to the population size")
+  if(mu > lambda) stop("makeCommaEvolutionStrategySearchHeuristic: mu must be less or equal to the population size")
   childrenPerParent <- ceiling(lambda / mu)
   fitnessValues <- sapply(pop, fitnessFunction)
 
@@ -341,20 +345,20 @@ function(logFunction, stopCondition, pop, fitnessFunction,
        population = pop,
        elite = elite,
        archiveList = archiveList,
-       metaHeuristicResults = list())
+       searchHeuristicResults = list())
 }
 
-##' @rdname metaHeuristics 
+##' @rdname searchHeuristics 
 ##' @export
-makeAgeFitnessComplexityParetoGpMetaHeuristic <- function(lambda = 20,
-                                                          crossoverProbability = 0.9,
-                                                          enableComplexityCriterion = TRUE,
-                                                          enableAgeCriterion = TRUE,
-                                                          complexityMesaure = function(ind, fitness) funcVisitationLength(ind),
-                                                          ageMergeFunction = max,
-                                                          newIndividualsPerGeneration = 1,
-                                                          newIndividualsMaxDepth = 8,
-                                                          plotFront = TRUE)
+makeAgeFitnessComplexityParetoGpSearchHeuristic <- function(lambda = 20,
+                                                            crossoverProbability = 0.9,
+                                                            enableComplexityCriterion = TRUE,
+                                                            enableAgeCriterion = TRUE,
+                                                            complexityMesaure = function(ind, fitness) funcVisitationLength(ind),
+                                                            ageMergeFunction = max,
+                                                            newIndividualsPerGeneration = 1,
+                                                            newIndividualsMaxDepth = 8,
+                                                            plotFront = TRUE)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
          functionSet, inputVariables, constantSet,
@@ -363,24 +367,11 @@ function(logFunction, stopCondition, pop, fitnessFunction,
          restartCondition, restartStrategy,
          breedingFitness, breedingTries,
          progressMonitor) {
-  ## Tool functions...
-  plotParetoFront <- function(x, y, ranks, ages,
-                              xlab = "X", ylab = "Y",
-                              maxAge = 50) {
-    ageColorScale <- colorRamp(c("#00FF00", "#006600","#0000FF", "#000000"))
-    rankOneXs <- x[ranks == 1]; rankOneYs <- y[ranks == 1]; rankOneAges <- ages[ranks == 1]
-    rankOneAgeColors <- rgb(ageColorScale(rankOneAges / maxAge), maxColorValue = 255)
-    plot(rankOneXs, rankOneYs,
-         xlab = xlab, ylab = ylab,
-         col = rankOneAgeColors, pch = 1, main = "Pareto Plot")
-    points(x[ranks > 1], y[ranks > 1], col = "gray", pch = 4)
-  }
-
-  logFunction("STARTING genetic programming evolution run (Age/Fitness/Complexity Pareto GP  meta-heuristic) ...")
+  logFunction("STARTING genetic programming evolution run (Age/Fitness/Complexity Pareto GP  search-heuristic) ...")
 
   ## Initialize run-global variables...
   mu <- length(pop)
-  if (mu < 2 * lambda) stop("makeAgeFitnessComplexityParetoGpMetaHeuristic: condition mu >= 2 * lambda must be fulfilled")
+  if (mu < 2 * lambda) stop("makeAgeFitnessComplexityParetoGpSearchHeuristic: condition mu >= 2 * lambda must be fulfilled")
   fitnessValues <- as.numeric(sapply(pop, fitnessFunction))
   complexityValues <- as.numeric(Map(complexityMesaure, pop, fitnessValues))
   ageValues <- integer(mu) # initialize ages with zeros
@@ -497,7 +488,96 @@ function(logFunction, stopCondition, pop, fitnessFunction,
        population = pop,
        elite = elite,
        archiveList = archiveList,
-       metaHeuristicResults = list(fitnessValues = fitnessValues,
-                                   complexityValues = complexityValues,
-                                   ageValues = ageValues))
+       searchHeuristicResults = list(fitnessValues = fitnessValues,
+                                     complexityValues = complexityValues,
+                                     ageValues = ageValues))
 }
+
+##' @rdname searchHeuristics 
+##' @export
+makeSimpleParetoTournamentSearchHeuristic <- function(lambda = 20,
+                                                      tournamentSize = 2,
+                                                      crossoverProbability = 0.9,
+                                                      enableComplexityCriterion = TRUE,
+                                                      complexityMesaure = function(ind, fitness) funcVisitationLength(ind),
+                                                      plotFront = TRUE)
+function(logFunction, stopCondition, pop, fitnessFunction,
+         mutationFunction, crossoverFunction,
+         functionSet, inputVariables, constantSet,
+         archive, extinctionPrevention,
+         elite, eliteSize,
+         restartCondition, restartStrategy,
+         breedingFitness, breedingTries,
+         progressMonitor) {
+  logFunction("STARTING genetic programming evolution run (Simple Pareto tournament GP search-heuristic) ...")
+
+  ## Initialize run-global variables...
+  mu <- length(pop)
+  if (mu < 2 * lambda) stop("makeAgeFitnessComplexityParetoGpSearchHeuristic: condition mu >= 2 * lambda must be fulfilled")
+  fitnessValues <- as.numeric(sapply(pop, fitnessFunction))
+  complexityValues <- as.numeric(Map(complexityMesaure, pop, fitnessValues))
+
+  ## Initialize statistic counters...
+  stepNumber <- 1
+  evaluationNumber <- 0
+  timeElapsed <- 0
+  archiveList <- list() # the archive of all individuals selected in this run, only used if archive == TRUE
+  archiveIndexOf <- function(archive, individual)
+    Position(function(a) identical(body(a$individual), body(individual)), archive)
+  bestFitness <- min(fitnessValues) # best fitness value seen in this run, if multi-criterial, only the first component counts
+  startTime <- proc.time()["elapsed"]
+
+  ## Execute GP run...
+  while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+                        evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
+    # TODO implement this search heuristic 
+    stop("not implemented")
+
+
+    # Apply restart strategy...
+    if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
+      restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
+      pop <- restartResult[[1]]
+      elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
+      logFunction("restarted run")
+    }
+
+    timeElapsed <- proc.time()["elapsed"] - startTime
+    stepNumber <- 1 + stepNumber
+    evaluationNumber <- lambda + newIndividualsPerGeneration + evaluationNumber
+    progressMonitor(pop = pop, fitnessValues = fitnessValues, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+                    evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
+  }
+ 
+  elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
+  bestFitness <- min(fitnessValues)
+  logFunction("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
+              stepNumber, evaluationNumber, formatSeconds(timeElapsed))
+
+  ## Return result list...
+  list(timeElapsed = timeElapsed,
+       stepNumber = stepNumber,
+       evaluationNumber = evaluationNumber,
+       bestFitness = bestFitness,
+       population = pop,
+       elite = elite,
+       archiveList = archiveList,
+       searchHeuristicResults = list(fitnessValues = fitnessValues,
+                                     complexityValues = complexityValues))
+}
+
+
+## Tool functions...
+plotParetoFront <- function(x, y, ranks, ages,
+                            xlab = "X", ylab = "Y",
+                            maxAge = 50) {
+  ageColorScale <- colorRamp(c("#00FF00", "#006600","#0000FF", "#000000"))
+  rankOneXs <- x[ranks == 1]; rankOneYs <- y[ranks == 1]; rankOneAges <- ages[ranks == 1]
+  rankOneAgeColors <- rgb(ageColorScale(rankOneAges / maxAge), maxColorValue = 255)
+  plot(rankOneXs, rankOneYs,
+       xlab = xlab, ylab = ylab,
+       col = rankOneAgeColors, pch = 1, main = "Pareto Plot")
+  points(x[ranks > 1], y[ranks > 1], col = "gray", pch = 4)
+}
+

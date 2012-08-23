@@ -7,7 +7,7 @@
 ## released under the GPL v2
 ##
 
-##' @include meta_heuristics.r
+##' @include search_heuristics.r
 NA
 ##' @include evolution.r
 NA
@@ -59,8 +59,8 @@ NA
 ##'   \link{makeEmptyRestartCondition} for details.
 ##' @param restartStrategy The strategy for doing restarts. See
 ##'   \link{makeLocalRestartStrategy} for details.
-##' @param metaHeuristic The meta-heuristic (i.e. optimization algorithm) to use
-##'   in the search of solutions. See \link{metaHeuristics} for available
+##' @param searchHeuristic The search-heuristic (i.e. optimization algorithm) to use
+##'   in the search of solutions. See \link{searchHeuristics} for available
 ##'   algorithms.
 ##' @param breedingFitness A "breeding" function. This function is applied after
 ##'   every stochastic operation \emph{Op} that creates or modifies an individal
@@ -99,7 +99,7 @@ dataDrivenGeneticProgramming <- function(formula, data, fitnessFunctionFactory,
                                          mutationFunction = NULL,
                                          restartCondition = makeEmptyRestartCondition(),
                                          restartStrategy = makeLocalRestartStrategy(),
-                                         metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(selectionFunction = makeTournamentSelection()),
+                                         searchHeuristic = makeExploitativeSteadyStateSearchHeuristic(selectionFunction = makeTournamentSelection()),
                                          breedingFitness = function(individual) TRUE,
                                          breedingTries = 50,
                                          progressMonitor = NULL,
@@ -126,7 +126,7 @@ dataDrivenGeneticProgramming <- function(formula, data, fitnessFunctionFactory,
                                 mutationFunction = mutationFunction,
                                 restartCondition = restartCondition,
                                 restartStrategy = restartStrategy,
-                                metaHeuristic = metaHeuristic,
+                                searchHeuristic = searchHeuristic,
                                 breedingFitness = breedingFitness,
                                 breedingTries = breedingTries,
                                 extinctionPrevention = extinctionPrevention,

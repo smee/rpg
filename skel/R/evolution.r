@@ -8,7 +8,7 @@
 ## released under the GPL v2
 ##
 
-##' @include meta_heuristics.r
+##' @include search_heuristics.r
 NA
 ##' @include search_space.r
 NA
@@ -62,8 +62,8 @@ NA
 ##'   \link{makeEmptyRestartCondition} for details.
 ##' @param restartStrategy The strategy for doing restarts. See
 ##'   \link{makeLocalRestartStrategy} for details.
-##' @param metaHeuristic The meta-heuristic (i.e. optimization algorithm) to use
-##'   in the search of solutions. See \link{metaHeuristics} for available
+##' @param searchHeuristic The search-heuristic (i.e. optimization algorithm) to use
+##'   in the search of solutions. See \link{searchHeuristics} for available
 ##'   algorithms.
 ##' @param breedingFitness A "breeding" function. This function is applied after
 ##'   every stochastic operation \emph{Op} that creates or modifies an individal
@@ -108,7 +108,7 @@ geneticProgramming <- function(fitnessFunction,
                                mutationFunction = NULL,
                                restartCondition = makeEmptyRestartCondition(),
                                restartStrategy = makeLocalRestartStrategy(),
-                               metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(selectionFunction = makeTournamentSelection()),
+                               searchHeuristic = makeExploitativeSteadyStateSearchHeuristic(selectionFunction = makeTournamentSelection()),
                                breedingFitness = function(individual) TRUE,
                                breedingTries = 50,
                                extinctionPrevention = FALSE,
@@ -148,16 +148,16 @@ geneticProgramming <- function(fitnessFunction,
     else
       population
 
-  ## Execute meta-heuristic...
-  result <- metaHeuristic(logFunction = logmsg, stopCondition = stopCondition,
-                          pop = pop, fitnessFunction = fitnessFunction,
-                          mutationFunction = mutatefunc, crossoverFunction = crossoverFunction,
-                          functionSet = functionSet, inputVariables = inputVariables, constantSet = constantSet,
-                          archive = archive, extinctionPrevention = extinctionPrevention,
-                          elite = elite, eliteSize = eliteSize,
-                          restartCondition = restartCondition, restartStrategy = restartStrategy,
-                          breedingFitness = breedingFitness, breedingTries = breedingTries,
-                          progressMonitor = progmon)
+  ## Execute search-heuristic...
+  result <- searchHeuristic(logFunction = logmsg, stopCondition = stopCondition,
+                            pop = pop, fitnessFunction = fitnessFunction,
+                            mutationFunction = mutatefunc, crossoverFunction = crossoverFunction,
+                            functionSet = functionSet, inputVariables = inputVariables, constantSet = constantSet,
+                            archive = archive, extinctionPrevention = extinctionPrevention,
+                            elite = elite, eliteSize = eliteSize,
+                            restartCondition = restartCondition, restartStrategy = restartStrategy,
+                            breedingFitness = breedingFitness, breedingTries = breedingTries,
+                            progressMonitor = progmon)
 
   ## Return GP run result...
   structure(list(fitnessFunction = fitnessFunction,
@@ -179,7 +179,7 @@ geneticProgramming <- function(fitnessFunction,
                  archive = archive,
                  archiveList = result$archiveList,
                  restartStrategy = restartStrategy,
-                 metaHeuristicResults = result$metaHeuristicResults),
+                 searchHeuristicResults = result$searchHeuristicResults),
             class = "geneticProgrammingResult")
 }
 
@@ -199,7 +199,7 @@ typedGeneticProgramming <- function(fitnessFunction,
                                     mutationFunction = NULL,
                                     restartCondition = makeEmptyRestartCondition(),
                                     restartStrategy = makeLocalRestartStrategy(populationType = type),
-                                    metaHeuristic = makeExploitativeSteadyStateMetaHeuristic(selectionFunction = makeTournamentSelection()),
+                                    searchHeuristic = makeExploitativeSteadyStateSearchHeuristic(selectionFunction = makeTournamentSelection()),
                                     breedingFitness = function(individual) TRUE,
                                     breedingTries = 50,
                                     extinctionPrevention = FALSE,
@@ -229,7 +229,7 @@ typedGeneticProgramming <- function(fitnessFunction,
                      constantSet = constantSet,
                      crossoverFunction = crossoverFunction, mutationFunction = mutatefunc,
                      restartCondition = restartCondition, restartStrategy = restartStrategy,
-                     metaHeuristic = metaHeuristic,
+                     searchHeuristic = searchHeuristic,
                      breedingFitness = breedingFitness, breedingTries = breedingTries,
                      extinctionPrevention = extinctionPrevention,
                      archive = archive,
