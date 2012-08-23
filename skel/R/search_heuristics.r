@@ -46,6 +46,10 @@
 ##' @param enableComplexityCriterion Whether to enable the complexity criterion in multi-criterial
 ##'   search heuristics.
 ##' @param enableAgeCriterion Whether to enable the age criterion in multi-criterial search heuristics.
+##' @param ndsParentSelection Whether to use non-dominated sorting to select parents. When set to
+##'   \code{FALSE}, parents are selected by uniform random sampling without replacement.
+##' @param ndsSelectionFunction The function to use for non-dominated sorting in Pareto GP selection.
+##'   Defaults to \code{nds_cd_selection}.
 ##' @param complexityMeasure The complexity measure, a function of signature \code{function(ind, fitness)}
 ##'   returning a single numeric value.
 ##' @param \code{newIndividualsPerGeneration} The number of new individuals per generation to
@@ -354,6 +358,8 @@ makeAgeFitnessComplexityParetoGpSearchHeuristic <- function(lambda = 20,
                                                             crossoverProbability = 0.9,
                                                             enableComplexityCriterion = TRUE,
                                                             enableAgeCriterion = TRUE,
+                                                            ndsParentSelection = FALSE,
+                                                            ndsSelectionFunction = nds_cd_selection,
                                                             complexityMesaure = function(ind, fitness) funcVisitationLength(ind),
                                                             ageMergeFunction = max,
                                                             newIndividualsPerGeneration = 1,
@@ -390,9 +396,20 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
 
-    # Sample (without replacement) 2 * lambda parent inviduals...
-    # TODO add an option for pareto-tournaments here
-    parentIndices <- sample(1:mu, 2 * lambda, replace = FALSE)
+    # Select 2 * lambda parent individuals...
+    parentIndices <- if (ndsParentSelection) {
+      # Select 2 * lambda parent individuals by non-dominated sorting...
+      indicesToRemove <- selectIndividualsForReplacement(fitnessValues, complexityValues, ageValues,
+                                                         enableComplexityCriterion, enableAgeCriterion,
+                                                         ndsSelectionFunction,
+                                                         mu - (2 * lambda),
+                                                         plotFront = FALSE)
+      indicesToKeep <- setdiff(1:mu, indicesToRemove)
+      indicesToKeep
+    } else {
+      # Sample (without replacement) 2 * lambda parent inviduals...
+      sample(1:mu, 2 * lambda, replace = FALSE)
+    }
     motherIndices <- parentIndices[1:lambda]
     fatherIndices <- parentIndices[(lambda + 1):(2 * lambda)]
 
@@ -431,26 +448,11 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     poolAgeValues <- c(ageValues, childrenAgeValues, newIndividualsAgeValues)
 
     # Sort the pool via the non-domination relation and select individuals for removal...
-    poolPoints <- if (enableAgeCriterion & enableComplexityCriterion)
-      rbind(poolFitnessValues, poolComplexityValues, poolAgeValues)
-    else if (enableComplexityCriterion)
-      rbind(poolFitnessValues, poolComplexityValues)
-    else if (enableAgeCriterion)
-      rbind(poolFitnessValues, poolAgeValues)
-    else
-      rbind(poolFitnessValues)
-    if (plotFront) {
-      poolNdsRanks <- nds_rank(poolPoints)
-      plotParetoFront(poolFitnessValues, poolComplexityValues, poolNdsRanks, poolAgeValues,
-                      xlab = "Fitness", ylab = "Complexity")
-    }
-    poolIndicesToRemove <- if (!enableComplexityCriterion & !enableAgeCriterion) {
-      # single-criterial case
-      order(poolPoints, decreasing = TRUE)[1:(lambda + newIndividualsPerGeneration)]
-    } else {
-      # multi-criteral case
-      nds_cd_selection(poolPoints, lambda + newIndividualsPerGeneration)
-    }
+    poolIndicesToRemove <- selectIndividualsForReplacement(poolFitnessValues, poolComplexityValues, poolAgeValues,
+                                                           enableComplexityCriterion, enableAgeCriterion,
+                                                           ndsSelectionFunction,
+                                                           lambda + newIndividualsPerGeneration,
+                                                           plotFront = plotFront)
 
     # Replace current population with next generation...
     pop <- pool[-poolIndicesToRemove]
@@ -569,6 +571,34 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 
 
 ## Tool functions...
+selectIndividualsForReplacement <- function(fitnessValues, complexityValues, ageValues,
+                                            enableComplexityCriterion, enableAgeCriterion,
+                                            ndsSelectionFunction,
+                                            n,
+                                            plotFront = FALSE) {
+  points <- if (enableAgeCriterion & enableComplexityCriterion)
+    rbind(fitnessValues, complexityValues, ageValues)
+  else if (enableComplexityCriterion)
+    rbind(fitnessValues, complexityValues)
+  else if (enableAgeCriterion)
+    rbind(fitnessValues, ageValues)
+  else
+    rbind(fitnessValues)
+  if (plotFront) {
+    ndsRanks <- nds_rank(points)
+    plotParetoFront(fitnessValues, complexityValues, ndsRanks, ageValues,
+                    xlab = "Fitness", ylab = "Complexity")
+  }
+  indicesToRemove <- if (!enableComplexityCriterion & !enableAgeCriterion) {
+    # single-criterial case
+    order(points, decreasing = TRUE)[1:n]
+  } else {
+    # multi-criteral case
+    ndsSelectionFunction(points, n)
+  }
+  return (indicesToRemove)
+}
+
 plotParetoFront <- function(x, y, ranks, ages,
                             xlab = "X", ylab = "Y",
                             maxAge = 50) {
