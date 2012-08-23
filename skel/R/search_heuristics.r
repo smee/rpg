@@ -410,8 +410,9 @@ function(logFunction, stopCondition, pop, fitnessFunction,
       # Sample (without replacement) 2 * lambda parent inviduals...
       sample(1:mu, 2 * lambda, replace = FALSE)
     }
-    motherIndices <- parentIndices[1:lambda]
-    fatherIndices <- parentIndices[(lambda + 1):(2 * lambda)]
+    allParentIndices <- 1:(2* lambda)
+    motherIndices <- parentIndices[allParentIndices %% 2 == 1] # mothers are odd parent indicies
+    fatherIndices <- parentIndices[allParentIndices %% 2 == 0] # fathers are even parent indices
 
     # Create individuals...
     children <- Map(function(motherIndex, fatherIndex) {
