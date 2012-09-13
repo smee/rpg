@@ -23,7 +23,7 @@ help: usage
 
 install: clean roxygen
 	echo "Installing package..."
-	R CMD INSTALL --no-multiarch pkg > install.log 2>&1
+	R CMD INSTALL --no-multiarch pkg > install.log 2>&1 || cat install.log
 	echo "DONE."
 
 test: install
@@ -48,7 +48,7 @@ shlibs: macros
 
 roxygen:
 	echo "Roxygenizing package..."
-	./roxygenize > roxygen.log 2>&1
+	./roxygenize > roxygen.log 2>&1 || cat roxygen.log
 	./roxygen-fixup >> roxygen.log 2>&1
 	echo "DONE."
 
