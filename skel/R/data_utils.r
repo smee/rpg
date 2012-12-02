@@ -1,8 +1,8 @@
 ## data_utils.r
-##   - Utility functions for R data frames
+##   - Utility functions for R matrices and data frames
 ##
 ## RGP - a GP system for R
-## 2010 Oliver Flasch (oliver.flasch@fh-koeln.de)
+## 2010-2012 Oliver Flasch (oliver.flasch@fh-koeln.de)
 ## with contributions of Thomas Bartz-Beielstein, Patrick Koch, Olaf Mersmann and Joerg Stork
 ## released under the GPL v2
 ##
@@ -59,4 +59,29 @@ subDataFrame <- function(x, size = 1.0, pos = "START") {
     else stop()
   endIndex <- startIndex + numberOfSelectedRows - 1
   x[startIndex:endIndex,]
+}
+
+##' Create a regular grid design matrix
+##'
+##' Returns a n = length(points)**dimension times m = dimension matrix containing
+##' the coordinates of sample points from a hypervolume of the given dimension.
+##' Points are sampled in a grid defined by the vector points.
+##'
+##' @param dimension The number of columns in the design matrix to create.
+##' @param points A vector of points to sample at in each dimension.
+##' @return The regular grid design matrix.
+##'
+##' @export
+gridDesign <- function(dimension, points = seq(from=0.0, to=1.0, length.out=10)) {
+  s = length(points)
+  D <- matrix(0.0, nrow = s ** dimension, ncol = dimension)
+
+  for (i in 1:nrow(D)) {
+    for (j in 1:ncol(D)) {
+      index <- (ceiling(i / s ** (j - 1)) - 1) %% s + 1
+      D[i, j] <- points[index] 
+    }
+  }
+
+  return (D)
 }
