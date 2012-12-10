@@ -38,7 +38,7 @@ makeGaussianRbfKernel <- function(r0) function(r) exp(-0.5 * r^2 / r0^2)
 
 
 # test code
-plotFunction <- function(f, samplesPerDimension = 32, ...) {
+plotFunction <- function(f, samplesPerDimension = 64, ...) {
   xs <- seq(0, 1.0, length = samplesPerDimension)
   ys <- xs 
   zs <- outer(xs, ys, Vectorize(function(x, y) f(c(x, y))))
