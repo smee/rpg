@@ -3,13 +3,17 @@
 
 require("rgl")
 require("rgp")
+require("cmaes")
 require("twiddler")
 
-rbfInterpolator <- function(points,
-                            values = points[, ncol(points)],
-                            kernel = makeGaussRbfKernel(1.2),
-                            distMethod = "euclidean", p = 2,
-                            nrbf = FALSE) {
+rbfm <- function(points,
+                 values = points[, ncol(points)],
+                 kernel = makeGaussRbfKernel(1.2),
+                 distMethod = "euclidean", p = 2,
+                 optimizeMethod = "none",
+                 nrbf = FALSE,
+                 verbose = FALSE) {
+  if (verbose) message("rbfm: RBF model fit started...") 
   dim <- ncol(points)
   n <- nrow(points)
   distances <- as.matrix(dist(points, method = distMethod, p = p))
@@ -17,25 +21,40 @@ rbfInterpolator <- function(points,
   rhs <- numeric(n)
   rhs <- if (nrbf) sum(rbf) * values else values
   w <- solve(rbf, rhs)
+  if (verbose) message("rbfm: RBF model fit done. Result:", result) 
+ 
+  result <- structure(list(points = points,
+                           values = values,
+                           kernel = kernel,
+                           distMethod = distMethod,
+                           p = p,
+                           nrbf = nrbf,
+                           rbf = rbf,
+                           rhs = rhs,
+                           w = w,
+                           interpolator = NULL),
+                      class = c("rbfModel", "list"))
 
-  function(x) {
+  # results$interpolator is a closure over result, so that changes to result can affect it...
+  result$interpolator <- function(x) {
     # alternative 1: distance calculation via R's native dist function (complexity O(n^2))...
-    xDistances <- as.matrix(dist(rbind(x, points), method = distMethod, p = p))
-    fVal <- kernel(xDistances[1,])[-1]
+    xDistances <- as.matrix(dist(rbind(x, result$points), method = result$distMethod, p = result$p))
+    fVal <- result$kernel(xDistances[1,])[-1]
     # alternative 2: distance caculcation via interpreted code (complexity O(n), but slower in practive)...
     #xDistances <- apply(points, 1, function(point) as.numeric(dist(rbind(x, point), method = distMethod, p = p)))
     #fVal <- kernel(xDistances)
     # ... .
-    sumW <- sum(w * fVal)
-    if (nrbf) sumW / sum(fval) else sumW 
+    sumW <- sum(result$w * fVal)
+    if (result$nrbf) sumW / sum(fVal) else sumW 
   }
+
+  return (result)
 }
 
 makeMultiquadraticRbfKernel <- function(r0) function(r) sqrt(r^2 + r0^2) 
 makeInverseMultiquadraticRbfKernel <- function(r0) function(r) (r^2 + r0^2)^-0.5 
 makeThinPlateRbfKernel <- function(r0) function(r) r^2 * log(r/r0)
 makeGaussianRbfKernel <- function(r0) function(r) exp(-0.5 * r^2 / r0^2)
-
 
 # test code
 plotFunction <- function(f, samplesPerDimension = 64, ...) {
@@ -45,16 +64,16 @@ plotFunction <- function(f, samplesPerDimension = 64, ...) {
   persp3d(z = zs, xlab = "x1", ylab = "x2", zlab = "y", ...)
 }
 
-testRbf <- function(trueFunction, kernel, lhdSize = NA) {
+testRbf <- function(trueFunction, kernel, lhdSize = NA, optimizeMethod = "none") {
   x1 <- if (is.na(lhdSize)) latinHypercubeDesign(2) else latinHypercubeDesign(2, size = lhdSize)
   y1 <- apply(x1, 1, trueFunction)
-  rbf1 <- rbfInterpolator(x1, values = y1, kernel = kernel)
+  rbf1 <- rbfm(x1, values = y1, kernel = kernel, optimizeMethod = optimizeMethod)$interpolator
   plotFunction(trueFunction, col = "blue", alpha = 1/3,
                main = "RBF Interpolation of 2D Functions", sub = "true (blue) versus interpolated (red)")
   plotFunction(rbf1, add = TRUE, col = "red")
 }
 
-twiddleTestRbf <- function(f, centers, k, r0) {
+twiddleTestRbf <- function(f, centers, k, r0, optimizeMethod) {
   trueFunction <- switch(f,
                          "sum" = function(x) x[1] + x[2],
                          "product" = function(x) x[1] * x[2],
@@ -69,7 +88,7 @@ twiddleTestRbf <- function(f, centers, k, r0) {
                    "multiquadratic" = makeMultiquadraticRbfKernel(r0),
                    "thin plate" = makeThinPlateRbfKernel(r0),
                    "gaussian" = makeGaussianRbfKernel(r0))
-  testRbf(trueFunction, kernel, lhdSize = centers)
+  testRbf(trueFunction, kernel, lhdSize = centers, optimizeMethod = optimizeMethod)
 }
 
 sphereFunction <- function (x) {
@@ -110,8 +129,10 @@ braninFunction <- function (x) {
     return(y)	
 }
 
-twiddle(twiddleTestRbf(f, centers, kernel, r0), 
-                       r0 = knob(lim = c(0.01, 10.0), res = 0.01, default = 1.2),
-                       kernel = combo("inverse multiquadratic", "multiquadratic", "thin plate", "gaussian"),
-                       centers = knob(lim = c(2, 64), res = 1, default = 22),
-                       f = combo("product", "sum", "sphere", "six hump", "rosenbrock", "rastrigin", "mexican hat", "branin"))
+twiddle(twiddleTestRbf(f, centers, kernel, r0, optimizeMethod), 
+        optimizeMethod = combo("none", "TODO"),
+        r0 = knob(lim = c(0.01, 10.0), res = 0.01, default = 1.2),
+        kernel = combo("inverse multiquadratic", "multiquadratic", "thin plate", "gaussian"),
+        centers = knob(lim = c(2, 64), res = 1, default = 22),
+        f = combo("product", "sum", "sphere", "six hump", "rosenbrock", "rastrigin", "mexican hat", "branin"),
+        eval = FALSE)
