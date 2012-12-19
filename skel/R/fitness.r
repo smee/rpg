@@ -170,10 +170,9 @@ makeFunctionFitnessFunction <- function(func, from = -1, to = 1, steps = 128,
 makeNaryFunctionFitnessFunction <- function(func, dim, designFunction = gridDesign,
                                             errorMeasure = rmse, indsizelimit = NA, ...) {
   xs <- designFunction(dim, ...) 
-  browser()
-  ystarget <- func(xs)
+  ystarget <- apply(xs, 1, func) # apply func row-wise to xs
   function(ind) {
-    ysind <- ind(xs) # vectorized fitness-case evaluation
+    ysind <- apply(xs, 1, ind) # row-wise fitness-case evaluation
   	errorind <- errorMeasure(ystarget, ysind)
   	if (!is.na(indsizelimit) && funcSize(ind) > indsizelimit)
   	  Inf # ind size limit exceeded

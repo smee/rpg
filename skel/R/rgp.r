@@ -10,7 +10,7 @@
 ##' RGP is a simple yet flexible modular Genetic Programming system for the R
 ##' environment. The system implements classical untyped tree-based genetic
 ##' programming as well as more advanced variants including, for example,
-##' strongly typed genetic pro- gramming and Pareto genetic programming.
+##' strongly typed genetic programming and Pareto genetic programming.
 ##' 
 ##' @docType package
 ##' @name rgp-package
