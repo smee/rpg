@@ -361,7 +361,7 @@ makeAgeFitnessComplexityParetoGpSearchHeuristic <- function(lambda = 20,
                                                             ageMergeFunction = max,
                                                             newIndividualsPerGeneration = 1,
                                                             newIndividualsMaxDepth = 8,
-                                                            plotFront = TRUE)
+                                                            plotFront = FALSE)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
          functionSet, inputVariables, constantSet,

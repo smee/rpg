@@ -15,6 +15,27 @@
 ##' @export
 mae <- function(x, y) mean(abs(x - y))
 
+##' Sum squared error (SSE)
+##'
+##' @param x A numeric vector or list.
+##' @param y A numeric vector or list.
+##' @return The SSE between \code{x} and \code{y}.
+##' @export
+sse <- function(x ,y) sum((x -y) ^ 2)
+
+##' Scaled sum squared error (sSSE)
+##'
+##' @param x A numeric vector or list.
+##' @param y A numeric vector or list.
+##' @return The sSSE between \code{x} and \code{y}.
+##' @export
+ssse <- function(x, y) {
+	if (length(y) == 1) y <- rep(y, length(x))
+	b = cov(x, y) / var(y)
+	a = mean(x) - b * mean(y)
+	sum((x - (a + b * y)) ^ 2)
+}
+
 ##' Mean squared error (MSE)
 ##'
 ##' @param x A numeric vector or list.
@@ -39,15 +60,30 @@ rmse <- function(x, y) sqrt(mse(x, y))
 ##' @export
 normalize <- function(x) (x - min(x)) / (max(x) - min(x))
 
-##' Scaled mean squared error (SMSE)
+##' Normalized mean squared error (NMSE)
 ##'
 ##' Calculates the MSE between vectors after normalizing them into the
 ##' interval [0, 1].
 ##'
 ##' @param x A numeric vector or list.
 ##' @param y A numeric vector or list.
-##' @return The SMSE between \code{x} and \code{y}.
-smse <- function(x, y) mse(normalize(x), normalize(y))
+##' @return The NMSE between \code{x} and \code{y}.
+##' @export
+nmse <- function(x, y) mse(normalize(x), normalize(y))
+
+##' Scaled mean squared error (SMSE)
+##'
+##' Calculates the MSE between vectors after scaling them.
+##' Beware that this error measure is invariant to scaling with negative constants, i.e.
+##' the multiplicative inverse of the true functions also receives an error of 0. 
+##' See \url{http://www2.cs.uidaho.edu/~cs472_572/f11/scaledsymbolicRegression.pdf} for
+##' details.
+##'
+##' @param x A numeric vector or list.
+##' @param y A numeric vector or list.
+##' @return The NMSE between \code{x} and \code{y}.
+##' @export
+smse <- function(x, y) (1 / length(x)) * ssse(x, y)
 
 ##' Symbolic squared error function (SE)
 ##'
