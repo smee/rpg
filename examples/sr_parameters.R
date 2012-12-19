@@ -9,10 +9,10 @@ require("rgp")
 Salutowicz1d <- function(x) exp(-1*x)*x*x*x*sin(x)*cos(x)*(sin(x)*sin(x)*cos(x)-1)
 df1 <- data.frame(x1 = 1:100*0.1, y = Salutowicz1d(1:100 * 0.1))
 
-#metaHeuristic1 <- makeExploitativeSteadyStateMetaHeuristic(selectionFunction = makeTournamentSelection(tournamentSize = 10))
-#metaHeuristic1 <- makeTinyGpMetaHeuristic()
-#metaHeuristic1 <- makeCommaEvolutionStrategyMetaHeuristic(mu = 25)
-metaHeuristic1 <- makeAgeFitnessComplexityParetoGpMetaHeuristic(lambda = 20, newIndividualsPerGeneration = 2)
+#searchHeuristic1 <- makeExploitativeSteadyStateSearchHeuristic(selectionFunction = makeTournamentSelection(tournamentSize = 10))
+#searchHeuristic1 <- makeTinyGpSearchHeuristic()
+#searchHeuristic1 <- makeCommaEvolutionStrategySearchHeuristic(mu = 25)
+searchHeuristic1 <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = 20, newIndividualsPerGeneration = 2)
 
 functionSet1 <- functionSet("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt") 
 inputVariableSet1 <- inputVariableSet("x1")
@@ -49,7 +49,7 @@ crossoverFunction1 <- function(func1, func2, crossoverprob = 1,
 statistics1 <- NULL 
 startTime1 <- Sys.time()
 
-progressMonitor1 <- function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) {
+progressMonitor1 <- function(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) {
   if (stepNumber %% 10 == 0) {
     message(sprintf("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %f",
                     stepNumber, evaluationNumber, bestFitness, timeElapsed))
@@ -61,7 +61,7 @@ progressMonitor1 <- function(pop, fitnessFunction, stepNumber, evaluationNumber,
     sizeStatistics <- summary(popSizes)
     statisticsRow <- c(sizeStatistics, Time = timeTaken)
     statistics1 <<- rbind(statistics1, statisticsRow)
-    message("population size statistics: min: ", min(popSizes),
+    message("population function size statistics: min: ", min(popSizes),
             " median: ", median(popSizes), " mean: ", mean(popSizes),
             " max: ", max(popSizes),
             " time: ", timeTaken)
@@ -78,7 +78,7 @@ sr1 <- symbolicRegression(y ~ x1, data = df1,
                           #mutationFunction = mutationFunction1,
                           mutationFunction = mutationFunction2,
                           crossoverFunction = crossoverFunction1,
-                          metaHeuristic = metaHeuristic1,
+                          searchHeuristic = searchHeuristic1,
                           verbose = TRUE,
                           progressMonitor = progressMonitor1)
 

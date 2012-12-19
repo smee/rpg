@@ -138,8 +138,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- selA$numberOfFitnessEvaluations + selB$numberOfFitnessEvaluations + evaluationNumber
-    progressMonitor(pop = pop, fitnessValues = fitnessValues, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
-                    evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
+    progressMonitor(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   }
   elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
   logFunction("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
@@ -251,8 +250,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- 1 + evaluationNumber
-    progressMonitor(pop = pop, fitnessValues = fitnessValues, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
-                    evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
+    progressMonitor(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   }
   
   elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
@@ -333,8 +331,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- lambda + evaluationNumber
-    progressMonitor(pop = pop, fitnessValues = fitnessValues, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
-                    evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
+    progressMonitor(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   }
  
   elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
@@ -373,7 +370,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
          restartCondition, restartStrategy,
          breedingFitness, breedingTries,
          progressMonitor) {
-  logFunction("STARTING genetic programming evolution run (Age/Fitness/Complexity Pareto GP  search-heuristic) ...")
+  logFunction("STARTING genetic programming evolution run (Age/Fitness/Complexity Pareto GP search-heuristic) ...")
 
   ## Initialize run-global variables...
   mu <- length(pop)
@@ -474,8 +471,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- lambda + newIndividualsPerGeneration + evaluationNumber
-    progressMonitor(pop = pop, fitnessValues = fitnessValues, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
-                    evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
+    progressMonitor(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   }
  
   elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
@@ -549,8 +545,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- lambda + newIndividualsPerGeneration + evaluationNumber
-    progressMonitor(pop = pop, fitnessValues = fitnessValues, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
-                    evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)
+    progressMonitor(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   }
  
   elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run

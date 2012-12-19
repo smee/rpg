@@ -113,19 +113,22 @@ geneticProgramming <- function(fitnessFunction,
     if (verbose)
       message(sprintf(msg, ...))
   }
-  progmon <-
-    if (verbose) {
-      function(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) {
-        if (!is.null(progressMonitor))
-          progressMonitor(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
-        if (stepNumber %% 100 == 0)
-          logmsg("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %s",
-                 stepNumber, evaluationNumber, bestFitness, formatSeconds(timeElapsed))
+  nonVerboseProgmon <- if (is.null(progressMonitor)) {
+    function(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) NULL
+  } else {
+    progressMonitor
+  }
+  progmon <- if (verbose) {
+    function(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) {
+      nonVerboseProgmon(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
+      if (stepNumber %% 100 == 0) {
+        logmsg("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %s",
+               stepNumber, evaluationNumber, bestFitness, formatSeconds(timeElapsed))
       }
-    } else if (is.null(progressMonitor)) {
-      function(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) NULL # verbose == FALSE, do not show progress
-    } else
-      progressMonitor
+    }
+  } else {
+    nonVerboseProgmon
+  }
   mutatefunc <-
     if (is.null(mutationFunction)) {
       function(ind) mutateSubtree(mutateNumericConst(ind),
