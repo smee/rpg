@@ -1,4 +1,4 @@
-## creation.r
+## creation.R
 ##   - Functions for creating new GP individuals (individual initialization)
 ##
 ## RGP - a GP system for R
@@ -6,10 +6,6 @@
 ## with contributions of Thomas Bartz-Beielstein, Olaf Mersmann and Joerg Stork
 ## released under the GPL v2
 ##
-
-##' @include stypes.r
-##' @include breeding.r
-NA
 
 ##' Creates an R expression by random growth
 ##'

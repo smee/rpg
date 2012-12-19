@@ -1,4 +1,4 @@
-## stypes.r
+## stypes.R
 ##   - A type system for R functions and values to be used in symbolic regression
 ##
 ## RGP - a GP system for R
@@ -43,7 +43,7 @@ st <- function(baseTypeName) {
 }
 
 ##' @rdname sTypeConstructors
-##' @export `%->%`
+##' @export
 `%->%` <- function(domainTypes, rangeType) {
   domainTypeStrings <- Map(function(x) x$string, domainTypes)
   sFunctionTypeString <-
@@ -217,7 +217,7 @@ setSTypeOnFormalsStack <- function(x, value, formalsStack) {
 
 ## TODO remove this
 ##' @rdname sTypeTags
-##' @export `sType<-`
+##' @export
 `sType<-` <- function(x, value) {
   attr(x, "sType") <- value
   x
@@ -229,7 +229,7 @@ setSTypeOnFormalsStack <- function(x, value, formalsStack) {
 hasStype <- function(x) !is.null(sType(x))
 
 ##' @rdname sTypeTags
-##' @export `%::%`
+##' @export
 `%::%` <- function(x, value) {
   if (!is.sType(value)) stop("%::%: ", value, " is not an sType.")
   #xString <- as.character(x)

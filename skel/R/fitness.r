@@ -1,4 +1,4 @@
-## fitness.r
+## fitness.R
 ##   - Standard GP fitness functions and tools for creating GP fitness functions
 ##
 ## RGP - a GP system for R

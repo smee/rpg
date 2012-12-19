@@ -1,4 +1,4 @@
-## expression_utils.r
+## expression_utils.R
 ##   - Utility functions for R expressions
 ##
 ## RGP - a GP system for R

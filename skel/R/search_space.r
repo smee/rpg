@@ -1,4 +1,4 @@
-## search_space.r
+## search_space.R
 ##   - Functions for defining the search space for Genetic Programming
 ##
 ## RGP - a GP system for R
@@ -6,11 +6,6 @@
 ## with contributions of Thomas Bartz-Beielstein, Olaf Mersmann and Joerg Stork
 ## released under the GPL v2
 ##
-
-##' @include stypes.r
-NA
-##' @include function_utils.r
-NA
 
 ##' Functions for defining the search space for Genetic Programming
 ##'

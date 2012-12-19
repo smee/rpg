@@ -1,4 +1,4 @@
-## recombination.r
+## recombination.R
 ##   - Functions for recombining GP individuals (e.g. by crossover)
 ##
 ## RGP - a GP system for R
@@ -6,11 +6,6 @@
 ## with contributions of Thomas Bartz-Beielstein, Olaf Mersmann and Joerg Stork
 ## released under the GPL v2
 ##
-
-##' @include breeding.r
-NA
-##' @include expression_utils.r
-NA
 
 ##' Select random childs or subtrees of an expression
 ##'

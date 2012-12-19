@@ -1,4 +1,4 @@
-## data_driven_gp.r
+## data_driven_gp.R
 ##   - Data-driven Genetic Programming using the R formula interface
 ##
 ## RGP - a GP system for R
@@ -6,11 +6,6 @@
 ## with contributions of Thomas Bartz-Beielstein, Olaf Mersmann and Joerg Stork
 ## released under the GPL v2
 ##
-
-##' @include search_heuristics.r
-NA
-##' @include evolution.r
-NA
 
 ##' Data-driven untyped standard genetic programming
 ##'

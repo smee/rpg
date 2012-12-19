@@ -6,20 +6,21 @@
 .PHONEY: usage help install test check clean distclean package
 
 usage:
-	echo "Most important targets:"
+	echo "Makefile for the RGP genetic programming package for R."
+	echo "Usage: make TARGET with TARGET being:"
 	echo ""
-	echo " install   - Install the package, writing the output into install.log."
-	echo " check     - Run R CMD check on the package."
-	echo " test      - Install package and run unit tests."
-	echo " help      - Show ALL available targets."
+	echo "  check     - Run R CMD check on the package."
+	echo "  clean     - Clean up package cruft."
+	echo "  distclean - Clean up and remove all generated artifacts."
+	echo "  help      - Show this message."
+	echo "  install   - Install the package, writing the output into install.log."
+	echo "  macros    - Generate code from m4 macros in codegen/ into skel/."
+	echo "  package   - Build source package of last commit."
+	echo "  roxygen   - Roxygenize skel/ into pkg/."
+	echo "  shlibs    - Build shared libraries of C-based components (for interactive testing)."
+	echo "  test      - Install package and run unit tests."
 
 help: usage
-	echo " clean     - Clean up package cruft."
-	echo " distclean - Clean up and remove all generated artifacts."
-	echo " macros    - Generate code from m4 macros in codegen/ into skel/."
-	echo " package   - Build source package of last commit."
-	echo " roxygen   - Roxygenize skel/ into pkg/."
-	echo " shlibs    - Build shared libraries of C-based components (for interactive testing)."
 
 install: clean roxygen
 	echo "Installing package..."
@@ -49,7 +50,7 @@ shlibs: macros
 roxygen:
 	echo "Roxygenizing package..."
 	./roxygenize > roxygen.log 2>&1 || cat roxygen.log
-	./roxygen-fixup >> roxygen.log 2>&1
+	#./roxygen-fixup >> roxygen.log 2>&1
 	echo "DONE."
 
 clean:

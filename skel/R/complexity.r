@@ -1,4 +1,4 @@
-## complexity.r
+## complexity.R
 ##   - Complexity measures for GP individuals and estimators of GP search space size
 ##
 ## RGP - a GP system for R

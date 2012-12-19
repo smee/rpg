@@ -1,4 +1,4 @@
-## evolution.r
+## evolution.R
 ##   - Functions defining typical evolution main loops,
 ##     some typical GP function- and constant sets
 ##
@@ -7,13 +7,6 @@
 ## with contributions of Thomas Bartz-Beielstein, Olaf Mersmann and Joerg Stork
 ## released under the GPL v2
 ##
-
-##' @include search_heuristics.r
-NA
-##' @include search_space.r
-NA
-##' @include time_utils.r
-NA
 
 ##' Standard typed and untyped genetic programming
 ##'
@@ -469,7 +462,7 @@ makeTimeStopCondition <- function(timeLimit) {
 }
 
 ##' @rdname evolutionStopConditions
-##' @export `&.stopCondition`
+##' @export
 `&.stopCondition` <- function(e1, e2) {
   stopCondition <- function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
     e1(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) && e2(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
@@ -478,7 +471,7 @@ makeTimeStopCondition <- function(timeLimit) {
 }
 
 ##' @rdname evolutionStopConditions
-##' @export `|.stopCondition`
+##' @export
 `|.stopCondition` <- function(e1, e2) {
   stopCondition <- function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
     e1(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) || e2(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
@@ -487,7 +480,7 @@ makeTimeStopCondition <- function(timeLimit) {
 }
 
 ##' @rdname evolutionStopConditions
-##' @export `!.stopCondition`
+##' @export
 `!.stopCondition` <- function(e1) {
   stopCondition <- function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
     !e1(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
@@ -541,6 +534,11 @@ ifPositive <- function(x, thenbranch, elsebranch) ifelse(x > 0, thenbranch, else
 ##' @export
 ifThenElse <- function(x, thenbranch, elsebranch) ifelse(x, thenbranch, elsebranch)
 
+# TODO hack to make roxygen2 work with external function references...
+functionSet <- function(...) NULL
+constantFactorySet <- function(...) NULL
+# ... .
+
 ##' Default function- and constant factory sets for Genetic Programming
 ##'
 ##' \code{arithmeticFunctionSet} is an untyped function set containing the functions
@@ -554,22 +552,24 @@ ifThenElse <- function(x, thenbranch, elsebranch) ifelse(x, thenbranch, elsebran
 ##' \code{numericConstantSet} is an untyped constant factory set containing a single
 ##' constant factory that creates numeric constants via calls to \code{runif(1, -1, 1)}.
 ##'
+##' Note that these objects are initialized in the RGP package's \code{.onAttach} function.
+##'
 ##' @rdname defaultGPFunctionAndConstantSets
 ##' @export
-arithmeticFunctionSet <- functionSet("+", "-", "*", "/")
+arithmeticFunctionSet <- NULL
 
 ##' @rdname defaultGPFunctionAndConstantSets
 ##' @export
-expLogFunctionSet <- functionSet("sqrt", "exp", "ln")
+expLogFunctionSet <- NULL 
 
 ##' @rdname defaultGPFunctionAndConstantSets
 ##' @export
-trigonometricFunctionSet <- functionSet("sin", "cos", "tan")
+#trigonometricFunctionSet <- functionSet("sin", "cos", "tan")
 
 ##' @rdname defaultGPFunctionAndConstantSets
 ##' @export
-mathFunctionSet <- c(arithmeticFunctionSet, expLogFunctionSet, trigonometricFunctionSet)
+#mathFunctionSet <- c(arithmeticFunctionSet, expLogFunctionSet, trigonometricFunctionSet)
 
 ##' @rdname defaultGPFunctionAndConstantSets
 ##' @export
-numericConstantSet <- constantFactorySet(function() runif(1, -1, 1))
+#numericConstantSet <- constantFactorySet(function() runif(1, -1, 1))

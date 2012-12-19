@@ -1,4 +1,4 @@
-## mutation.r
+## mutation.R
 ##   - Functions for mutating GP individuals
 ##
 ## RGP - a GP system for R
@@ -6,13 +6,6 @@
 ## with contributions of Thomas Bartz-Beielstein, Olaf Mersmann and Joerg Stork
 ## released under the GPL v2
 ##
-
-##' @include complexity.r
-NA
-##' @include stypes.r
-NA
-##' @include breeding.r
-NA
 
 ##' Random mutation of functions and expressions
 ##'

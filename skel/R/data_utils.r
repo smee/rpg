@@ -1,4 +1,4 @@
-## data_utils.r
+## data_utils.R
 ##   - Utility functions for R matrices and data frames
 ##
 ## RGP - a GP system for R

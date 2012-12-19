@@ -1,4 +1,4 @@
-## search_heuristics.r
+## search_heuristics.R
 ##   - Functions defining search heuristics (i.e. algorithmic frameworks) 
 ##     for Genetic Programming 
 ##

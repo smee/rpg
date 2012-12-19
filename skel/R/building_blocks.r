@@ -1,5 +1,5 @@
-## building_blocks.r
-##   - Support for buildings blocks
+## building_blocks.R
+##   - Support for GP buildings blocks
 ##
 ## RGP - a GP system for R
 ## 2010 Oliver Flasch (oliver.flasch@fh-koeln.de)
@@ -61,7 +61,7 @@ buildingBlockTag <- function(x) {
 }
 
 ##' @rdname buildingBlockTags
-##' @export `buildingBlockTag<-`
+##' @export
 `buildingBlockTag<-` <- function(x, value) {
     attr(x, "buildingBlockTag") <- value
       x

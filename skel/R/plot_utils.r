@@ -1,4 +1,4 @@
-## plot_utils.r
+## plot_utils.R
 ##   - Utilities for plotting several types of RGP objects
 ##
 ## RGP - a GP system for R

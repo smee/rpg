@@ -1,4 +1,4 @@
-## population.r
+## population.R
 ##   - Functions for handling GP populations
 ##
 ## RGP - a GP system for R

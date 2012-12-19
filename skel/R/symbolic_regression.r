@@ -1,4 +1,4 @@
-## symbolic_regression.r
+## symbolic_regression.R
 ##   - Tools for symbolic regression using the R formula interface
 ##
 ## RGP - a GP system for R
@@ -6,13 +6,6 @@
 ## with contributions of Thomas Bartz-Beielstein, Olaf Mersmann and Joerg Stork
 ## released under the GPL v2
 ##
-
-##' @include search_heuristics.r
-NA
-##' @include evolution.r
-NA
-##' @include data_driven_gp.r
-NA
 
 ##' Symbolic regression via untyped standard genetic programming
 ##'

@@ -1,4 +1,4 @@
-## niching.r
+## niching.R
 ##   - Functions defining evolution main loops for cluster-based niching GP
 ##
 ## RGP - a GP system for R
@@ -6,10 +6,6 @@
 ## with contributions of Thomas Bartz-Beielstein, Olaf Mersmann and Joerg Stork
 ## released under the GPL v2
 ##
-
-##' @include evolution.r
-##' @include list_utils.r
-NA
 
 ##' Cluster-based multi-niche genetic programming
 ##'

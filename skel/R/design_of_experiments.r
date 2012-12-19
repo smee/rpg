@@ -1,4 +1,4 @@
-## design_of_experiments.r
+## design_of_experiments.R
 ##   - Utility functions for creating experiment designs
 ##     (i.e. samples of n-dimensional spaces)
 ##

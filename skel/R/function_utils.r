@@ -1,4 +1,4 @@
-## function_utils.r
+## function_utils.R
 ##   - Utility functions for R functions
 ##
 ## RGP - a GP system for R
