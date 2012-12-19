@@ -21,8 +21,8 @@
 
 NA
 
-## Package startup function used to initialize static objects.
-.onAttach <- function(libname, pkgname) {
+## Package startup functions used to initialize static objects...
+.onLoad <- function(libname, pkgname) {
   # initialize standard GP function and constant sets...
   arithmeticFunctionSet <<- functionSet("+", "-", "*", "/")
   expLogFunctionSet <<- functionSet("sqrt", "exp", "ln")
@@ -30,7 +30,12 @@ NA
   mathFunctionSet <<- c(arithmeticFunctionSet, expLogFunctionSet, trigonometricFunctionSet)
 
   numericConstantSet <<- constantFactorySet(function() runif(1, -1, 1))
-
-  # show startup message
-  packageStartupMessage("*** RGP version ", (sessionInfo())$otherPkg$rgp$Version, " initialized.")
 }
+
+.onAttach <- function(libname, pkgname) {
+  # show startup message
+  packageStartupMessage("*** RGP version ", (sessionInfo())$otherPkg$rgp$Version, " initialized successfully.\n",
+                        "    Type 'help(package=\"rgp\")' to bring up the RGP help pages.")
+}
+
+## ... .
