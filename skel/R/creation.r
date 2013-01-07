@@ -152,8 +152,7 @@ randexprTypedGrow <- function(type, funcset, inset, conset,
                            funcdomaintypes)))
     ## the type of the generated subtree is a function type with the input variable types as domain types...
     newSubtreeType <- insetTypes %->% type
-    newSubtree %::% newSubtreeType
-    return(newSubtree)
+    return(newSubtree %::% newSubtreeType)
     }
   }
   # else, create a terminal node of correct type
