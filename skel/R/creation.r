@@ -227,7 +227,7 @@ randterminalTyped <- function(typeString, inset, conset, constprob) {
     invar <- toName(randelt(inset$byRange[[typeString]], prob = attr(inset$byRange[[typeString]], "probabilityWeight")))
     if (is.null(invar)) { # there are no input variables of the requested type, try to create a contant instead
       constfactory <- randelt(conset$byRange[[typeString]], prob = attr(conset$byRange[[typeString]], "probabilityWeight"))
-      if (is.null(constfactory)) stop("randterminalTyped: Could not find a constant factory for type ", typeString, ".")
+      if (is.null(constfactory)) stop("randterminalTyped: Could not find an input variable or constant factory for type ", typeString, ".")
       constfactory()
     } else {
       invar
