@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+#
 # visual_sr_demo.R
 # simple visual example of untyped RGP symbolic regression runs
 # 2011 Oiver Flasch
@@ -126,10 +128,15 @@ rescaleIndividual <- function(ind, trueY) {
   function(x1) a + b * ind(x1)
 }
 
+startVisualSr <- function() {
+  x11()
+  twiddle(twiddleSymbolicRegression(testFunctionName, maxTime), eval = FALSE,
+          testFunctionName = combo("Salutowicz1d", "TODO"),
+          maxTime = knob(lim = c(0.1, 60), res = 0.1))
+}
+
 # main entry point
 #
-twiddle(twiddleSymbolicRegression(testFunctionName, maxTime), eval = FALSE,
-        testFunctionName = combo("Salutowicz1d", "TODO"),
-        maxTime = knob(lim = c(0.1, 60), res = 0.1))
+startVisualSr()
 
 # EOF
