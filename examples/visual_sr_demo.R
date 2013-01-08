@@ -129,7 +129,6 @@ rescaleIndividual <- function(ind, trueY) {
 }
 
 startVisualSr <- function() {
-  x11()
   twiddle(twiddleSymbolicRegression(testFunctionName, maxTime), eval = FALSE,
           testFunctionName = combo("Salutowicz1d", "TODO"),
           maxTime = knob(lim = c(0.1, 60), res = 0.1))
