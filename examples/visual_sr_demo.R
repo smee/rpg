@@ -12,23 +12,38 @@ require("rgp")
 
 # define test functions...
 #
-defineTestFunction <- function(f, dim = 1) structure(list(f = f, dim = dim), class = "testFunction")
+defineTestFunction <- function(f, domainInterval = c(0, 1), samples = 100)
+  structure(list(f = f, domainInterval = domainInterval, samples = samples), class = "testFunction")
 
-Salutowicz1d <- defineTestFunction(function(x) exp(-1*x)*x*x*x*sin(x)*cos(x)*(sin(x)*sin(x)*cos(x)-1), 1)
+Salutowicz1d <- defineTestFunction(function(x) exp(-1*x)*x*x*x*sin(x)*cos(x)*(sin(x)*sin(x)*cos(x)-1), c(0, 10))
+UnwrappedBall1d <- defineTestFunction(function(x) 10/((x - 3)*(x - 3) + 5), c(-10, 10))
 
 
 # main symbolic regression driver function for twiddler...
 #
-twiddleSymbolicRegression <- function(testFunctionName = "Salutowicz1d",
-                                      maxTime = 15) {
-  fitnessCases <- data.frame(x1 = 1:100 * 0.1, y = Salutowicz1d$f(1:100 * 0.1))
+twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
+                                      enableComplexityCriterion = FALSE,
+                                      lambda = 20,
+                                      maxTimeMinutes = 15,
+                                      newIndividualsPerGeneration = 2,
+                                      populationSize = 100,
+                                      testFunctionName = "Salutowicz1d") {
+  testFunction <- switch(testFunctionName,
+                         "Salutowicz1d" = Salutowicz1d,
+                         "UnwrappedBall1d" = UnwrappedBall1d,
+                         stop("twiddleSymbolicRegression: unkown test function name: ", testFunctionName))
+  testFunctionSamplePoints <- seq(from = testFunction$domainInterval[1],
+                                  to = testFunction$domainInterval[2],
+                                  length.out = testFunction$samples)
+  fitnessCases <- data.frame(x1 = testFunctionSamplePoints, y = testFunction$f(testFunctionSamplePoints))
 
   #searchHeuristic <- makeExploitativeSteadyStateSearchHeuristic(selectionFunction = makeTournamentSelection(tournamentSize = 10))
   #searchHeuristic <- makeTinyGpSearchHeuristic()
   #searchHeuristic <- makeCommaEvolutionStrategySearchHeuristic(mu = 25)
-  searchHeuristic <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = 20, newIndividualsPerGeneration = 2,
-                                                                     enableComplexityCriterion = TRUE,
-                                                                     enableAgeCriterion = TRUE)
+  searchHeuristic <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = lambda,
+                                                                     newIndividualsPerGeneration = newIndividualsPerGeneration,
+                                                                     enableComplexityCriterion = enableComplexityCriterion,
+                                                                     enableAgeCriterion = enableAgeCriterion)
 
   funSet <- functionSet("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt") 
   inVarSet <- inputVariableSet("x1")
@@ -75,7 +90,7 @@ twiddleSymbolicRegression <- function(testFunctionName = "Salutowicz1d",
       rescaledBestIndividual <- rescaleIndividual(bestIndividual, fitnessCases$y)
       message("current best individual (not rescaled):")
       message(sprintf(" %s", deparse(bestIndividual)))
-      plotFunctions(list(Salutowicz1d$f, rescaledBestIndividual, bestIndividual), from = 0, to = 10, steps = 100,
+      plotFunctions(list(testFunction$f, rescaledBestIndividual, bestIndividual), from = 0, to = 10, steps = 100,
                     main = "Current Best Individual vs. True Function",
                     sub = sprintf("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %f",
                                   stepNumber, evaluationNumber, bestFitness, timeElapsed))
@@ -99,7 +114,7 @@ twiddleSymbolicRegression <- function(testFunctionName = "Salutowicz1d",
                            #errorMeasure = mae,
                            errorMeasure = smse,
                            #stopCondition = makeStepsStopCondition(250),
-                           stopCondition = makeTimeStopCondition(maxTime * 60),
+                           stopCondition = makeTimeStopCondition(maxTimeMinutes * 60),
                            populationSize = 200,
                            individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
                            #mutationFunction = mutationFunction1,
@@ -129,9 +144,15 @@ rescaleIndividual <- function(ind, trueY) {
 }
 
 startVisualSr <- function() {
-  twiddle(twiddleSymbolicRegression(testFunctionName, maxTime), eval = FALSE,
-          testFunctionName = combo("Salutowicz1d", "TODO"),
-          maxTime = knob(lim = c(0.1, 60), res = 0.1))
+  gpResult <- twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, lambda, maxTimeMinutes, newIndividualsPerGeneration, populationSize, testFunctionName), eval = FALSE,
+          testFunctionName = combo("Salutowicz1d", "UnwrappedBall1d"),
+          populationSize = knob(lim = c(1, 1000), default = 100, res = 1),
+          lambda = knob(lim = c(1, 100), default = 20, res = 1),
+          newIndividualsPerGeneration = knob(lim = c(1, 100), default = 2, res = 1),
+          enableAgeCriterion = toggle(default = TRUE),
+          enableComplexityCriterion = toggle(default = FALSE),
+          maxTimeMinutes = knob(lim = c(0.1, 60), res = 0.1))
+  print(gpResult)
 }
 
 # main entry point
