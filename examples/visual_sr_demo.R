@@ -23,6 +23,7 @@ UnwrappedBall1d <- defineTestFunction(function(x) 10/((x - 3)*(x - 3) + 5), c(-1
 #
 twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                       enableComplexityCriterion = FALSE,
+                                      functionSetString = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")',
                                       lambda = 20,
                                       maxTimeMinutes = 15,
                                       newIndividualsPerGeneration = 2,
@@ -45,7 +46,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                                                      enableComplexityCriterion = enableComplexityCriterion,
                                                                      enableAgeCriterion = enableAgeCriterion)
 
-  funSet <- functionSet("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt") 
+  funSet <- do.call(functionSet, as.list(eval(parse(text = functionSetString))))
   inVarSet <- inputVariableSet("x1")
   constSet <- numericConstantSet
 
@@ -144,13 +145,14 @@ rescaleIndividual <- function(ind, trueY) {
 }
 
 startVisualSr <- function() {
-  gpResult <- twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, lambda, maxTimeMinutes, newIndividualsPerGeneration, populationSize, testFunctionName), eval = FALSE,
+  gpResult <- twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, functionSetString, lambda, maxTimeMinutes, newIndividualsPerGeneration, populationSize, testFunctionName), eval = FALSE,
           testFunctionName = combo("Salutowicz1d", "UnwrappedBall1d"),
           populationSize = knob(lim = c(1, 1000), default = 100, res = 1),
           lambda = knob(lim = c(1, 100), default = 20, res = 1),
           newIndividualsPerGeneration = knob(lim = c(1, 100), default = 2, res = 1),
           enableAgeCriterion = toggle(default = TRUE),
           enableComplexityCriterion = toggle(default = FALSE),
+          functionSetString = entry(default = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")'),
           maxTimeMinutes = knob(lim = c(0.1, 60), res = 0.1))
   print(gpResult)
 }
