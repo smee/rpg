@@ -33,6 +33,8 @@ randsubtree <- function(expr, subtreeprob = 0.1)
 ##' \code{func2} (\code{expr2}) and return the resulting function (expression), i.e.
 ##' the modified \code{func1} (\code{expr1}).
 ##' \code{crossoverexpr} handles crossover of expressions instead of functions.
+##' \code{crossoverexprFast} is a fast (i.e. implemented in efficient C code)
+##' albeit less flexible variant of \code{crossoverexpr}.
 ##' \code{crossoverTyped} and \code{crossoverexprTyped} only exchage replace subtress
 ##' if the sTypes of their root nodes match.
 ##' \code{crossoverTwoPoint} is a variant of \code{crossover} that swaps subtrees
@@ -83,6 +85,11 @@ crossoverexpr <- function(expr1, expr2, crossoverprob) {
   }
   newexpr1
 }
+
+##' @rdname expressionCrossover
+##' @export
+crossoverexprFast <- function(expr1, expr2)
+  .Call("crossover_single_point_R", expr1, expr2)[[1]]
 
 ##' @rdname expressionCrossover
 ##' @export

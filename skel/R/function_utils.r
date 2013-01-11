@@ -24,6 +24,18 @@ new.function <- function() {
   fun 
 }
 
+##' Create a new R closure given a function body expression and an argument list 
+##'
+##' Creates a R closure (i.e. a function object) from a body expression and an argument
+##' list. The closure's environment will be the default environment.
+##'
+##' @param fbody The function body, given as a R expression.
+##' @param fargs The formal arguments, given as a list or vector of strings.
+##' @return A formal argument list, ready to be passed via \code{\link{formals}}.
+##' @export
+makeClosure <- function(fbody, fargs)
+  .Call("make_closure", fbody, fargs)
+
 ##' Create a new function argument list from a list or vector of strings
 ##'
 ##' Creates a formal argument list from a list or vector of strings, ready to be assigned via

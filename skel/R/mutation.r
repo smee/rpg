@@ -16,10 +16,17 @@
 ##' \code{mutateSubtree} mutates a function by recursively replacing inner nodes with
 ##'   newly grown subtrees of maximum depth \code{maxsubtreedepth}.
 ##' \code{mutateNumericConst} mutates a function by perturbing each numeric (double) constant \eqn{c}
-##'   with probability \code{mutateconstprob} by setting \eqn{c := c + rnorm(1)}. Note that constants
-##'   of other typed than \code{double} (e.g \code{integer}s) are not affected.
+##'   with probability \code{mutateconstprob} by setting \eqn{c := c + rnorm(1, mean = mu, sd = sigma)}.
+##'   Note that constants of other typed than \code{double} (e.g \code{integer}s) are not affected.
+##'
 ##' \code{mutateFuncTyped}, \code{mutateSubtreeTyped}, and \code{mutateNumericConstTyped} are
 ##' variants of the above functions that only create well-typed result expressions.
+##'
+##' \code{mutateFuncFast}, \code{mutateSubtreeFast}, \code{mutateNumericConstFast} are variants
+##' of the above untyped mutation function implemented in C. They offer a considerably faster
+##' execution speed for the price of limited flexibility. These variants take function bodies
+##' as arguments (obtain these via R's \code{body} function) and return function bodies as results.
+##' To turn a function body into a function, use RGP's \code{\link{makeClosure}} tool function.
 ##'
 ##' The second set of mutation operators features a more orthogonal design, with each individual
 ##' operator having a only a small effect on the genotype. Mutation strength is controlled by
@@ -42,6 +49,7 @@
 ##' All RGP mutation operators have the S3 class \code{c("mutationOperator", "function")}.
 ##'
 ##' @param func The function to mutate randomly.
+##' @param funcbody The function body to mutate randomly, obtain it via \code{body(func)}.
 ##' @param funcset The function set.
 ##' @param inset The set of input variables.
 ##' @param conset The set of constant factories.
@@ -55,6 +63,16 @@
 ##' @param subtreeDepth The depth of the subtrees to insert or delete.
 ##' @param constprob The probability of creating a constant versus an input variable when inserting
 ##'   a new subtree.
+##' @param insertprob The probability to insert a subtree.
+##' @param deleteprob The probability to insert a subtree.
+##' @param constmin The lower limit for numeric constants.
+##' @param constmax The upper limit for numeric onstants.
+##' @param mu The normal distribution mean for random numeric constant mutation.
+##' @param sigma The normal distribution standard deviation for random numeric constant mutation.
+##' @param subtreeprob The probability of creating a subtree instead of a leaf in the random subtree
+##'   generator function.
+##' @param constprob The probability of creating a constant instead of an input variable in the random 
+##'   subtree generator function.
 ##' @param iterations The number of times to apply a mutation operator to a GP individual. This
 ##'   can be used as a generic way of controling the strength of the genotypic effect of mutation. 
 ##' @param changeProbability The probability for selecting the \code{mutateChangeLabel} operator.
@@ -123,13 +141,13 @@ class(mutateSubtree) <- c("mutationOperator", "function")
 ##' @export
 mutateNumericConst <- function(func, mutateconstprob = 0.1,
                                breedingFitness = function(individual) TRUE,
-                               breedingTries = 50) {
+                               breedingTries = 50, mu = 0.0, sigma = 1.0) {
   mutateconstexpr <- function(expr, mutateconstprob) {
     if (is.call(expr)) {
       as.call(append(expr[[1]], Map(function(e) mutateconstexpr(e, mutateconstprob), rest(expr))))
     } else if (runif(1) <= mutateconstprob && is.double(expr)) {
       if (runif(1) > buildingBlockTag(expr)) {
-        mutatedExpr <- expr + rnorm(1)
+        mutatedExpr <- expr + rnorm(1, mean = mu, sd = sigma)
         withAttributesOf(mutatedExpr, expr)
       } else expr
     } else expr
@@ -466,3 +484,24 @@ mutateDeleteInsert <- function(func, funcset, inset, conset,
                            breedingFitness = breedingFitness,
                            breedingTries = breedingTries)
 class(mutateDeleteInsert) <- c("mutationOperator", "function")
+
+##' @rdname expressionMutation
+##' @export
+mutateFuncFast <- function(funcbody, funcset, mutatefuncprob = 0.1)
+  .Call("mutate_functions_R", funcbody, mutatefuncprob, funcset$all, as.integer(funcset$arities))
+class(mutateFuncFast) <- c("mutationOperator", "function")
+
+##' @rdname expressionMutation
+##' @export
+mutateSubtreeFast <- function(funcbody, funcset, inset, constmin, constmax, insertprob, deleteprob, subtreeprob, constprob, maxsubtreedepth)
+  .Call("mutate_subtrees_R", funcbody, insertprob, deleteprob,
+                             funcset$all, as.integer(funcset$arities),
+                             inset$all, constmin, constmax, subtreeprob, constprob, as.integer(maxsubtreedepth))
+class(mutateSubtreeFast) <- c("mutationOperator", "function")
+
+##' @rdname expressionMutation
+##' @export
+mutateNumericConstFast <- function(funcbody, mutateconstprob = 0.1, mu = 0.0, sigma = 1.0)
+  .Call("mutate_constants_normal_R", funcbody, mutateconstprob, mu, sigma)
+class(mutateNumericConstFast) <- c("mutationOperator", "function")
+

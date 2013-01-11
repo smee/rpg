@@ -28,7 +28,10 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                       maxTimeMinutes = 15,
                                       newIndividualsPerGeneration = 2,
                                       populationSize = 100,
+                                      randomSeed = 1,
                                       testFunctionName = "Salutowicz1d") {
+  set.seed(randomSeed)
+
   testFunction <- switch(testFunctionName,
                          "Salutowicz1d" = Salutowicz1d,
                          "UnwrappedBall1d" = UnwrappedBall1d,
@@ -50,31 +53,22 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
   inVarSet <- inputVariableSet("x1")
   constSet <- numericConstantSet
 
-  mutationFunction1 <- function(ind) {
-    mutateChangeDeleteInsert(ind, funSet, inVarSet, constSet,
-                             strength = 1, subtreeDepth = 2, constprob = 0.2, iterations = 1,
-                             changeProbability = 1/3, deleteProbability = 1/3, insertProbability = 1/3)
-  }
-
-  mutationFunction2 <- function(ind) {
-    subtreeMutantBody <- .Call("mutate_subtrees_R", body(ind), 0.33, 0.75,
-                               funSet$all, as.integer(funSet$arities),
-                               inVarSet$all, -1, 1, 1.0, 0.5, 2L)
+  mutationFunction <- function(ind) {
+    subtreeMutantBody <- mutateSubtreeFast(body(ind), funSet, inVarSet, -1, 1, 0.33, 0.75, 1.0, 0.5, 2) 
     #print("--1"); print(subtreeMutantBody)
-    functionMutantBody <- .Call("mutate_functions_R", subtreeMutantBody, 0.33,
-                                funSet$all, as.integer(funSet$arities))
+    functionMutantBody <- mutateFuncFast(subtreeMutantBody, funSet, mutatefuncprob = 0.33)
     #print("--2"); print(functionMutantBody)
-    constantMutantBody <- .Call("mutate_constants_normal_R", functionMutantBody, 0.33, 0, 1)
+    constantMutantBody <- mutateNumericConstFast(functionMutantBody, mutateconstprob = 0.33, mu = 0, sigma = 1)
     #print("--3"); print(constantMutantBody)
-    mutant <- .Call("make_closure", constantMutantBody, inVarSet$all)
+    mutant <- makeClosure(constantMutantBody, inVarSet$all)
     mutant
   }
 
-  crossoverFunction1 <- function(func1, func2, crossoverprob = 1,
+  crossoverFunction <- function(func1, func2, crossoverprob = 1,
                                  breedingFitness = function(individual) TRUE,
                                  breedingTries = 1) {
-    childBody <- .Call("crossover_single_point_R", body(func1), body(func2))[[1]]
-    child <- .Call("make_closure", childBody, inVarSet$all)
+    childBody <- crossoverexprFast(body(func1), body(func2))
+    child <- makeClosure(childBody, inVarSet$all)
     child
   }
 
@@ -126,9 +120,8 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                            stopCondition = makeTimeStopCondition(maxTimeMinutes * 60),
                            populationSize = 200,
                            individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
-                           #mutationFunction = mutationFunction1,
-                           mutationFunction = mutationFunction2,
-                           crossoverFunction = crossoverFunction1,
+                           mutationFunction = mutationFunction,
+                           crossoverFunction = crossoverFunction,
                            searchHeuristic = searchHeuristic,
                            verbose = TRUE,
                            progressMonitor = pMon)
@@ -153,7 +146,7 @@ rescaleIndividual <- function(ind, trueY) {
 }
 
 startVisualSr <- function() {
-  gpResult <- twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, functionSetString, lambda, maxTimeMinutes, newIndividualsPerGeneration, populationSize, testFunctionName), eval = FALSE,
+  gpResult <- twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, functionSetString, lambda, maxTimeMinutes, newIndividualsPerGeneration, populationSize, randomSeed, testFunctionName), eval = FALSE,
           testFunctionName = combo("Salutowicz1d", "UnwrappedBall1d"),
           populationSize = knob(lim = c(1, 1000), default = 100, res = 1),
           lambda = knob(lim = c(1, 100), default = 20, res = 1),
@@ -161,7 +154,8 @@ startVisualSr <- function() {
           enableAgeCriterion = toggle(default = TRUE),
           enableComplexityCriterion = toggle(default = FALSE),
           functionSetString = entry(default = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")'),
-          maxTimeMinutes = knob(lim = c(0.1, 60), res = 0.1))
+          maxTimeMinutes = knob(lim = c(0.1, 240), res = 0.1),
+          randomSeed = knob(lim = c(1, 1000), res = 1))
   print(gpResult)
 }
 
