@@ -36,8 +36,8 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                          "Salutowicz1d" = Salutowicz1d,
                          "UnwrappedBall1d" = UnwrappedBall1d,
                          stop("twiddleSymbolicRegression: unkown test function name: ", testFunctionName))
-  testFunctionSamplePoints <- seq(from = testFunction$domainInterval[1],
-                                  to = testFunction$domainInterval[2],
+  domainInterval <- testFunction$domainInterval
+  testFunctionSamplePoints <- seq(from = domainInterval[1], to = domainInterval[2],
                                   length.out = testFunction$samples)
   fitnessCases <- data.frame(x1 = testFunctionSamplePoints, y = testFunction$f(testFunctionSamplePoints))
 
@@ -77,7 +77,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
     ys <- as.vector(Map(f, xs), mode = "numeric")
     ys
   }
-  testFunctionRange <- range(sampleFunction(testFunction$f, from = 0, to = 10, steps = 100))
+  testFunctionRange <- range(sampleFunction(testFunction$f, from = domainInterval[1], to = domainInterval[2], steps = 100))
 
   statistics <- NULL 
   startTime1 <- Sys.time()
@@ -89,10 +89,10 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
     }
     if (stepNumber %% 50 == 0) {
       bestIndividual <- pop[order(fitnessValues)][[1]] 
-      rescaledBestIndividual <- rescaleIndividual(bestIndividual, fitnessCases$y)
+      rescaledBestIndividual <- rescaleIndividual(bestIndividual, fitnessCases$y, domainInterval)
       message("current best individual (not rescaled):")
       message(sprintf(" %s", deparse(bestIndividual)))
-      plotFunctions(list(testFunction$f, rescaledBestIndividual, bestIndividual), from = 0, to = 10, steps = 100,
+      plotFunctions(list(testFunction$f, rescaledBestIndividual, bestIndividual), from = domainInterval[1], to = domainInterval[2], steps = 100,
                     ylim = testFunctionRange,
                     main = "Current Best Individual vs. True Function",
                     sub = sprintf("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %f",
@@ -118,7 +118,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                            errorMeasure = smse,
                            #stopCondition = makeStepsStopCondition(250),
                            stopCondition = makeTimeStopCondition(maxTimeMinutes * 60),
-                           populationSize = 200,
+                           populationSize = populationSize,
                            individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
                            mutationFunction = mutationFunction,
                            crossoverFunction = crossoverFunction,
@@ -138,8 +138,9 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
 
 # Tool functions...
 #
-rescaleIndividual <- function(ind, trueY) {
-  indY <- ind(1:100 * 0.1)
+rescaleIndividual <- function(ind, trueY, domainInterval, samples = 100) {
+  indX <- seq(from = domainInterval[1], to = domainInterval[2], length.out = samples)
+  indY <- ind(indX)
   b = cov(trueY, indY) / var(indY)
   a = mean(trueY) - b * mean(indY)
   function(x1) a + b * ind(x1)
