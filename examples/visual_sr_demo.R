@@ -154,8 +154,8 @@ startVisualSr <- function() {
           enableAgeCriterion = toggle(default = TRUE),
           enableComplexityCriterion = toggle(default = FALSE),
           functionSetString = entry(default = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")'),
-          maxTimeMinutes = knob(lim = c(0.1, 240), res = 0.1),
-          randomSeed = knob(lim = c(1, 1000), res = 1))
+          randomSeed = knob(lim = c(1, 1000), res = 1),
+          maxTimeMinutes = knob(lim = c(0.1, 240), res = 0.1))
   print(gpResult)
 }
 
