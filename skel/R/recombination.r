@@ -61,7 +61,7 @@ crossover <- function(func1, func2, crossoverprob = 0.1,
                       breedingFitness = function(individual) TRUE,
                       breedingTries = 50) {
   doCrossover <- function() {
-    child <- new.function() 
+    child <- new.function(envir = environment(func1)) 
     formals(child) <- formals(func1)
     body(child) <- crossoverexpr(body(func1), body(func2), crossoverprob)
     child
@@ -107,7 +107,7 @@ crossoverTyped <- function(func1, func2, crossoverprob = 0.1,
                            breedingFitness = function(individual) TRUE,
                            breedingTries = 50) {
   doCrossoverTyped <- function() {
-    child <- new.function() 
+    child <- new.function(envir = environment(func1)) 
     formals(child) <- formals(func1)
     body(child) <- crossoverexprTyped(body(func1), body(func2), crossoverprob)
     child

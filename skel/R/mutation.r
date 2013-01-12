@@ -101,7 +101,7 @@ mutateFunc <- function(func, funcset, mutatefuncprob = 0.1,
     } else expr
   }
   doMutation <- function() {
-    mutant <- new.function()
+    mutant <- new.function(envir = funcset$envir)
     formals(mutant) <- formals(func)
     body(mutant) <- mutatefuncexpr(body(func), funcset, mutatefuncprob)
     mutant
@@ -128,7 +128,7 @@ mutateSubtree <- function(func, funcset, inset, conset, mutatesubtreeprob = 0.1,
     } else expr
   }
   doMutation <- function() {
-    mutant <- new.function()
+    mutant <- new.function(envir = funcset$envir)
     formals(mutant) <- formals(func)
     body(mutant) <- mutatesubtreeexpr(body(func), funcset, inset, conset, mutatesubtreeprob, maxsubtreedepth)
     mutant
@@ -153,7 +153,7 @@ mutateNumericConst <- function(func, mutateconstprob = 0.1,
     } else expr
   }
   doMutation <- function() {
-    mutant <- new.function()
+    mutant <- new.function(envir = environment(func))
     formals(mutant) <- formals(func)
     body(mutant) <- mutateconstexpr(body(func), mutateconstprob)
     mutant
@@ -188,7 +188,7 @@ mutateFuncTyped <- function(func, funcset, mutatefuncprob = 0.1,
     } else expr
   }
   doMutation <- function() {
-    mutant <- new.function()
+    mutant <- new.function(envir = funcset$envir)
     formals(mutant) <- formals(func)
     body(mutant) <- mutatefuncexprTyped(body(func), funcset, mutatefuncprob)
     mutant
@@ -218,7 +218,7 @@ mutateSubtreeTyped <- function(func, funcset, inset, conset, mutatesubtreeprob =
     } else expr
   }
   doMutation <- function() {
-    mutant <- new.function()
+    mutant <- new.function(envir = funcset$envir)
     formals(mutant) <- formals(func)
     body(mutant) <- mutatesubtreeexprTyped(body(func), funcset, inset, conset, mutatesubtreeprob, maxsubtreedepth)
     mutant
@@ -244,7 +244,7 @@ mutateNumericConstTyped <- function(func, mutateconstprob = 0.1,
     } else expr
   }
   doMutation <- function() {
-    mutant <- new.function()
+    mutant <- new.function(envir = environment(func))
     formals(mutant) <- formals(func)
     body(mutant) <- mutateconstexprTyped(body(func), mutateconstprob)
     mutant
@@ -319,7 +319,7 @@ mutateChangeLabel <- function(func, funcset, inset, conset,
     } else stop("mutateChangeLabel: Unsupported expression: ", expr, ".")
   }
   doMutation <- function() {
-    mutant <- new.function()
+    mutant <- new.function(envir = funcset$envir)
     formals(mutant) <- formals(func)
     body(mutant) <- mutateExpressionChangeLabel(body(func))
     mutant
@@ -367,7 +367,7 @@ mutateInsertSubtree <- function(func, funcset, inset, conset,
     } else stop("mutateInsertSubtree: Unsupported expression: ", expr, ".")
   }
   doMutation <- function() {
-    mutant <- new.function()
+    mutant <- new.function(envir = funcset$envir)
     formals(mutant) <- formals(func)
     body(mutant) <- mutateExpressionInsertSubtree(body(func))
     mutant
@@ -421,7 +421,7 @@ mutateDeleteSubtree <- function(func, funcset, inset, conset,
     } else stop("mutateDeleteSubtree: Unsupported expression: ", expr, ".")
   }
   doMutation <- function() {
-    mutant <- new.function()
+    mutant <- new.function(envir = funcset$envir)
     formals(mutant) <- formals(func)
     body(mutant) <- mutateExpressionDeleteSubtree(body(func))
     mutant

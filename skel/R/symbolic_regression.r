@@ -71,6 +71,8 @@
 ##' @param progressMonitor A function of signature
 ##'   \code{function(population, fitnessValues, fitnessFunction, stepNumber, evaluationNumber,
 ##'   bestFitness, timeElapsed)} to be called with each evolution step.
+##' @parem envir The R environment to evaluate individuals in, defaults to
+##'   \code{parent.frame()}.
 ##' @param verbose Whether to print progress messages.
 ##' @return An symbolic regression model that contains an untyped GP population.
 ##'
@@ -97,9 +99,11 @@ symbolicRegression <- function(formula, data,
                                breedingTries = 50,
                                errorMeasure = rmse,
                                progressMonitor = NULL,
+                               envir = parent.frame(),
                                verbose = TRUE) {
   symbolicRegressionModel <- dataDrivenGeneticProgramming(formula, data, makeRegressionFitnessFunction,
-                                                          list(errorMeasure = errorMeasure,
+                                                          list(envir = envir,
+                                                               errorMeasure = errorMeasure,
                                                                penalizeGenotypeConstantIndividuals = penalizeGenotypeConstantIndividuals,
                                                                indsizelimit = individualSizeLimit),
                                                           stopCondition = stopCondition,
@@ -185,6 +189,7 @@ predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", det
 ##' @param formula A formula object describing the regression task.
 ##' @param data An optional data frame containing the variables in the
 ##'   model.
+##' @param envir The R environment to evaluate individuals in.
 ##' @param errorMeasure A function to use as an error measure, defaults to RMSE.
 ##' @param indsizelimit Individuals exceeding this size limit will get
 ##'   a fitness of \code{Inf}.
@@ -192,7 +197,8 @@ predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", det
 ##'   contain any input variables will get a fitness of \code{Inf}.
 ##' @return A fitness function to be used in symbolic regression.
 ##' @export
-makeRegressionFitnessFunction <- function(formula, data, errorMeasure = rmse,
+makeRegressionFitnessFunction <- function(formula, data, envir,
+                                          errorMeasure = rmse,
                                           indsizelimit = NA,
                                           penalizeGenotypeConstantIndividuals = FALSE) {
   data <- if (any(is.na(data))) {
@@ -204,10 +210,10 @@ makeRegressionFitnessFunction <- function(formula, data, errorMeasure = rmse,
   formulaVars <- as.list(attr(terms(formula), "variables")[-1])
   responseVariable <- formulaVars[[1]]
   explanatoryVariables <- formulaVars[-1]
-  trueResponse <- eval(responseVariable, envir=data)
-  explanatories <- lapply(explanatoryVariables, eval, envir=data)
+  trueResponse <- eval(responseVariable, envir = data)
+  explanatories <- lapply(explanatoryVariables, eval, envir = data)
   function(ind) {
-    ysind <- do.call(ind, explanatories) # vectorized fitness-case evaluation
+    ysind <- do.call(ind, explanatories, envir = envir) # vectorized fitness-case evaluation
     errorind <- errorMeasure(trueResponse, ysind)    
     if (!is.na(indsizelimit) && funcSize(ind) > indsizelimit)
       Inf # individual size limit exceeded

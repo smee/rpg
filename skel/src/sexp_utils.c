@@ -233,10 +233,10 @@ SEXP replace_sexp_subtree_R(SEXP sexp, SEXP index, SEXP replacement) {
   return replace_sexp_subtree(sexp, INTEGER(index)[0], replacement);
 }
 
-SEXP make_closure(SEXP body, SEXP formal_parameter_list) {
+SEXP make_closure(SEXP body, SEXP formal_parameter_list, SEXP envir) {
   SEXP closure, formals;
   PROTECT(closure = allocSExp(CLOSXP));
-  SET_CLOENV(closure, R_GlobalEnv);
+  SET_CLOENV(closure, envir);
   const int number_of_formals = length(formal_parameter_list);
   PROTECT(formals = allocList(number_of_formals));
   SEXP formals_iterator = formals;

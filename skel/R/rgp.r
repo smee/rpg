@@ -25,7 +25,7 @@ NA
 .onLoad <- function(libname, pkgname) {
   # initialize standard GP function and constant sets...
   arithmeticFunctionSet <<- functionSet("+", "-", "*", "/")
-  expLogFunctionSet <<- functionSet("sqrt", "exp", "ln")
+  expLogFunctionSet <<- functionSet("sqrt", "exp", "log")
   trigonometricFunctionSet <<- functionSet("sin", "cos", "tan")
   mathFunctionSet <<- c(arithmeticFunctionSet, expLogFunctionSet, trigonometricFunctionSet)
 

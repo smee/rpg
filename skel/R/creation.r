@@ -38,8 +38,9 @@ randexprGrow <- function(funcset, inset, conset,
                          curdepth = 1) {
   constprob <- if (is.empty(conset$all)) 0.0 else constprob
   if (runif(1) <= subtreeprob && curdepth < maxdepth) { # maybe create subtree if maximum depth not reached
-    funcname <- toName(randelt(funcset$all, prob = attr(funcset$all, "probabilityWeight")))
-    funcarity <- arity(funcname)
+    randfuncindex <- sample.int(n = length(funcset$all), size = 1, prob = attr(funcset$all, "probabilityWeight"))
+    funcname <- toName(funcset$all[[randfuncindex]])
+    funcarity <- funcset$arities[randfuncindex]
     as.call(append(funcname,
                    lapply(1:funcarity, function(i) randexprGrow(funcset, inset, conset, maxdepth,
                                                                 constprob, subtreeprob, curdepth + 1))))
@@ -82,7 +83,7 @@ randfunc <- function(funcset, inset, conset, maxdepth = 8,
                      breedingFitness = function(individual) TRUE,
                      breedingTries = 50) {
   funcFactory <- function() {
-    newf <- new.function()
+    newf <- new.function(envir = funcset$envir)
     formals(newf) <- new.alist(inset$allFormals)
     body(newf) <- exprfactory(funcset, inset, conset, maxdepth, constprob = constprob)
     newf
@@ -189,7 +190,7 @@ randfuncTyped <- function(type, funcset, inset, conset, maxdepth = 8,
                           breedingFitness = function(individual) TRUE,
                           breedingTries = 50) {
   funcFactory <- function() {
-    newf <- new.function()
+    newf <- new.function(envir = funcset$envir)
     formals(newf) <- new.alist(inset$allFormals)
     body(newf) <- exprfactory(type, funcset, inset, conset, maxdepth, constprob = constprob)
     newf

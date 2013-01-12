@@ -50,6 +50,9 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                                                      enableAgeCriterion = enableAgeCriterion)
 
   funSet <- do.call(functionSet, as.list(eval(parse(text = functionSetString))))
+  inc <- function(x) x + 1 # TODO
+  fset2 <- functionSet("inc") # TODO
+  funSet <- c(funSet, fset2) # TODO
   inVarSet <- inputVariableSet("x1")
   constSet <- numericConstantSet
 
@@ -60,7 +63,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
     #print("--2"); print(functionMutantBody)
     constantMutantBody <- mutateNumericConstFast(functionMutantBody, mutateconstprob = 0.33, mu = 0, sigma = 1)
     #print("--3"); print(constantMutantBody)
-    mutant <- makeClosure(constantMutantBody, inVarSet$all)
+    mutant <- makeClosure(constantMutantBody, inVarSet$all, envir = funSet$envir)
     mutant
   }
 
@@ -68,7 +71,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                  breedingFitness = function(individual) TRUE,
                                  breedingTries = 1) {
     childBody <- crossoverexprFast(body(func1), body(func2))
-    child <- makeClosure(childBody, inVarSet$all)
+    child <- makeClosure(childBody, inVarSet$all, envir = funSet$envir)
     child
   }
 
@@ -123,6 +126,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                            mutationFunction = mutationFunction,
                            crossoverFunction = crossoverFunction,
                            searchHeuristic = searchHeuristic,
+                           envir = environment(), # TODO
                            verbose = TRUE,
                            progressMonitor = pMon)
 

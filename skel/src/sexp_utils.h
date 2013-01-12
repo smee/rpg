@@ -55,7 +55,7 @@ SEXP replace_sexp_subtree_R(SEXP sexp, SEXP index, SEXP replacement);
 /* make_closure
  *
  */
-SEXP make_closure(SEXP body, SEXP formal_parameter_list);
+SEXP make_closure(SEXP body, SEXP formal_parameter_list, SEXP envir);
 
 #endif
 
