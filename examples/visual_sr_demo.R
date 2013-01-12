@@ -50,9 +50,6 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                                                      enableAgeCriterion = enableAgeCriterion)
 
   funSet <- do.call(functionSet, as.list(eval(parse(text = functionSetString))))
-  inc <- function(x) x + 1 # TODO
-  fset2 <- functionSet("inc") # TODO
-  funSet <- c(funSet, fset2) # TODO
   inVarSet <- inputVariableSet("x1")
   constSet <- numericConstantSet
 
