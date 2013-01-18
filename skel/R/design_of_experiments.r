@@ -67,8 +67,10 @@ normalizedDesign <- function(dimension, size, calcMinDistance = FALSE) {
 ##' @param dimension Dimension of the problem (will be no. of columns of the result matrix).
 ##' @param size Number of design points, defaults to \code{max(11 * dimension,
 ##'   1 + 3 * dimension + dimension * (dimension - 1) / 2 + 1)}.
-##' @param bounds Interval (2-element numeric vector) giving the upper and lower bounds
-##'   for sampling, defaults to \code{c(0.0, 1.0)}.
+##' @param lowerBounds Numeric vector of length \code{dimension} giving lower bounds
+##'   for sampling, defaults to \code{c(0.0, ...)}.
+##' @param upperBounds Numeric vector of length \code{dimension} giving upper bounds
+##'   for sampling, defaults to \code{c(1.0, ...)}.
 ##' @param retries Number of retries, which is the number of trials to find a design
 ##'   with the lowest distance, default is \code{2 * dimension}.
 ##' @return A LHD matrix. 
@@ -76,7 +78,8 @@ normalizedDesign <- function(dimension, size, calcMinDistance = FALSE) {
 ##' @export
 latinHypercubeDesign <- function(dimension,
                                  size = max(11 * dimension, 1 + 3 * dimension + dimension * (dimension - 1) / 2 + 1),
-                                 bounds = c(0.0, 1.0),
+                                 lowerBounds = replicate(dimension, 0.0),
+                                 upperBounds = replicate(dimension, 1.0),
                                  retries = 2 * dimension) {
 	# min distance does not have to be calculated if there is only one try 
 	bestNormalizedD <- normalizedDesign(dimension, size, calcMinDistance = retries > 0)
@@ -91,9 +94,10 @@ latinHypercubeDesign <- function(dimension,
 	}
 
   # scale normalized matrix to bounds
-  lowerBound <- bounds[1]
-  upperBound <- bounds[2]
-  D <- lowerBound + bestNormalizedD$design * (upperBound - lowerBound)
+  D <- bestNormalizedD$design
+  for (i in 1:dimension) {
+    D[, i] <- lowerBounds[i] + bestNormalizedD$design[, i] * (upperBounds[i] - lowerBounds[i])
+  }
 
 	return (D)
 }
