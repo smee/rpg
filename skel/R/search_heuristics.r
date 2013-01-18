@@ -13,10 +13,6 @@
 ##' The search-heuristic, i.e. the concrete GP search algorithm, is a modular component of RGP. RGP
 ##' already provides a set of search-heuristics for GP, including the following:
 ##'
-##' \code{makeExploitativeSteadyStateSearchHeuristic} creates a exploitative steady state
-##' search-heuristic for use in RGP. This search-heuristic was the only option in early versions of
-##' RGP and is provided mainly for reasons of backward-compatiblity.
-##'
 ##' \code{makeTinyGpSearchHeuristic} creates an RGP search-heuristic that mimics the search heuristic
 ##' implemented in Riccardo Poli's TinyGP system.
 ##'
@@ -53,108 +49,11 @@
 ##' @param complexityMeasure The complexity measure, a function of signature \code{function(ind, fitness)}
 ##'   returning a single numeric value.
 ##' @param \code{newIndividualsPerGeneration} The number of new individuals per generation to
-##'   insert into the population.
+##'   insert into the population. Defaults to \code{2} if \code{enableAgeCriterion == TRUE}
+##'   else to \code{0}.
 ##' @param \code{newIndividualsMaxDepth} The maximum depth of new individuals inserted into the
 ##'   population.
 ##'
-##' @rdname searchHeuristics 
-##' @export
-makeExploitativeSteadyStateSearchHeuristic <- function(selectionFunction = makeTournamentSelection())
-function(logFunction, stopCondition, pop, fitnessFunction,
-         mutationFunction, crossoverFunction,
-         functionSet, inputVariables, constantSet,
-         archive, extinctionPrevention,
-         elite, eliteSize,
-         restartCondition, restartStrategy,
-         breedingFitness, breedingTries,
-         progressMonitor) {
-  logFunction("STARTING genetic programming evolution run (exploitative steady state search-heuristic) ...")
-  
-  fitnessValues <- sapply(pop, fitnessFunction)
-
-  ## Initialize statistic counters...
-  stepNumber <- 1
-  evaluationNumber <- 0
-  timeElapsed <- 0
-  archiveList <- list() # the archive of all individuals selected in this run, only used if archive == TRUE
-  archiveIndexOf <- function(archive, individual)
-    Position(function(a) identical(body(a$individual), body(individual)), archive)
-  bestFitness <- Inf # best fitness value seen in this run, if multi-criterial, only the first component counts
-  startTime <- proc.time()["elapsed"]
-
-  ## Execute GP run...
-  while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
-                        evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
-    # Select two sets of individuals and divide each into winners and losers...
-    selA <- selectionFunction(pop, fitnessFunction); selB <- selectionFunction(pop, fitnessFunction)
-    if (archive) { # add the evaluated individuals to the archive...
-      evaluatedIndices <- c(selA$selected[, 1], selB$selected[, 1], selA$discarded[, 1], selB$discarded[, 1])
-      evaluatedFitnesses <- c(selA$selected[, 2], selB$selected[, 2], selA$discarded[, 2], selB$discarded[, 2])
-      for (i in 1:length(evaluatedIndices))
-        archiveList[[length(archiveList) + 1]] <- list(individual = pop[[evaluatedIndices[i]]],
-                                                       fitness = evaluatedFitnesses[i])
-    }
-    winnersA <- selA$selected[, 1]; winnersB <- selB$selected[, 1]
-    bestFitness <- min(c(bestFitness, selA$selected[, 2], selB$selected[, 2]))
-    losersA <- selA$discarded[, 1]; losersB <- selB$discarded[, 1]
-    losers <- c(losersA, losersB)
-    # Create winner children through crossover and mutation...
-    makeWinnerChildren <- function(winnersA, winnersB)
-                            Map(function(winnerA, winnerB)
-                                  mutationFunction(crossoverFunction(pop[[winnerA]], pop[[winnerB]],
-                                                                     breedingFitness = breedingFitness,
-                                                                     breedingTries = breedingTries)),
-                                winnersA, winnersB)
-    winnerChildrenA <- makeWinnerChildren(winnersA, winnersB) 
-    winnerChildrenB <- makeWinnerChildren(winnersA, winnersB) 
-    winnerChildren <- c(winnerChildrenA, winnerChildrenB)
-    fitnessValues[c(winnersA, winnersB)] <- c(selA$selected[, 2], selB$selected[, 2])
-    # Replace losers with winner children...
-    if (extinctionPrevention) {
-      numberOfLosers <- length(losers)
-      winnerChildrenAndLosers <- c(winnerChildren, pop[losers])
-      uniqueWinnerChildrenAndLosers <- unique(winnerChildrenAndLosers) # unique() does not change the order of it's argument
-      numberOfUniqueWinnerChildrenAndLosers <- length(uniqueWinnerChildrenAndLosers)
-      if (numberOfUniqueWinnerChildrenAndLosers < numberOfLosers) { # not enough unique individuals...
-        numberMissing <- numberOfLosers - numberOfUniqueWinnerChildrenAndLosers
-        warning(sprintf("geneticProgramming: not enough unique individuals for extinction prevention (%d individuals missing)", numberMissing))
-        # we have to fill up with duplicates...
-        uniqueWinnerChildrenAndLosers <- c(uniqueWinnerChildrenAndLosers, winnerChildrenAndLosers[1:numberMissing])
-      }
-      uniqueChildren <- uniqueWinnerChildrenAndLosers[1:numberOfLosers] # fill up duplicated winner children with losers
-      pop[losers] <- uniqueChildren
-    } else {
-      pop[losers] <- winnerChildren
-    }
-    # Apply restart strategy...
-    if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
-                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
-      restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
-      pop <- restartResult[[1]]
-      elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
-      logFunction("restarted run")
-    }
-    
-    timeElapsed <- proc.time()["elapsed"] - startTime
-    stepNumber <- 1 + stepNumber
-    evaluationNumber <- selA$numberOfFitnessEvaluations + selB$numberOfFitnessEvaluations + evaluationNumber
-    progressMonitor(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
-  }
-  elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
-  logFunction("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
-              stepNumber, evaluationNumber, formatSeconds(timeElapsed))
-
-  ## Return result list...
-  list(timeElapsed = timeElapsed,
-       stepNumber = stepNumber,
-       evaluationNumber = evaluationNumber,
-       bestFitness = bestFitness,
-       population = pop,
-       elite = elite,
-       archiveList = archiveList,
-       searchHeuristicResults = list())
-}
-
 ##' @rdname searchHeuristics 
 ##' @export
 makeTinyGpSearchHeuristic <- function(crossoverProbability = 0.9, tournamentSize = 2)
@@ -353,13 +252,13 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##' @export
 makeAgeFitnessComplexityParetoGpSearchHeuristic <- function(lambda = 20,
                                                             crossoverProbability = 0.9,
-                                                            enableComplexityCriterion = TRUE,
-                                                            enableAgeCriterion = TRUE,
+                                                            enableComplexityCriterion = FALSE,
+                                                            enableAgeCriterion = FALSE,
                                                             ndsParentSelection = FALSE,
                                                             ndsSelectionFunction = nds_cd_selection,
                                                             complexityMesaure = function(ind, fitness) funcVisitationLength(ind),
                                                             ageMergeFunction = max,
-                                                            newIndividualsPerGeneration = 1,
+                                                            newIndividualsPerGeneration = if (enableAgeCriterion) 2 else 0,
                                                             newIndividualsMaxDepth = 8,
                                                             plotFront = FALSE)
 function(logFunction, stopCondition, pop, fitnessFunction,

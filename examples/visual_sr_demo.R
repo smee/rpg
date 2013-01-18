@@ -41,7 +41,6 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                   length.out = testFunction$samples)
   fitnessCases <- data.frame(x1 = testFunctionSamplePoints, y = testFunction$f(testFunctionSamplePoints))
 
-  #searchHeuristic <- makeExploitativeSteadyStateSearchHeuristic(selectionFunction = makeTournamentSelection(tournamentSize = 10))
   #searchHeuristic <- makeTinyGpSearchHeuristic()
   #searchHeuristic <- makeCommaEvolutionStrategySearchHeuristic(mu = 25)
   searchHeuristic <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = lambda,

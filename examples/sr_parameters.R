@@ -9,7 +9,6 @@ require("rgp")
 Salutowicz1d <- function(x) exp(-1*x)*x*x*x*sin(x)*cos(x)*(sin(x)*sin(x)*cos(x)-1)
 df1 <- data.frame(x1 = 1:100*0.1, y = Salutowicz1d(1:100 * 0.1))
 
-#searchHeuristic1 <- makeExploitativeSteadyStateSearchHeuristic(selectionFunction = makeTournamentSelection(tournamentSize = 10))
 #searchHeuristic1 <- makeTinyGpSearchHeuristic()
 #searchHeuristic1 <- makeCommaEvolutionStrategySearchHeuristic(mu = 25)
 searchHeuristic1 <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = 20, newIndividualsPerGeneration = 2)
