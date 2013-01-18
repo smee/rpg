@@ -18,6 +18,8 @@
 ##' for calls to \code{MapExpressionNodes}.
 ##  \code{FlattenExpression} returns a list of all nodes in an expression
 ##' \code{expr}.
+##  \code{subtrees} returns a list of all subtrees/function symbols/leafs of
+##' an expression \code{expr}.
 ##' \code{AllExpressionNodes} checks if all nodes in the tree of \code{expr}
 ##' satisfy the predicate \code{p} (\code{p} returns \code{TRUE} for every node).
 ##' This function short-cuts returning \code{FALSE} as soon as a node that
@@ -67,6 +69,23 @@ FlattenExpression <- function(expr) {
     c(list(func), Map(FlattenExpression, expr[-1]), recursive = TRUE)
   } else {
     list(expr)
+  }
+}
+
+##' @rdname expressionTransformation
+subtrees <- function(expr, functions = FALSE, inners = TRUE, leafs = TRUE) {
+  if (is.call(expr)) {
+    func <- expr[[1]]
+    if (functions && inners)
+      c(list(func), expr, Map(function(e) subtrees(e, functions, inners, leafs), expr[-1]), recursive = TRUE)
+    else if (inners)
+      c(expr, Map(function(e) subtrees(e, functions, inners, leafs), expr[-1]), recursive = TRUE)
+    else if (functions)
+      c(list(func), Map(function(e) subtrees(e, functions, inners, leafs), expr[-1]), recursive = TRUE)
+    else
+      c(Map(function(e) subtrees(e, functions, inners, leafs), expr[-1]), recursive = TRUE)
+  } else {
+    if (leafs) list(expr) else list()
   }
 }
 
@@ -137,7 +156,7 @@ replaceSubtreeAtRecursive <- function(expr, index, replacement, currentIndex = 0
 
 ##' Functions for decomposing and recombining R expressions
 ##'
-##' \code{subExpressions} returns a list of all subexpressions (subtrees) of an
+##' \code{subexpressions} returns a list of all subexpressions (subtrees) of an
 ##' expression \code{expr}.
 ##'
 ##' @param expr An R expression.
