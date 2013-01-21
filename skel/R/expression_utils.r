@@ -20,6 +20,9 @@
 ##' \code{expr}.
 ##  \code{subtrees} returns a list of all subtrees/function symbols/leafs of
 ##' an expression \code{expr}.
+##  \code{expressionGraph} returns a graph representation of an expression
+##' \code{expr}, given as list of nodes and and list of vertices. Each
+##' vertex is represented as a pair of indices into the list of nodes.
 ##' \code{AllExpressionNodes} checks if all nodes in the tree of \code{expr}
 ##' satisfy the predicate \code{p} (\code{p} returns \code{TRUE} for every node).
 ##' This function short-cuts returning \code{FALSE} as soon as a node that
@@ -45,6 +48,7 @@
 ##' @return The transformed expression.
 ##'
 ##' @rdname expressionTransformation
+##' @export
 MapExpressionNodes <- function(f, expr, functions = TRUE, inners = FALSE, leafs = TRUE) {
   if (is.call(expr)) {
     oldfunc <- expr[[1]]
@@ -57,12 +61,15 @@ MapExpressionNodes <- function(f, expr, functions = TRUE, inners = FALSE, leafs 
 }
 
 ##' @rdname expressionTransformation
+##' @export
 MapExpressionLeafs <- function(f, expr) MapExpressionNodes(f, expr, FALSE, FALSE, TRUE)
 
 ##' @rdname expressionTransformation
+##' @export
 MapExpressionSubtrees <- function(f, expr) MapExpressionNodes(f, expr, TRUE, TRUE, TRUE)
 
 ##' @rdname expressionTransformation
+##' @export
 FlattenExpression <- function(expr) {
   if (is.call(expr)) {
     func <- expr[[1]]
@@ -73,6 +80,7 @@ FlattenExpression <- function(expr) {
 }
 
 ##' @rdname expressionTransformation
+##' @export
 subtrees <- function(expr, functions = FALSE, inners = TRUE, leafs = TRUE) {
   if (is.call(expr)) {
     func <- expr[[1]]
@@ -90,6 +98,34 @@ subtrees <- function(expr, functions = FALSE, inners = TRUE, leafs = TRUE) {
 }
 
 ##' @rdname expressionTransformation
+##' @export
+expressionGraph <- function(expr) {
+  currentNodeIndex <- 0 
+  expressionGraphRecursive <- function(expr) {
+    currentNodeIndex <<- currentNodeIndex + 1
+    if (is.call(expr)) {
+      children <- expr[-1]
+      nodes <- list()
+      vertices <- list()
+      currentRootIndex <- currentNodeIndex
+      for (i in 1:length(children)) {
+        currentChildIndex <- currentNodeIndex + 1
+        argumentGraph <- expressionGraphRecursive(children[[i]])
+        nodes <- c(nodes, argumentGraph$nodes)
+        vertices <- c(vertices, list(c(currentRootIndex, currentChildIndex)), argumentGraph$vertices)
+      }
+      list(nodes = c(expr, nodes), vertices = vertices)
+    } else {
+      nodes <- list(expr)
+      vertices <- list()
+      list(nodes = nodes, vertices = vertices)
+    }
+  }
+  expressionGraphRecursive(expr)
+}
+
+##' @rdname expressionTransformation
+##' @export
 AllExpressionNodes <- function(p, expr) {
   if (is.call(expr)) {
     if (!p(expr[[1]])) return(FALSE) # check function
@@ -105,6 +141,7 @@ AllExpressionNodes <- function(p, expr) {
 }
 
 ##' @rdname expressionTransformation
+##' @export
 AnyExpressionNode <- function(p, expr) {
   if (is.call(expr)) {
     if (p(expr[[1]])) return(TRUE) # check function
@@ -120,6 +157,7 @@ AnyExpressionNode <- function(p, expr) {
 }
 
 ##' @rdname expressionTransformation
+##' @export
 subtreeAt <- function(expr, index) subtreeAtRecursive(expr, index)
 
 subtreeAtRecursive <- function(expr, index, currentIndex = 0)
@@ -138,6 +176,7 @@ subtreeAtRecursive <- function(expr, index, currentIndex = 0)
   }
 
 ##' @rdname expressionTransformation
+##' @export
 replaceSubtreeAt <- function(expr, index, replacement) replaceSubtreeAtRecursive(expr, index, replacement)
 
 replaceSubtreeAtRecursive <- function(expr, index, replacement, currentIndex = 0)
