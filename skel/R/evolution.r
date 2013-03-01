@@ -163,6 +163,7 @@ geneticProgramming <- function(fitnessFunction,
                  evaluationNumber = result$evaluationNumber,
                  bestFitness = result$bestFitness,
                  population = result$population,
+                 fitnessValues = result$fitnessValues,
                  elite = result$elite,
                  functionSet = functionSet,
                  constantSet = constantSet,
@@ -262,9 +263,10 @@ joinElites <- function(individuals, elite, eliteSize, fitnessFunction) {
 ##' example.
 ##'
 ##' @param object The genetic programming run result object to report on.
-##' @param reportFitness Whether to report the fitness values of each individual
+##' @param reportFitness Whether to report detailed fitness values of each individual
 ##'   in the result population. Note that calculating fitness values may take
-##'   a long time. Defaults to \code{TRUE}.
+##'   a long time. Defaults to \code{FALSE}. Either way, basic fitness
+##'   values for each individual is reported.
 ##' @param orderByFitness Whether the report of the result population should be
 ##'   ordered by fitness. This does not have an effect if \code{reportFitness}
 ##'   is set to \code{FALSE}. Defaults to \code{TRUE}.
@@ -272,13 +274,13 @@ joinElites <- function(individuals, elite, eliteSize, fitnessFunction) {
 ##'
 ##' @seealso \code{\link{geneticProgramming}}, \code{\link{symbolicRegression}}
 ##' @export
-summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, orderByFitness = TRUE, ...) {
-  reportPopulation <- function(individualFunctions) {
+summary.geneticProgrammingResult <- function(object, reportFitness = FALSE, orderByFitness = TRUE, ...) {
+  reportPopulation <- function(individualFunctions, individualFitnessValues) {
     individualFunctionsAsStrings <- Map(function(f) Reduce(function(a, b) paste(a, b, sep=""),
                                                            deparse(f)),
                                         individualFunctions)
-    report <- cbind(1:length(individualFunctions), individualFunctions, individualFunctionsAsStrings)
-    colnames(report) <- c("Individual Index", "Individual Function", "(as String)")
+    report <- cbind(1:length(individualFunctions), individualFunctions, individualFunctionsAsStrings, individualFitnessValues)
+    colnames(report) <- c("Individual Index", "Individual Function", "(as String)", "Fitness Value")
     if (reportFitness) {
       fitnessList <- lapply(individualFunctions, object$fitnessFunction)
       fitnessesLength <- length(fitnessList)
@@ -294,7 +296,7 @@ summary.geneticProgrammingResult <- function(object, reportFitness = TRUE, order
     }
     report
   }
-  list(population = reportPopulation(object$population), elite = reportPopulation(object$elite))
+  list(population = reportPopulation(object$population, object$fitnessValues), elite = reportPopulation(object$elite))
 }
 
 ##' Evolution restart conditions
