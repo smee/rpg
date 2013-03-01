@@ -225,3 +225,38 @@ makeRegressionFitnessFunction <- function(formula, data, envir,
     else errorind
   }
 }
+
+##' Variable Presence Maps
+##'
+##' Counts the number of input variables (formal arguments) present in the
+##' body of a individual function. Applied to a population of individuals,
+##' this information is useful to identify driving variables in a modelling
+##' task.
+##' \code{functionVariablePresenceMap} returns a (one row) variable
+##' presence map for a function, \code{populationVariablePresenceMap}
+##' returns a variable presence map for a population of RGP individuals
+##' (a list of R functions).
+##'
+##' @param f A R function to return a variable presence map for.
+##' @param pop A RGP population to return a variable presence map for.
+##' @return A data frame with variables (formal parameters) in the columns,
+##'   individuals (function) in the rows and variable counts in the cells.
+##'
+##' @rdname variablePresenceMaps 
+##' @export
+functionVariablePresenceMap <- function(f) {
+  variablePresence <- as.list(formals(f))
+  variablePresence <- Map(function(x) 0, variablePresence) # set each element to 0
+
+  MapExpressionLeafs(function(leaf) if (is.name(leaf)) {
+    variablePresence[[as.character(leaf)]] <<- variablePresence[[as.character(leaf)]] + 1
+  }, body(f))
+
+  as.data.frame(variablePresence)
+}
+
+##' @rdname variablePresenceMaps 
+##' @export
+populationVariablePresenceMap <- function(pop)
+  Reduce(rbind, Map(functionVariablePresenceMap, pop))
+
