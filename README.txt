@@ -29,4 +29,5 @@ This package contains the following objects:
     ├── R                R sources
     ├── demo             R demos
     ├── inst             other RGP components (e.g. unit tests) 
-    └── src              C sources
+    ├── src              C sources 
+    └── vignettes        package vignette "A Friendly Introduction to RGP"

@@ -25,9 +25,11 @@
 \renewcommand*\sfdefault{uop}
 \def\cad{{\sc CAD}\xspace}
 \def\cfd{{\sc CFD}\xspace}
+\def\clang{{\sf C}\xspace}
 \def\dakota{{\sf DAKOTA}\xspace}
 \def\doe{{\sc DoE}\xspace}
 \def\finitestar{{\it finite}*\xspace}
+\def\gp{{\sc GP}\xspace}
 \def\linux{{\sf Linux}\xspace}
 \def\mpi{{\sf MPI}\xspace}
 \def\opencascade{{\sf OpenCASCADE}\xspace}
@@ -35,11 +37,13 @@
 \def\openmpi{{\sf Open MPI}\xspace}
 \def\paraview{{\sf ParaView}\xspace}
 \def\python{{\sf Python}\xspace}
+\def\rlang{{\sf R}\xspace}
 \def\rgp{{\sf RGP}\xspace}
 \def\rproject{{\sf R Project}\xspace}
 \def\rsymbolic{{\sf rsymbolic}\xspace}
 \def\slurm{{\sf SLURM}\xspace}
 \def\spot{{\sf SPOT}\xspace}
+\def\spotseven{{\sf SPOTSeven}\xspace}
 \definecolor{linkcol}{rgb}{0, 0, 0} 
 \definecolor{citecol}{rgb}{0, 0, 0}
 \hypersetup{
@@ -50,11 +54,9 @@
   linkcolor = linkcol,
   citecolor = citecol,
   urlcolor = linkcol}
-\title[\rgp]{%
-\protect \includegraphics[width=3.2cm]{skel/vignettes/figures/logo_rgp.pdf}\\
-A Friendly Introduction to RGP}
-\date{4 March 2013}
-\author[O. Flasch]{Oliver Flasch}
+\title[RGP Introduction]{A Friendly Introduction to RGP}
+\date{4 March 2013 (RGP release 0.3-1)}
+\author[Oliver Flasch]{Oliver Flasch}
 
 
 \begin{document}
@@ -62,68 +64,75 @@ A Friendly Introduction to RGP}
 \maketitle
 
 \begin{abstract}
-  \noindent \finitestar is a full-stack solution for engineering optimization in the form of an
-  easy-to-deploy appliance. By tightly integrating the leading Open Source tools for simulation,
-  modelling, optimization, and product lifecycle management with powerful cluster hardware and
-  sourcewerk's innovative web-based user interface, \finitestar offers a level of integration,
-  usability, flexibility, and cost-effectiveness unprecedented in the market of engineering
-  optimization tools. \finitestar gets the technology right, so that you can concentrate
-  on what matters most: Building great products.
+  \noindent \rgp is genetic programming system based on, as well as fully
+  integrated into, the \rlang environment. The system implements classical
+  tree-based genetic programming as well as other variants including, for
+  example, strongly typed genetic programming and Pareto genetic programming.
+  It strives for high modularity through a consistent architecture that allows
+  the customization and replacement of every algorithm component, while
+  maintaining accessibility for new users by adhering to the "convention over
+  configuration" principle. Performance critical sections have efficient
+  implementations in \clang, making the system suitable for real-world
+  application. Typical \gp applications are supported by well-known \rlang
+  ideoms. For example, symbolic regression via \gp is supported by the same
+  "formula interface" as linear regression in \rlang.
 \end{abstract}
 
-This whitepaper provides a quick overview of \finitestar, the first full-stack engineering optimization
-appliance. After section~\ref{sec:intro} gives a short introduction to typical questions engineering
-optimization helps to answer, section~\ref{sec:process} describes the integrated optimization process
-implemented in \finitestar. The unique concept of an appliance that assembles powerful hard- and software
-components into an easy-to-deploy and easy-to-use package is detailed in section~\ref{sec:appliance}.
-%Section~\ref{sec:applications} lists application areas from multiple industries.
 
-
-\section{Engineering Optimization}\label{sec:intro}
-
-\begin{marginfigure}
-  %\includegraphics[width=1\linewidth]{figures/nozzle_variant_A_magU_3000x700.png}
-  %\includegraphics[width=1\linewidth]{figures/nozzle_variant_A_ribbons_3000x700.png}
-  %\includegraphics[width=1\linewidth]{figures/nozzle_variant_B_magU_3000x700.png}
-  %\includegraphics[width=1\linewidth]{figures/nozzle_variant_A_ribbons_3000x700.png}
-  \caption{Shape optimization of an injection nozzle: \finitestar integrates the parametric
-  \cad kernel \opencascade, the computational fluid dynamics package \openfoam, and the
-  optimization packages \dakota and \spot, enabling the efficient solution of complex shape
-  optimization tasks based on user-supplied \cad models.}
-  \label{fig:nozzle}
+\begin{marginfigure}[-11.3cm]
+  \centering
+  \includegraphics[width=.75\linewidth]{skel/vignettes/figures/logo_rgp.pdf}
   \setfloatalignment{t}
 \end{marginfigure}
 
+This paper provides a friendly introduction to \rgp, a flexible system for
+genetic programming (\gp) in the \rlang environment for statistical
+computing. After section~\ref{sec:applications} sets the stage with typical 
+applications of \gp in general and \rgp in particular,
+section~\ref{sec:features} outlines the range and depth of \rgp's features.
+\rgp is a large package that can be daunting for the first-time user. To 
+help getting started, section~\ref{sec:tutorials} provides a set of hands-on
+tutorials, beginning with simple tasks, including getting \rgp up and running
+in an existing \rlang installation, up to advanced topics like strongly typed
+genetic programming. The outlook in section~\ref{sec:outlook} gives hints on
+where to go from here, including references to \gp literature as well as
+\rgp's comprehensive online documentation and web resources. 
+
+
+\section{Application Areas}\label{sec:applications}
 \finitestar is an integrated system of hard- and software that enables the rapid and reliable
 solution of complex tasks in engineering optimization, including design and process analysis.
 \finitestar provides statistically validated answers and decision support to engineering and
-research departments faced with questions like:
+TODO A non-exhaustive list of \rgp-applications include:
 \begin{itemize}
-\item {\em Sensitivity analysis:} Which parameters of an industrial process or product design
+\item {\em Symbolic regression:} TODO Which parameters of an industrial process or product design
 have the strongest effect on operating costs, quality, energy efficiency, or pollutant emissions?
-\item {\em Process modelling:} What relations exist between process parameters and target
+\item {\em Feature selection:} TODO What relations exist between process parameters and target
 quantities such as quality, costs, and efficiency?
-\item {\em Statistical analysis:} Are these relations causal connections or just accidental
+\item {\em Automatic programming:} TODO Are these relations causal connections or just accidental
 correlations? Are correlations statistically significant? How can these relations be utilized
 for process optimization?
-\item {\em Design and process optimization:} Which setting of process or design parameters
+\item {\em General expression search:} TODO antenna design etc, Which setting of process or design parameters
 provides an optimal compromise between operating costs, quality, energy efficiency, pollutant
 emissions, and process stability?
 \end{itemize}
 
-\begin{figure}[h]
-  %\includegraphics[width=1\linewidth]{figures/burner_CO2_1000x625.png}
-  \caption{Prediction of pollutant concentrations in coal-fired power plants: The inclusion of
-  combustion and pollutant emission models into the \openfoam framework for multiphysics simulation
-  allows accurate modelling of pollutant concentrations. By coupling \openfoam with the optimization
-  packages \dakota and \spot, \finitestar enables the automatic exploration of process parameter
-  space in search of an optimal compromise between plant efficiency and pollutant emissions.}
-  \label{fig:burner}
+
+\begin{marginfigure}
+  \includegraphics[width=1\linewidth]{skel/vignettes/figures/do_arith_trig_1.pdf}
+  \caption{Symbolic regression of the governing law of a damped oscillator:
+  \rgp enables symbolic regression via genetic programming. This example shows
+  how \rgp is used to find the governing physical law of a damped oscillator.
+  In contrast to other regression methods, the solution is expressed as a
+  mathematical formula accessible to human interpretation and validation. In
+  this figure, the true oscillator law and behaviour are shown in dotted red,
+  the solution found by \rgp is shown in solid black.}
+  \label{fig:oscillator}
   \setfloatalignment{t}
-\end{figure}
+\end{marginfigure}
 
 
-\section{Integrated Optimization Process}\label{sec:process}
+\section{Features}\label{sec:features}
 To provide answers to the questions posed in the last section, \finitestar assembles and automates
 best-of-breed hard- and software to form the integrated optimization process shown in
 figure~\ref{fig:process}.
@@ -160,17 +169,7 @@ task at hand, \finitestar offers multiple industry- and application-specific pre
 These presets provide a head-start for the otherwise complex task of optimization problem setup.
 
 
-\section{Full-Stack Appliance}\label{sec:appliance}
-
-\begin{marginfigure}[-8.8cm]
-  %\includegraphics[width=1\linewidth]{figures/nagare_screenshot.png}
-  \caption{Integrated graphical user interface: \finitestar is operated through a
-  modern web-based graphical user interface that offers fine-grained control
-  over each step of an analysis or optimization task.}
-  \label{fig:gui}
-  \setfloatalignment{t}
-\end{marginfigure}
-
+\section{Tutorials}\label{sec:tutorials}
 \finitestar comes as a turn-key appliance ready for rapid deployment into existing
 IT infrastructure. As the system is highly scalable with parallel execution on the layer
 of optimization tasks as well as on the layer of individual simulations, the appliance
@@ -199,13 +198,14 @@ infrastructure components such as user- and job-management, the resource manager
 and the \mpi software stack (\openmpi).
 
 
-%\section{Application Areas}\label{sec:applications}
-%TODO add a section on application areas / preset modules
+\section{Outlook}\label{sec:outlook}
+TODO add an outlook section
 
 
 \section*{Imprint}
 \begin{minipage}[t]{\linewidth}
-\rsymbolic project\\
+Oliver Flasch\\
+\spotseven group / \rsymbolic project\\
 Cologne University of Applied Sciences\\
 Steinmüllerallee 1\\
 51643 Gummersbach\\

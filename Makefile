@@ -85,6 +85,7 @@ vignette:
 	R CMD sweave --encoding=utf8 skel/vignettes/rgp_introduction.Rnw 
 	cp skel/vignettes/Sweave.sty .
 	pdflatex rgp_introduction.tex
+	pdflatex rgp_introduction.tex
 	echo "DONE."
 
 # EOF
