@@ -37,8 +37,8 @@
 \def\python{{\sf Python}\xspace}
 \def\rgp{{\sf RGP}\xspace}
 \def\rproject{{\sf R Project}\xspace}
+\def\rsymbolic{{\sf rsymbolic}\xspace}
 \def\slurm{{\sf SLURM}\xspace}
-\def\sourcewerk{{\sf sourcewerk}\xspace}
 \def\spot{{\sf SPOT}\xspace}
 \definecolor{linkcol}{rgb}{0, 0, 0} 
 \definecolor{citecol}{rgb}{0, 0, 0}
@@ -65,7 +65,7 @@ A Friendly Introduction to RGP}
   \noindent \finitestar is a full-stack solution for engineering optimization in the form of an
   easy-to-deploy appliance. By tightly integrating the leading Open Source tools for simulation,
   modelling, optimization, and product lifecycle management with powerful cluster hardware and
-  \sourcewerk's innovative web-based user interface, \finitestar offers a level of integration,
+  sourcewerk's innovative web-based user interface, \finitestar offers a level of integration,
   usability, flexibility, and cost-effectiveness unprecedented in the market of engineering
   optimization tools. \finitestar gets the technology right, so that you can concentrate
   on what matters most: Building great products.
@@ -205,13 +205,15 @@ and the \mpi software stack (\openmpi).
 
 \section*{Imprint}
 \begin{minipage}[t]{\linewidth}
-\sourcewerk UG (haftungsbeschränkt)\\
-Heiliger Weg~60\\
-44135 Dortmund\\
-Web: \url{sourcewerk.de}\\
-Email: {\tt info@sourcewerk.de}\\
+\rsymbolic project\\
+Cologne University of Applied Sciences\\
+Steinmüllerallee 1\\
+51643 Gummersbach\\
+Germany\\
+Web: \url{rsymbolic.org}\\
+Email: {\tt oliver.flasch@fh-koeln.de}\\
 \vspace{0.5cm}
-\small{\copyright~2011-13 \sourcewerk UG}\\
+\small{\copyright~2010-13 \rsymbolic project}\\
 \small{All other trademarks and copyrights are\\
 the property of their respective owners.}
 \end{minipage}
