@@ -14,6 +14,7 @@
 \usepackage{booktabs}
 \usepackage{url}
 \usepackage{lipsum}
+\usepackage{listings}
 \usepackage{natbib}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -23,33 +24,31 @@
 % To install the URW Classico (Optima) Fonts in TeX Live,
 % run "getnonfreefonts-sys classico" as root
 \renewcommand*\sfdefault{uop}
-\def\cad{{\sc CAD}\xspace}
-\def\cfd{{\sc CFD}\xspace}
 \def\clang{{\sf C}\xspace}
-\def\dakota{{\sf DAKOTA}\xspace}
 \def\doe{{\sc DoE}\xspace}
-\def\finitestar{{\it finite}*\xspace}
+\def\ec{{\sc EC}\xspace}
+\def\emoa{{\sf EMOA}\xspace}
 \def\gp{{\sc GP}\xspace}
-\def\linux{{\sf Linux}\xspace}
-\def\mpi{{\sf MPI}\xspace}
-\def\opencascade{{\sf OpenCASCADE}\xspace}
-\def\openfoam{{\sf OpenFOAM}\xspace}
-\def\openmpi{{\sf Open MPI}\xspace}
-\def\paraview{{\sf ParaView}\xspace}
-\def\python{{\sf Python}\xspace}
 \def\rlang{{\sf R}\xspace}
 \def\rgp{{\sf RGP}\xspace}
 \def\rproject{{\sf R Project}\xspace}
-\def\rsymbolic{{\sf rsymbolic}\xspace}
-\def\slurm{{\sf SLURM}\xspace}
+\def\rrules{{\sf Rrules}\xspace}
+\def\rsymbolic{{\sf Rsymbolic}\xspace}
 \def\spot{{\sf SPOT}\xspace}
 \def\spotseven{{\sf SPOTSeven}\xspace}
 \definecolor{linkcol}{rgb}{0, 0, 0} 
 \definecolor{citecol}{rgb}{0, 0, 0}
+\definecolor{lstbgcol}{rgb}{0.88, 0.88, 0.92}
+\lstloadlanguages{R}
+\lstset{ % options for the source code listings package
+  language = R,
+  basicstyle = \small%,
+  %backgroundcolor = \color{lstbgcol}
+}
 \hypersetup{
   bookmarksopen = true,
-  pdftitle = finitestar
-  pdfauthor = Oliver Flasch and Baris Ayaz,
+  pdftitle = RGP Introduction, 
+  pdfauthor = Oliver Flasch,
   colorlinks = true,
   linkcolor = linkcol,
   citecolor = citecol,
@@ -85,9 +84,10 @@
   \setfloatalignment{t}
 \end{marginfigure}
 
-This paper provides a friendly introduction to \rgp, a flexible system for
+This text provides a friendly introduction to \rgp, a flexible system for
 genetic programming (\gp) in the \rlang environment for statistical
-computing. After section~\ref{sec:applications} sets the stage with typical 
+computing. After section~\ref{sec:gp} introduces \gp in the abstract and
+section~\ref{sec:applications} sets the stage with typical 
 applications of \gp in general and \rgp in particular,
 section~\ref{sec:features} outlines the range and depth of \rgp's features.
 \rgp is a large package that can be daunting for the first-time user. To 
@@ -99,24 +99,78 @@ where to go from here, including references to \gp literature as well as
 \rgp's comprehensive online documentation and web resources. 
 
 
-\section{Application Areas}\label{sec:applications}
-\finitestar is an integrated system of hard- and software that enables the rapid and reliable
-solution of complex tasks in engineering optimization, including design and process analysis.
-\finitestar provides statistically validated answers and decision support to engineering and
-TODO A non-exhaustive list of \rgp-applications include:
-\begin{itemize}
-\item {\em Symbolic regression:} TODO Which parameters of an industrial process or product design
-have the strongest effect on operating costs, quality, energy efficiency, or pollutant emissions?
-\item {\em Feature selection:} TODO What relations exist between process parameters and target
-quantities such as quality, costs, and efficiency?
-\item {\em Automatic programming:} TODO Are these relations causal connections or just accidental
-correlations? Are correlations statistically significant? How can these relations be utilized
-for process optimization?
-\item {\em General expression search:} TODO antenna design etc, Which setting of process or design parameters
-provides an optimal compromise between operating costs, quality, energy efficiency, pollutant
-emissions, and process stability?
-\end{itemize}
+\section{Genetic Programming}\label{sec:gp}
+\gp is a collection of techniques from evolutionary computing (\ec) for the
+automatic generation of computer programs that perform a user-defined task
+\citep{Poli08a, Banz98a}. Starting with a high-level problem definition, \gp
+creates a population of random programs that are progressively refined through
+variation and selection until a satisfactory solution is found.
 
+An important advantage of \gp is that no prior knowledge concerning the
+solution structure is needed. Another advantage is the representation of
+solutions as terms of a formal language (symbolic expressions), i.e. in a form
+accessible to human reasoning. The main drawback of \gp is its high
+computational cost, due to the potentially infinitely large search space of
+symbolic expressions. On the other hand, the recent availability of fast
+multi-core systems has enabled the practical application of \gp in many
+real-world application areas. This has lead to the development of a variety of
+software frameworks for \gp, including DataModeler, Discipulus, ECJ, Eurequa,
+and GPTIPS.
+
+All of these systems are complex aggregates of algorithms for solving not only
+\gp specific tasks, such as solution creation, variation, and evaluation, but
+also more general \ec tasks, like single- and multi-objective selection, and
+even largely general tasks like the design of experiments, data pre-processing,
+result analysis and visualization. Packages like Matlab, Mathematica, and
+\rlang~\citep{Rcor09a} already provide solutions for the more general tasks,
+greatly simplifying the development of \gp systems based on these environments
+and also lowering the barrier of entry for users who already know the
+underlying package.
+
+\rgp\footnote{The \rgp package and documentation is available at
+\url{rsymbolic.org}.} is based on the \rlang environment for several reasons.
+Firstly, there seems to be a beneficial trend towards employing statistical
+methods in the analysis and design of evolutionary algorithms, including modern
+\gp variants~\citep{Sun09a, Bart09a}. Secondly, \rlang's open development model
+has led to the free availability of \rlang packages for most methods from
+statistics and many methods from \ec. Also, the free availability of \rlang
+itself makes \rgp accessible to a wide audience. Thirdly, the \rlang language
+supports ``computing on the language'', which greatly simplifies symbolic
+computation inherent in most \gp operations. In addition, parallel execution of
+long-running \gp runs is easily supported by the \rlang package.
+
+
+\section{Application Areas}\label{sec:applications}
+\gp in general, and \rgp as a modular \gp system in particular, has a wide
+array of possible application areas. Basically, \gp is a evolutionary search
+heuristic for arbitrary symbolic expressions, i.e. mathematical or logical
+formulas.. A non-exhaustive list of \rgp-applications include:
+\begin{itemize}
+\item {\em Symbolic regression:} Given a set of measurement data divided into
+dependent and independent variables, symbolic regression can discover the
+functional relationship between dependent and independent variables. This
+relationship is represented as a symbolic expression, which can be used to
+gain insight into the data-generating process or system
+(system identification), and as a model to predict the values of dependent
+variables for unseen values of independent variables (intra- and
+extrapolation). Figure~\ref{fig:oscillator} provides a simple example.
+\item {\em Feature selection:} Not all independent variables must have an
+influence on the values of the dependent variables. In many practical
+applications, only a small subset of independent variables affect the
+dependent variables. The task then is to identify this subset, which can
+be done by \gp in a very robust fashion.
+\item {\em Automatic programming:} As computer programs are symbolic
+expression, \gp can be used for automatic programming, which explains the
+name of the method. This requires a  set of program building blocks and
+a fitness function that assigns a numerical quality measure to each candidate
+program. For small programs describing core algorithm components, this
+approach already works in practice.
+\item {\em General expression search:} The applicability of \gp even goes
+beyond automatic programming. The method can be used to discover all
+structures that are representable by symbolic expressions of moderate
+complexity. Examples include electrical circuits, antenna designs,
+processing networks in manufacturing and logistics, and many others.
+\end{itemize}
 
 \begin{marginfigure}
   \includegraphics[width=1\linewidth]{skel/vignettes/figures/do_arith_trig_1.pdf}
@@ -131,77 +185,160 @@ emissions, and process stability?
   \setfloatalignment{t}
 \end{marginfigure}
 
+The \rgp system is flexible enough to be applied in nearly all possible \gp
+application areas. It already has been successfully applied in such diverse
+areas as support vector machine kernel generation for machine learning,
+surrogate model ensemble generation for engineering optimization, and time
+series prediction for water resource management applications.
+
 
 \section{Features}\label{sec:features}
-To provide answers to the questions posed in the last section, \finitestar assembles and automates
-best-of-breed hard- and software to form the integrated optimization process shown in
-figure~\ref{fig:process}.
+To give an idea of the extend and limits of \rgp's feature set, this section
+provides an non-exhaustive overview of the system. Detailed documentation of
+all functionality, including examples, can be found in the online help of the
+package.
 
-\begin{figure}[h]
+\subsection{Solution Representation}
+\rgp represents candidate solutions, i.e. \gp individuals, as \rlang
+expressions that can be directly evaluated by the \rlang interpreter. This
+allows the whole spectrum of functions available in \rlang to be used as
+building blocks for \gp. Because \rlang expressions are internally represented
+as trees, \rgp may be seen as a tree-based \gp system. However, the individual
+representation can be easily replaced together with the associated variation
+and evaluation operators, if an alternative representation is found to be more
+effective for a given application~\citep{Schm07a}.
+
+Besides classical (untyped) \gp, strongly typed \gp is supported by a type
+system based on simply typed lambda calculus~\citep{Bare92a}. A distinctive
+feature of \rgp's typed tree representation is the support for {\em function
+defining subtrees}, i.e. anonymous functions or lambda abstractions. In
+combination with a type system supporting function types, this allows the
+integration of common higher order functions like folds, mappings, and
+convolutions, into the set of \gp building blocks, greatly increasing \rgp's
+applicability in many ``non-classical'' \gp application areas.
+
+\rgp also includes \rrules, a rule based translator for transforming \rlang
+expressions. This mechanism can be used to simplify \gp individuals as part of
+the evolution process as a means the reduce bloat, or just to simplify solution
+expressions for presentation and later use. The default rule base implements
+simplification of arithmetic expressions. \rrules  can be easily extended to
+simplify expressions containing user-defined operators and functions.
+
+\subsection{GP Operators}
+\rgp provides default implementations for several initialization, variation,
+and selection operators. The system offers clear interfaces for user-defined
+operators, as well as the possibility to replace the evolutionary algorithm
+used for \gp search with user defined variants, without the need to rewrite
+other functionality.
+
+\paragraph{Initialization} Individual initialization can performed by the
+conventional grow and full strategies of tree building. When using
+strongly-typed \gp, the provided individual initialization strategies respect
+type constraints and will create only well-typed expressions. Initialization
+strategies may be freely combined, e.g. to implement the well known
+ramped-half-and-half strategy.
+
+\paragraph{Variation} \rgp includes classical and type-safe subtree crossover
+operators. Also, several classical and type-safe mutation operators are
+provided. The variation pipeline can be freely configured by combining several
+mutation and recombination operators to be applied in parallel or consecutively,
+with freely configurable probabilities.
+
+\paragraph{Selection} The system provides several single- and multi-objective
+selection operators. Other selection strategies can be easily added by the
+user. Multi-objective selection is supported via the \emoa package.\footnote{The
+  \emoa Evolutionary Multiobjective Optimization Algorithm toolbox for \rlang
+  is available at \url{http://git.datensplitter.net/cgit/emoa}.} The
+multi-objective search strategy optimizes solution quality while, at the same
+time, controlling solution complexity and population diversity. For this
+purpose, \rgp implements multiple complexity measures for \gp individuals.
+
+\begin{figure*}[h]
   \centering
-  %\includegraphics[width=0.8\linewidth]{figures/finitestar_optimization_loop.pdf}
-  \caption{Integrated optimization process: \finitestar assembles best-of-breed hard- and software
-  to form a full-stack optimization process. Multiple industry- and application-specific presets
-  provide a head-start for the otherwise complex task of optimization problem setup.}
-  \label{fig:process}
+  \fbox{\includegraphics[width=1\linewidth]{skel/vignettes/figures/rgp_visual_sr_1088x682.png}}
+  \caption{\rgp's graphical user interface for symbolic regression: Although
+  \rgp is basically a command-line driven system, much like the underlying
+  \rlang environment, graphical user interfaces are provided where they ease
+  interaction and exploration. The graphical user interface for symbolic
+  regression allows the direct manipulation of the most important \gp
+  parameters.}
+  \label{fig:visual_sr}
   \setfloatalignment{t}
-\end{figure}
+\end{figure*}
 
-\newthought{Each} step is implemented by Open Source software, providing maximum
-flexibility, while \finitestar's release policy, integration layer, and web-based user interface
-provide high stability and usability:
-\begin{enumerate}
-\item {\em Statistical Analysis / \doe:} Statistical analysis of prior experimental and simulation
-results is provided by the \rproject and \spot.
-\item {\em Parametric \cad:} Bi-directional interfaces to \cad systems as well as parametric
-design evolution is provided by the \opencascade kernel.
-\item {\em Multipyhics simulation:} Accurate simulation of multiple physical phenomena is provided by
-\openfoam.
-\item {\em Surrogate modelling:} Response surface modelling for efficient analysis and optimization
-based on experimental and simulation data is provided by \dakota.
-\item {\em Multiobjective optimization:} Concurrent optimization of multiple criteria under
-constraints is provided by \dakota and \spot.
-\item {\em Postprocessing:} Result visualization and report generation is handled by \paraview.
-\end{enumerate}
+\subsection{Analysis and Visualization}
+The \rgp system provides tools for the analysis and visualization of \gp
+individuals and populations. \gp individuals, i.e. symbolic regressions,
+can be visualized as trees (in multiple levels of detail), as formulas
+in mathematical notation, as points in a Pareto plot, or as plots of their
+input/output behaviour. \gp populations can be visualized as forests of
+schematic trees, as Pareto plots, or as variable presence charts.
 
-\newthought{As} each step of this process has to be adjusted to the analysis or optimization
-task at hand, \finitestar offers multiple industry- and application-specific preset modules.
-These presets provide a head-start for the otherwise complex task of optimization problem setup.
+As \rgp is based on \rlang, a vast array of statistical tools for analyzing
+\gp individuals, \gp populations and \gp system performance are readily
+available. For example, integration with the \spot package for sequential
+parameter optimization allows the automatic tuning of critical \gp algorithm
+parameters. The \rgp online documentation provides examples for typical
+applications of each visualization and analysis technique.
+
+Although \rgp is basically a command-line driven system, like the underlying
+\rlang package, graphical user interfaces are provided where they ease
+interaction and exploration. The graphical user interface for symbolic
+regression (see figure~\ref{fig:visual_sr}) allows direct manipulation of
+the most important \gp parameters.
 
 
 \section{Tutorials}\label{sec:tutorials}
-\finitestar comes as a turn-key appliance ready for rapid deployment into existing
-IT infrastructure. As the system is highly scalable with parallel execution on the layer
-of optimization tasks as well as on the layer of individual simulations, the appliance
-is available in multiple sizes. Depending on problem complexity and response time
-requirements, \finitestar comes in form of a virtual machine image, a desk-side server,
-a rack-server, or a rack-based compute cluster with high-performance interconnect. All
-hardware appliances are based on current-generation Dell servers and are running a
-\linux software stack.
+To help getting started with \rgp, this section provides a set of hands-on
+tutorials, beginning with simple tasks, including getting \rgp up and running
+in an existing \rlang installation, up to advanced topics like strongly typed
+genetic programming. All tutorials are meant to be followed stepwise in a
+running \rlang session.
+
+\subsection{Installation}
+TODO
+
+\subsection{Getting Started}
+TODO
+
+The function below represents a damped mathematical pendulum, the arguments are
+the starting amplitude $A_0$, gravity $g$, length of pendulum $l$, phase $\phi$
+(phi), damping factor $\gamma$ (gamma), and radial frequency $\omega$ (omega).
+
+\begin{lstlisting}
+makeDampedPendulum <- function(A0 = 1, g = 9.81, l = 0.1, phi = pi, gamma = 0.5) {
+  omega <- sqrt(g/l)
+  function(t) A0 * exp(-gamma * t) * cos(omega * t + phi)
+}
+\end{lstlisting}
+
+TODO
+
+\begin{lstlisting}
+dampedPendulum1 <- makeDampedPendulum(l = 0.5)
+\end{lstlisting}
+
+\subsection{Symbolic Regression}
+TODO
+
+\subsection{Strongly Typed Genetic Programming}
+TODO
 
 \begin{figure}[h]
   \centering
-  %\includegraphics[width=0.9\linewidth]{figures/finitestar_hardware_transparent_1000x722.png}
-  \caption{\finitestar appliance: The \finitestar package comes as a turn-key appliance ready for
-  fast integration into existing IT infrastructure. Depending on problem complexity and
-  response time requirements, the appliance is available as a virtual machine image, a desk-side 
-  server, a rack-server, or a rack-based compute cluster with high-performance
-  interconnect. All hardware appliances are based on current-generation
-  Dell servers and are running a \linux software stack.} 
-  \label{fig:finitestar_appliance}
+  \includegraphics[width=0.75\linewidth]{skel/vignettes/figures/weierstrass_ensemble.pdf}
+  \caption{TODO}
+  \label{fig:ensemble}
   \setfloatalignment{t}
 \end{figure}
-
-\newthought{An} Open Source \python-based integration layer with a highly interactive
-web-based user interface ties all system components together and also controls "hidden"
-infrastructure components such as user- and job-management, the resource manager (\slurm),
-and the \mpi software stack (\openmpi).
 
 
 \section{Outlook}\label{sec:outlook}
 TODO add an outlook section
 
 
+\clearpage
+\thispagestyle{empty}
 \section*{Imprint}
 \begin{minipage}[t]{\linewidth}
 Oliver Flasch\\
@@ -220,6 +357,6 @@ the property of their respective owners.}
 
 
 %\bibliographystyle{plainnat}
-%\bibliography{finitestar}
+%\bibliography{rgp_introduction}
 
 \end{document}
