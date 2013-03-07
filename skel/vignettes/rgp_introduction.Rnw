@@ -1,4 +1,10 @@
 % rgp_introduction.Rnw
+%\VignetteIndexEntry{A Friendly Introduction to RGP}
+%
+% 2013 Oliver Flasch
+% SPOTSeven group / rsymbolic project
+% Cologne University of Applied Sciences
+%
 
 \documentclass[a4paper, twoside]{tufte-handout}
 \setcounter{secnumdepth}{2} % enable section numbers
@@ -14,7 +20,6 @@
 \usepackage{booktabs}
 \usepackage{url}
 \usepackage{lipsum}
-\usepackage{listings}
 \usepackage{natbib}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -25,12 +30,14 @@
 % run "getnonfreefonts-sys classico" as root
 \renewcommand*\sfdefault{uop}
 \def\clang{{\sf C}\xspace}
+\def\cran{{\sf CRAN}\xspace}
 \def\doe{{\sc DoE}\xspace}
 \def\ec{{\sc EC}\xspace}
 \def\emoa{{\sf EMOA}\xspace}
 \def\gp{{\sc GP}\xspace}
 \def\rlang{{\sf R}\xspace}
 \def\rgp{{\sf RGP}\xspace}
+\def\rmse{{\sc RMSE}\xspace}
 \def\rproject{{\sf R Project}\xspace}
 \def\rrules{{\sf Rrules}\xspace}
 \def\rsymbolic{{\sf Rsymbolic}\xspace}
@@ -38,13 +45,6 @@
 \def\spotseven{{\sf SPOTSeven}\xspace}
 \definecolor{linkcol}{rgb}{0, 0, 0} 
 \definecolor{citecol}{rgb}{0, 0, 0}
-\definecolor{lstbgcol}{rgb}{0.88, 0.88, 0.92}
-\lstloadlanguages{R}
-\lstset{ % options for the source code listings package
-  language = R,
-  basicstyle = \small%,
-  %backgroundcolor = \color{lstbgcol}
-}
 \hypersetup{
   bookmarksopen = true,
   pdftitle = RGP Introduction, 
@@ -146,7 +146,7 @@ array of possible application areas. Basically, \gp is a evolutionary search
 heuristic for arbitrary symbolic expressions, i.e. mathematical or logical
 formulas.. A non-exhaustive list of \rgp-applications include:
 \begin{itemize}
-\item {\em Symbolic regression:} Given a set of measurement data divided into
+\item {\em Symbolic Regression:} Given a set of measurement data divided into
 dependent and independent variables, symbolic regression can discover the
 functional relationship between dependent and independent variables. This
 relationship is represented as a symbolic expression, which can be used to
@@ -154,18 +154,18 @@ gain insight into the data-generating process or system
 (system identification), and as a model to predict the values of dependent
 variables for unseen values of independent variables (intra- and
 extrapolation). Figure~\ref{fig:oscillator} provides a simple example.
-\item {\em Feature selection:} Not all independent variables must have an
+\item {\em Feature Selection:} Not all independent variables must have an
 influence on the values of the dependent variables. In many practical
 applications, only a small subset of independent variables affect the
 dependent variables. The task then is to identify this subset, which can
 be done by \gp in a very robust fashion.
-\item {\em Automatic programming:} As computer programs are symbolic
+\item {\em Automatic Programming:} As computer programs are symbolic
 expression, \gp can be used for automatic programming, which explains the
 name of the method. This requires a  set of program building blocks and
 a fitness function that assigns a numerical quality measure to each candidate
 program. For small programs describing core algorithm components, this
 approach already works in practice.
-\item {\em General expression search:} The applicability of \gp even goes
+\item {\em General Expression Search:} The applicability of \gp even goes
 beyond automatic programming. The method can be used to discover all
 structures that are representable by symbolic expressions of moderate
 complexity. Examples include electrical circuits, antenna designs,
@@ -179,7 +179,7 @@ processing networks in manufacturing and logistics, and many others.
   how \rgp is used to find the governing physical law of a damped oscillator.
   In contrast to other regression methods, the solution is expressed as a
   mathematical formula accessible to human interpretation and validation. In
-  this figure, the true oscillator law and behaviour are shown in dotted red,
+  this figure, the true oscillator law and behaviour are shown in dashed red,
   the solution found by \rgp is shown in solid black.}
   \label{fig:oscillator}
   \setfloatalignment{t}
@@ -296,45 +296,248 @@ genetic programming. All tutorials are meant to be followed stepwise in a
 running \rlang session.
 
 \subsection{Installation}
-TODO
+\rgp is available as an \rlang package on the comprehensive \rlang
+archive network \cran, making installation extremely simple. To install \rgp
+and all it's dependencies, issue the following command in a running \rlang
+session:
+
+<<installation, eval = FALSE>>= % TODO remove eval = FALSE 
+install.packages("rgp")
+@
+
+A prompt will appear asking to select a \cran mirror will appear if it is the
+first time an \rlang package is installed in your \rlang installation. Just
+select a mirror location near you. The installation of \rgp may take some time,
+as dependencies are downloaded and compilation steps are performed.
 
 \subsection{Getting Started}
-TODO
+This tutorial provides an interactive walkthrough of solving a simple
+symbolic modelling problem with \gp. Only basic low-level \rgp functionality
+is used, high-level convenience functions are intentionally avoided to make
+each step in the modelling process clear and explicit.
 
-The function below represents a damped mathematical pendulum, the arguments are
-the starting amplitude $A_0$, gravity $g$, length of pendulum $l$, phase $\phi$
-(phi), damping factor $\gamma$ (gamma), and radial frequency $\omega$ (omega).
+In this first example, we configure \rgp to create polynomial approximations
+of the sine function. To make \rgp's functionality available in a running
+\rlang session, the package has to be loaded via the {\tt library} command:
 
-\begin{lstlisting}
+<<library>>=
+library("rgp")
+@
+
+\paragraph{Defining the \gp Search Space} In \rgp, candidate solutions are
+represented as regular \rlang functions. The bodies of these functions are
+build from a set input variables, a set of constants, and a set of function
+symbols. In other words, these three sets define the symbolic expression
+search space.
+
+As our example task is the approximation of the sine function with polynomials,
+we create a function symbol set containing only addition, multiplication, and
+subtraction.
+
+<<sine_unction_set_1>>=
+functionSet1 <- functionSet("+", "*", "-")
+@
+
+We then create a set of input variables containing just the symbol $x$. Thereby
+we restrict the search space to univariate functions, i.e. function of one
+variable:.
+
+<<sine_input_variable_set_1>>=
+inputVariableSet1 <- inputVariableSet("x")
+@
+
+Finally, we create a set of constants. Constants are not created directly, but
+via constant factory functions. Each time a constant has to be created during
+\gp search, \rgp calls a constant factory function. Here we use a single
+constant factory that returns constants from a normal distribution:
+
+<<sine_constant_factory_set_1>>=
+constantFactorySet1 <- constantFactorySet(function() rnorm(1))
+@
+
+\paragraph{Defining the Fitness Function}
+The fitness function, or objective function, associates a numerical fitness
+value to a candidate solution. \rgp relies on the fitness function to direct its
+evolutionary search. The fitness function defines the problem to be solved by
+\gp. As already mentioned, in this example, we will use \rgp to find functions
+approximating the sine function in the interval {\tt interval1} $[-\pi, \pi]$.
+We sample this interval in steps of size 0.1:
+
+<<sine_fitness_function_1>>=
+interval1 <- seq(from = -pi, to = pi, by = 0.1)
+fitnessFunction1 <- function(f) rmse(f(interval1), sin(interval1))
+@
+
+By default, \rgp minimizes fitness values, so lower values should be associated
+with better solutions. Here, we use the root mean error (\rmse) of a given sine
+approximation against the true sine function as a fitness function.\footnote{The
+problem defined here is a typical symbolic regression problem. \rgp also
+features a simple interface for symbolic regression, which is introduced in the
+next tutorial on symbolic regression.}
+
+\paragraph{Performing the \gp Run} We are now ready to start the search for
+symbolic expressions of good fitness values, i.e. start the \gp run:
+
+<<sine_gp_run_1, eval = FALSE>>=
+set.seed(1)
+gpResult1 <- geneticProgramming(functionSet = functionSet1,
+                                inputVariables = inputVariableSet1,
+                                constantSet = constantFactorySet1,
+                                fitnessFunction = fitnessFunction1,    
+                                stopCondition = makeTimeStopCondition(5 * 60))
+@
+
+The first command will first set \rlang's random number generator seed to a
+defined value (here 1) to create reproducible results. Then, we perform a \gp
+run that stops after 5 minutes and store the results of this run in the \rlang
+variable {\tt gpResult1}. The \gp runtime budget can be adjusted by changing
+the parameter to {\tt makeTimeStopCondition}.
+
+\paragraph{Analyzing the Result Population} Finally, we select the best sine
+approximation found during the \gp run:
+
+<<sine_best_solution_1, eval = FALSE>>=
+bestSolution1 <- gpResult1$population[[which.min(gpResult1$fitnessValues)]]
+@
+
+We then create a plot of the approximation created by $bestSolution1$ versus the
+true sine function (see figure~\ref{fig:best_versus_true_sine}):
+
+<<sine_best_solution_1_plot, eval = FALSE>>=
+plot(y = bestSolution1(interval1), x = interval1, type = "l",
+  lty = 1, xlab = "x", ylab = "y")
+lines(y = sin(interval1), x = interval1, lty = 2)
+@
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.75\linewidth]{skel/vignettes/figures/best_versus_true_sine.pdf}
+  \caption{Best \gp-generated polynomial approximation (solid line)
+  versus true sine function (dashed line).}
+  \label{fig:best_versus_true_sine}
+  \setfloatalignment{t}
+\end{figure}
+
+\paragraph{Next Steps} This concludes this basic tutorial. Of course there
+is much room for experimentation. For example, we could change the members of
+{\tt functionSet1} by adding the cosine function {\tt cos} and observe the
+effects on the \gp result.
+
+Please note that we omitted many \rgp convenience functions that would have made
+this particular example much shorter. Also note that in this example, we only
+dealt with a single optimization criterion and functions defined on real
+numbers. \rgp also supports multi-objective optimization of functions that work
+on arbitrary data types. The next tutorials give practical examples of some of
+these more advanced features.
+
+\subsection{Symbolic Regression}
+\rgp offers convenience functions to simplify the solution of common \gp tasks.
+This tutorial shows how to use the {\tt symbolicRegression} function to solve
+symbolic modelling and regression tasks with minimal configuration work.
+
+Theme of this tutorial is the discovery of a mathematical formula describing
+the behaviour of a physical system based on measurement data, i.e. symbolic
+regression. For sake of simplicity and clarity, we generate this data by
+applying a text-book formula describing a damped pendulum. The task of \rgp
+then becomes the rediscovery of that formula and the numerical values of
+the formula's parameters.
+
+\paragraph{Task Definition} The formula below, given as an \rlang function
+factory, represents a damped pendulum. The arguments are the starting
+amplitude $A_0$, gravity $g$, pendulum length $l$, phase $\phi$ (phi), damping
+factor $\gamma$ (gamma), and radial frequency $\omega$ (omega).
+
+<<pendulum>>=
 makeDampedPendulum <- function(A0 = 1, g = 9.81, l = 0.1, phi = pi, gamma = 0.5) {
   omega <- sqrt(g/l)
   function(t) A0 * exp(-gamma * t) * cos(omega * t + phi)
 }
-\end{lstlisting}
+@
 
-TODO
+This function factory can now be used to generate functions describing the
+deflection of concrete pendulums of different specifications at a certain point
+in time $t$:
 
-\begin{lstlisting}
-dampedPendulum1 <- makeDampedPendulum(l = 0.5)
-\end{lstlisting}
+<<pendulum_examples>>=
+pendulum1 <- makeDampedPendulum(l = 0.5)
+pendulum2 <- makeDampedPendulum(l = 1.2, A0 = 0.5)
+@
 
-\subsection{Symbolic Regression}
-TODO
+The deflection of these pendulums can easily be plotted against time (see
+figure~\ref{fig:pendulum_example_plots}):
+
+<<pendulum_example_plots>>=
+interval1 <- seq(from = 0, to = 10, by = 0.05)
+plot(y = pendulum1(interval1), x = interval1, type = "l",
+  lty = 1, xlab = "t", ylab = "deflection")
+lines(y = pendulum2(interval1), x = interval1, lty = 2)
+@
+
+\begin{figure}[h]
+  \centering
+<<fig = TRUE, echo = FALSE>>=
+<<pendulum_example_plots>>
+@
+  \caption{Deflection against time of two example pendulums: {\tt pendulum1}
+  is shown as a solid line, {\tt pendulum2} is shown as a dashed line.}
+  \label{fig:pendulum_example_plots}
+  \setfloatalignment{t}
+\end{figure}
+
+\paragraph{Creating Data} We create a data frame of $512$ samples of
+{\tt pendulum1} in the time interval $[1, 10]$. To simulate real measurement
+data, we add normally distributed noise with mean $0$ and standard deviation
+$0.01$ to the simulated values.
+
+<<pendulum_data>>=
+  xs1 <- seq(from = 1, to = 10, length.out = 512)
+  pendulum1Data <- data.frame(time = xs1,
+    deflection = pendulum1(xs1) + rnorm(length(xs1), sd = 0.01))
+@
+
+\paragraph{Symbolic Regression Run} We are now ready to start a symbolic
+regression run. We choose a time budget of 2 minutes:
+
+<<pendulum_gp_run, eval = FALSE>>=
+modelSet1 <- symbolicRegression(deflection ~ time, data = pendulum1Data,
+                                stopCondition = makeTimeStopCondition(2 * 60))
+@
+
+\paragraph{Result Analysis} Selection and plotting of the model with best
+fitness can be performed as follows:
+
+<<pendulum_result_analysis, eval = FALSE>>=
+bestModel1 <- modelSet1$population[[which.min(modelSet1$fitnessValues)]]
+plot(y = bestModel1(xs1), x = xs1, type = "l",
+  lty = 1, xlab = "x", ylab = "y")
+lines(y = pendulum1(xs1), x = xs1, lty = 2)
+@
+
+A slightly improved version of the output produced by these commands is shown
+in figure~\ref{fig:oscillator}.
+
+\paragraph{Next Steps} The {\tt symbolicRegression} commands offers many
+configuration options to explore. See the online help available by typing
+{\tt ?symbolicRegression} on an \rlang command line for details or visit
+the \rgp website at \url{rsymbolic.org}.
+
+Perhaps most importantly, {\tt symbolicRegression} supports multi-variate
+regression simply via \rlang's formula interface. To perform symbolic
+regression in two variables $x_1$ and $x_2$ with output variable $y$, the
+formula $y ~ x1 + x2$ can be used as the first argument to
+{\tt symbolicRegression}.
 
 \subsection{Strongly Typed Genetic Programming}
 TODO
 
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.75\linewidth]{skel/vignettes/figures/weierstrass_ensemble.pdf}
-  \caption{TODO}
-  \label{fig:ensemble}
-  \setfloatalignment{t}
-\end{figure}
-
 
 \section{Outlook}\label{sec:outlook}
 TODO add an outlook section
+
+
+% bibliography
+\bibliographystyle{plainnat}
+\bibliography{skel/vignettes/rgp_introduction}
 
 
 \clearpage
@@ -355,8 +558,5 @@ Email: {\tt oliver.flasch@fh-koeln.de}\\
 the property of their respective owners.}
 \end{minipage}
 
-
-%\bibliographystyle{plainnat}
-%\bibliography{rgp_introduction}
 
 \end{document}
