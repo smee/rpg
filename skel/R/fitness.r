@@ -217,3 +217,64 @@ makeNaryFunctionFitnessFunction <- function(func, dim, designFunction = gridDesi
   	else errorind
   }
 }
+
+##' Tools for manipulating boolean functions
+##'
+##' \code{integerToBoolean} converts a scalar positive integer (or zero) to its
+##' binary representation as list of logicals.
+##' \code{booleanFunctionVector} returns the boolean vector of result values of
+##' \code{f}, given a boolean function \code{f}.
+##' \code{numberOfDifferentBits} given two lists of booleans of equal length,
+##' returns the number of differing bits.
+##' \code{makeBooleanFitnessFunction} given a boolean target function, returns
+##' a fitness function that returns the number of different places in the output
+##' of a given boolean function and the target function.
+##'
+##' @param i A scalar positive integer. 
+##' @param width The with of the logical vector to return.
+##' @param f A boolean function.
+##' @param a A list of booleans.
+##' @param b A list of booleans.
+##' @param targetFunction A boolean function.
+##' @return The function result as described above.
+##'
+##' @rdname booleanFunctionManipulation 
+##' @export
+integerToLogicals <- function(i, width = floor(log(base = 2, i) + 1)) {
+  k <- i
+  result <- list()
+  l <- 0
+  while (k != 0) {
+    bit <- as.logical(k %% 2)
+    result <- c(bit, result)
+    k <- k %/% 2
+    l <- l + 1
+  }
+  if (width - l < 0) stop("integerToLogicals: width to small")
+  c(replicate(width - l, FALSE), result) # prefix with zeros
+}
+
+##' @rdname booleanFunctionManipulation 
+##' @export
+booleanFunctionAsList <- function(f) {
+  fArity <- length(formals(f))
+  inputs <- Map(function(i) integerToLogicals(i, width = fArity), 0:(2 ^ fArity - 1))
+  Map(function(input) do.call(f, input), inputs)
+}
+
+##' @rdname booleanFunctionManipulation 
+##' @export
+numberOfDifferentBits <- function(a, b) {
+  Reduce(`+`, Map(function(ai, bi) if (ai != bi) 1 else 0, a, b))
+}
+
+##' @rdname booleanFunctionManipulation 
+##' @export
+makeBooleanFitnessFunction <- function(targetFunction) {
+  targetFunctionList <- booleanFunctionAsList(targetFunction)
+  function(f) {
+    fList <- booleanFunctionAsList(f)
+    numberOfDifferentBits(fList, targetFunctionList)
+  }
+}
+

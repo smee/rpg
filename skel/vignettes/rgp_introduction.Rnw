@@ -496,7 +496,8 @@ $0.01$ to the simulated values.
 @
 
 \paragraph{Symbolic Regression Run} We are now ready to start a symbolic
-regression run. We choose a time budget of 2 minutes:
+regression run. Make sure to load the \rgp package via {\tt library("rgp")}.
+We choose a time budget of 2 minutes:
 
 <<pendulum_gp_run, eval = FALSE>>=
 modelSet1 <- symbolicRegression(deflection ~ time, data = pendulum1Data,
