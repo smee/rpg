@@ -19,7 +19,6 @@ usage:
 	echo "  roxygen   - Roxygenize skel/ into pkg/."
 	echo "  shlibs    - Build shared libraries of C-based components (for interactive testing)."
 	echo "  test      - Install package and run unit tests."
-	echo "  vignette  - Build the package vignette."
 
 help: usage
 
@@ -61,16 +60,12 @@ clean:
 	rm -fR skel/src/*.o skel/src/*.so skel/R/*~
 	rm -fR playground/*.o playground/*.so playground/*~
 	rm -fR .RData .Rhistory build.log install.log roxygen.log
-	rm -f rgp_introduction.aux rgp_introduction.log rgp_introduction.out rgp_introduction.bbl rgp_introduction.blg rgp_introduction.tex texput.log
-	rm -f Sweave.sty
 	echo "DONE."
 
 distclean: clean
 	echo "Removing all generated artifacts..."
 	rm -f rgp_*.tar.gz 
 	rm -f playground/evaluate_language_expression.h
-	rm -f rgp_introduction.pdf
-	rm -f rgp_introduction-*.pdf
 	echo "DONE."
 
 package: clean roxygen
@@ -79,16 +74,6 @@ package: clean roxygen
 	git log --no-merges -M --date=iso pkg/ > pkg/ChangeLog
 	R CMD build pkg > build.log 2>&1
 	rm -fR pkg
-	echo "DONE."
-
-vignette:
-	echo "Building package vignette..."
-	R CMD sweave --encoding=utf8 skel/vignettes/rgp_introduction.Rnw 
-	cp skel/vignettes/Sweave.sty .
-	pdflatex rgp_introduction.tex
-	bibtex rgp_introduction
-	pdflatex rgp_introduction.tex
-	pdflatex rgp_introduction.tex
 	echo "DONE."
 
 # EOF

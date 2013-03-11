@@ -80,7 +80,7 @@
 
 \begin{marginfigure}[-11.3cm]
   \centering
-  \includegraphics[width=.75\linewidth]{skel/vignettes/figures/logo_rgp.pdf}
+  \includegraphics[width=.75\linewidth]{figures/logo_rgp.pdf}
   \setfloatalignment{t}
 \end{marginfigure}
 
@@ -173,7 +173,7 @@ processing networks in manufacturing and logistics, and many others.
 \end{itemize}
 
 \begin{marginfigure}
-  \includegraphics[width=1\linewidth]{skel/vignettes/figures/do_arith_trig_1.pdf}
+  \includegraphics[width=1\linewidth]{figures/do_arith_trig_1.pdf}
   \caption{Symbolic regression of the governing law of a damped oscillator:
   \rgp enables symbolic regression via genetic programming. This example shows
   how \rgp is used to find the governing physical law of a damped oscillator.
@@ -255,7 +255,7 @@ purpose, \rgp implements multiple complexity measures for \gp individuals.
 
 \begin{figure*}[h]
   \centering
-  \fbox{\includegraphics[width=1\linewidth]{skel/vignettes/figures/rgp_visual_sr_1088x682.png}}
+  \fbox{\includegraphics[width=1\linewidth]{figures/rgp_visual_sr_1088x682.png}}
   \caption{\rgp's graphical user interface for symbolic regression: Although
   \rgp is basically a command-line driven system, much like the underlying
   \rlang environment, graphical user interfaces are provided where they ease
@@ -327,7 +327,8 @@ library("rgp")
 \paragraph{Defining the \gp Search Space} In \rgp, candidate solutions are
 represented as regular \rlang functions. The bodies of these functions are
 build from a set input variables, a set of constants, and a set of function
-symbols. In other words, these three sets define the symbolic expression
+symbols. These members of these sets are often referred to as \gp building
+blocks. In other words, these three sets define the symbolic expression
 search space.
 
 As our example task is the approximation of the sine function with polynomials,
@@ -411,7 +412,7 @@ lines(y = sin(interval1), x = interval1, lty = 2)
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.75\linewidth]{skel/vignettes/figures/best_versus_true_sine.pdf}
+  \includegraphics[width=0.75\linewidth]{figures/best_versus_true_sine.pdf}
   \caption{Best \gp-generated polynomial approximation (solid line)
   versus true sine function (dashed line).}
   \label{fig:best_versus_true_sine}
@@ -529,16 +530,160 @@ formula $y ~ x1 + x2$ can be used as the first argument to
 {\tt symbolicRegression}.
 
 \subsection{Strongly Typed Genetic Programming}
-TODO
+Theme of this tutorial is the evolution of boolean functions via strongly
+typed genetic programming. Although slightly more complex than the previous
+tutorials, it will prepare you apply \rgp to a much broader set of tasks.
+
+\paragraph{Task Definition} An example, we will use typed genetic programming
+to discover symbolic representations of the 3-parity function.\footnote{The
+3-parity function is the parity function for 3 bits, i.e. a with 3 input
+parameters.} For reasons of flexibility, we start with an \rlang-implementation
+of the general parity function:
+
+<<typed_parity>>=
+parity <- function(x) {
+  numberOfOnes <- sum(sapply(x, function(bit) if (bit) 1 else 0))
+  numberOfOnes %% 2 != 0
+}
+@
+
+For a boolean input vector $x$, the parity function returns true if the number
+of ones in $x$ is odd. We specialize this general function to three parameters
+with the following wrapper function:
+
+<<typed_parity3>>=
+parity3 <- function(x1, x2, x3) parity(c(x1, x2, x3))
+@
+
+Next, we use the \rgp tool function {\tt makeBooleanFitnessFunction} to convert
+{\tt parity3} to a fitness function. The resulting {\tt parityFitnessFunction}
+returns the number of different places in the value table of a boolean function
+presented as a parameter and the value table of the {\tt parity3} function:
+
+<<typed_parity_fitness>>=
+parityFitnessFunction <- makeBooleanFitnessFunction(parity3)
+@
+
+This fitness function represents a distance metric: The Hamming distance of a
+3-parameter boolean function given as the fitness function parameter from the
+{\tt parity3} function, i.e. a norm. In other words, the
+{\tt parityFitnessFunction} returns the number of input vectors for which a
+given boolean functions differs in output from the {\tt parity3} function. 
+As there are $2^3 = 8$ different possible boolean input vectors of length 3,
+the worst fitness is 8, and the best fitness is 0. Note the ambiguity of the
+term ``worst fitness'' in this case, as simply negating the output of a
+function of worst fitness yields a function with a perfect fitness of 0.
+\gp search spaces of rich and interesting structure are very common,
+and it is often beneficial to customize \gp search heuristic to exploit
+existing knowledge on search space structure to speed up search considerably.
+
+As in the previous tutorials, we have to load the \rgp package by issuing the
+{\tt library("rgp")} command. Next, we define the set of symbolic expressions
+to be searched by \rgp by providing \gp building blocks for boolean functions.
+The constant factory set contains a single constant factory that creates
+boolean constants by fair coin-tosses:
+
+<<typed_boolean_constant_set>>=
+booleanConstantSet <- constantFactorySet(
+  (function() runif(1) > .5) %::% (list() %->% st("logical")))
+@
+
+The function set contains the boolean functions {\em and} ({\tt \&}), {\em or}
+({\tt |}) and {\em not} ({\tt !}):
+
+<<typed_boolean_function_set>>=
+booleanFunctionSet <- functionSet(
+  "&" %::% (list(st("logical"), st("logical")) %->% st("logical")),
+  "|" %::% (list(st("logical"), st("logical")) %->% st("logical")),
+  "!" %::% (list(st("logical")) %->% st("logical")))
+@
+
+The input variable set contains the three function parameters {\tt x1},
+{\tt x2}, and {\tt x3}:
+
+<<typed_boolean_input_variable_set>>=
+booleanInputVariableSet <- inputVariableSet(
+  "x1" %::% st("logical"), 
+  "x2" %::% st("logical"), 
+  "x3" %::% st("logical"))
+@
+
+The building block definitions above use a special \rgp syntax for type
+annotations. The {\tt {\em expression} \%::\% {\em type}} operator associates
+an \rlang expression with an \rgp type. An \rgp type is either a base type
+of the form {\tt st({\em type name})} or a function type of the form
+{\tt list({\em parameter type 1}, {\em parameter type 2}, \dots) \%->\%
+{\em result type}}. This is a recursive definition, meaning that \rgp types
+can express types for higher order functions, making them quite flexible. The
+theoretical basis of \rgp's type system is the simply typed lambda
+calculus~\citep{Bare92a}. A noteworthy limitation of this system is the lack
+of the generic types available in programming languages such as C++ or Java.
+
+With these definitions, we are able to explain the semantics of the types
+associated with the \gp building blocks above:
+\begin{itemize}
+\item {\tt list() \%->\% st("logical")} is the type of a function with no
+arguments that returns a boolean value.\footnote{a {\tt logical} in \rlang's
+terminology} This is the type of the single constant factory in the
+{\tt booleanConstantSet} defined above.
+\item {\tt list(st("logical"), st("logical")) \%->\% st("logical")} is the type
+of a function taking two boolean arguments and returning a boolean value. This
+is the type of each function in the {\tt booleanFunctionSet} defined above.
+\item Trivially, {\tt st("logical")} is the type of boolean values. This is the
+type of each input variable in the {\tt booleanInputVariableSet} defined above.
+\end{itemize}
+
+\paragraph{Strongly Typed Genetic Programming Run} With the fitness function
+and search space defined, we are now ready to start a strongly typed \gp run:
+
+<<typed_gp_run, eval = FALSE>>=
+typedGpResult1 <- typedGeneticProgramming(parityFitnessFunction, st("logical"),
+                                          functionSet = booleanFunctionSet,
+                                          inputVariables = booleanInputVariableSet,
+                                          constantSet = booleanConstantSet,
+                                          stopCondition = makeTimeStopCondition(30))
+@
+
+Note that {\tt typedGeneticProgramming} expects the result type of the
+solution functions to generate as a second parameter, as this is not explicit
+from the building block definition. As we generate boolean functions, we state
+{\tt st("logical")} here.
+
+After running for 30 seconds, the result of the \gp run is assigned to the
+variable {\tt typedGpResult1}. As in the previous tutorials, the runtime (in
+seconds) can be adjusted by changing the parameter to
+{\tt makeTimeStopCondition}.
+
+\paragraph{Result Analysis} Selection of the boolean function with best
+fitness is performed much like in the previous tutorials:
+
+<<pendulum_result_analysis, eval = FALSE>>=
+bestFunction1 <- typedGpResult1$population[[which.min(typedGpResult1$fitnessValues)]]
+@
+
+See \rgp's online documentation for details on visualizing and analyzing typed
+\gp results. For example, the \rrules package includes as a \rgp dependency
+can be employed for rule-based simplification of boolean functions.
 
 
 \section{Outlook}\label{sec:outlook}
-TODO add an outlook section
+This concludes the short introduction to \rgp. There are many more possibilities
+and use case scenarios not touched upon here. Also, \rgp is a evolving system,
+so new functionality might be present to improve the performance or ease of use
+at tasks described in the tutorials. The \rsymbolic website\footnote{see
+\url{rsymbolic.org}} provides the most current information on the current state
+of \rgp, as well as additional tutorials and documentation. This website also
+contains a roadmap of planned features, access to development versions, as well
+as instructions on how to contribute to the project.
+
+As already mentioned, \rgp also offers detailed online documentation of all its
+functionality. Type {\tt help(package = "rgp")} in a running \rlang session to
+get an overview of this documentation.
 
 
 % bibliography
 \bibliographystyle{plainnat}
-\bibliography{skel/vignettes/rgp_introduction}
+\bibliography{rgp_introduction}
 
 
 \clearpage
