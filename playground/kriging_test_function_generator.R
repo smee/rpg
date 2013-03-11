@@ -5,26 +5,37 @@ require(SPOT)
  
  
 ## Create design points
-x = cbind(runif(20)*15-5,runif(20)*15)
+samples <- 20
+x <- cbind(runif(samples) * 15 - 5, runif(samples) * 15)
+
 ## Compute observations at design points (for Branin function)
-y = as.matrix(apply(x,1,spotBraninFunction))
+y <- as.matrix(apply(x, 1, spotBraninFunction))
+
 ## Create model with default settings
-fit = forrBuilder(x,y)
+fit <- forrBuilder(x, y)
+
 ## Print model parameters
 print(fit)
-fitsave <- fit
+originalFit <- fit
  
-plotFn <- function(theta1,theta2) {
-  fit$Theta <- c(fitsave$Theta[1]+theta1,fitsave$Theta[2]+theta2)
+twiddleForrFit <- function(deltaTheta1, deltaTheta2, plot3d = FALSE) {
+  fit$Theta <- c(originalFit$Theta[1] + deltaTheta1, originalFit$Theta[2] + deltaTheta2)
   fit$dmodeltheta <- 10^fit$Theta
-  fn <- function(xx) {
-    return(forrRegPredictor(xx,fit,F)$f)
+
+  testProblem <- function(x) {
+    return(forrRegPredictor(x, fit, pred.all = FALSE)$f)
   }
 
-  spotSurfContour(fn,c(-5,0),c(10,15))
+  if (plot3d) {
+    spotSurf3d(testProblem, c(-5,0), c(10,15))
+  } else {
+    spotSurfContour(testProblem, c(-5,0), c(10,15))
+  }
 }
  
-twiddle(plotFn(a,b), eval = TRUE, 
-  a = knob(c(-1, 1), res = 0.01, default=0),
-  b = knob(c(-1, 1), res = 0.01, default=0)#,	c = knob(c(-1, 1), res = 0.01, default=0)
+twiddle(twiddleForrFit(deltaTheta1, deltaTheta2, plot3d),
+  eval = TRUE, 
+  deltaTheta1 = knob(c(-1, 1), res = 0.01, default=0),
+  deltaTheta2 = knob(c(-1, 1), res = 0.01, default=0),#	c = knob(c(-1, 1), res = 0.01, default=0),
+  plot3d = toggle(label = "3D plot")
 )
