@@ -39,3 +39,4 @@ twiddle(twiddleForrFit(deltaTheta1, deltaTheta2, plot3d),
   deltaTheta2 = knob(c(-1, 1), res = 0.01, default=0),#	c = knob(c(-1, 1), res = 0.01, default=0),
   plot3d = toggle(label = "3D plot")
 )
+

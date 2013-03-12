@@ -48,3 +48,4 @@ twiddleTestFunctionGenerator <- function(thetaSd = 0.01, plot3d = FALSE) {
 twiddle(twiddleTestFunctionGenerator(thetaSd, plot3d), eval = FALSE, 
   thetaSd = knob(c(0.0, 1.0), res = 0.001, default = 0.01),
   plot3d = toggle(label = "3D plot"))
+
