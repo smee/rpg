@@ -3,7 +3,7 @@
 
 require("rgl")
 require("rgp")
-require("cmaes")
+require("SPOT")
 require("twiddler")
 
 rbfm <- function(points,
@@ -21,7 +21,6 @@ rbfm <- function(points,
   rhs <- numeric(n)
   rhs <- if (nrbf) sum(rbf) * values else values
   w <- solve(rbf, rhs)
-  if (verbose) message("rbfm: RBF model fit done. Result:", result) 
  
   result <- structure(list(points = points,
                            values = values,
@@ -48,7 +47,21 @@ rbfm <- function(points,
     if (result$nrbf) sumW / sum(fVal) else sumW 
   }
 
+  if (verbose) message("rbfm: RBF model fit done. Result:", result) 
+
   return (result)
+}
+
+updateRbfm <- function(rbf, w) {
+  newRbf <- rbf
+  newRbf$w <- w 
+  newRbf$interpolator <- function(x) {
+    xDistances <- as.matrix(dist(rbind(x, rbf$points), method = rbf$distMethod, p = rbf$p))
+    fVal <- rbf$kernel(xDistances[1,])[-1]
+    sumW <- sum(newRbf$w * fVal)
+    if (rbf$nrbf) sumW / sum(fVal) else sumW 
+  }
+  return (newRbf)
 }
 
 makeMultiquadraticRbfKernel <- function(r0) function(r) sqrt(r^2 + r0^2) 
@@ -64,16 +77,21 @@ plotFunction <- function(f, samplesPerDimension = 64, ...) {
   persp3d(z = zs, xlab = "x1", ylab = "x2", zlab = "y", ...)
 }
 
-testRbf <- function(trueFunction, kernel, lhdSize = NA, optimizeMethod = "none") {
+trainRbf <- function(trueFunction, kernel, lhdSize = NA, optimizeMethod = "none") {
   x1 <- if (is.na(lhdSize)) latinHypercubeDesign(2) else latinHypercubeDesign(2, size = lhdSize)
   y1 <- apply(x1, 1, trueFunction)
-  rbf1 <- rbfm(x1, values = y1, kernel = kernel, optimizeMethod = optimizeMethod)$interpolator
-  plotFunction(trueFunction, col = "blue", alpha = 1/3,
-               main = "RBF Interpolation of 2D Functions", sub = "true (blue) versus interpolated (red)")
-  plotFunction(rbf1, add = TRUE, col = "red")
+  return (rbfm(x1, values = y1, kernel = kernel, optimizeMethod = optimizeMethod))
 }
 
-twiddleTestRbf <- function(f, centers, k, r0, optimizeMethod) {
+plotRbf <- function(rbf, trueFunction, lhdSize = NA) {
+  x1 <- if (is.na(lhdSize)) latinHypercubeDesign(2) else latinHypercubeDesign(2, size = lhdSize)
+  y1 <- apply(x1, 1, trueFunction)
+  plotFunction(trueFunction, col = "blue", alpha = 1/3,
+               main = "RBF Interpolation of 2D Functions", sub = "true (blue) versus interpolated (red)")
+  plotFunction(rbf$interpolator, add = TRUE, col = "red")
+}
+
+twiddleRbfFit <- function(f, centers, k, r0, optimizeMethod) {
   trueFunction <- switch(f,
                          "sum" = function(x) x[1] + x[2],
                          "product" = function(x) x[1] * x[2],
@@ -88,7 +106,8 @@ twiddleTestRbf <- function(f, centers, k, r0, optimizeMethod) {
                    "multiquadratic" = makeMultiquadraticRbfKernel(r0),
                    "thin plate" = makeThinPlateRbfKernel(r0),
                    "gaussian" = makeGaussianRbfKernel(r0))
-  testRbf(trueFunction, kernel, lhdSize = centers, optimizeMethod = optimizeMethod)
+  rbf <- trainRbf(trueFunction, kernel, lhdSize = centers, optimizeMethod = optimizeMethod)
+  plotRbf(rbf, trueFunction, lhdSize = centers)
 }
 
 sphereFunction <- function (x) {
@@ -129,10 +148,30 @@ braninFunction <- function (x) {
     return(y)	
 }
 
-twiddle(twiddleTestRbf(f, centers, kernel, r0, optimizeMethod), 
-        optimizeMethod = combo("none", "TODO"),
-        r0 = knob(lim = c(0.01, 10.0), res = 0.01, default = 1.2),
-        kernel = combo("inverse multiquadratic", "multiquadratic", "thin plate", "gaussian"),
-        centers = knob(lim = c(2, 64), res = 1, default = 22),
-        f = combo("product", "sum", "sphere", "six hump", "rosenbrock", "rastrigin", "mexican hat", "branin"),
-        eval = FALSE)
+twiddleModelFit <- function() 
+  twiddle(twiddleRbfFit(f, centers, kernel, r0, optimizeMethod), 
+          optimizeMethod = combo("none", "TODO"),
+          r0 = knob(lim = c(0.01, 10.0), res = 0.01, default = 1.2),
+          kernel = combo("inverse multiquadratic", "multiquadratic", "thin plate", "gaussian"),
+          centers = knob(lim = c(2, 64), res = 1, default = 22),
+          f = combo("product", "sum", "sphere", "six hump", "rosenbrock", "rastrigin", "mexican hat", "branin"),
+          eval = FALSE)
+
+twiddleTestFunctionGenerator <- function(trueFunction = braninFunction,
+                                         kernel = makeInverseMultiquadraticRbfKernel(1.2),
+                                         lhdSize = 32,
+                                         optimizeMethod = "none") {
+  trainedRbf <- trainRbf(trueFunction, kernel, lhdSize = lhdSize, optimizeMethod = optimizeMethod)
+  twiddleRbfTestFunctionGenerator <- function(varianceFactor) {
+    newRbf <- updateRbfm(trainedRbf, w = trainedRbf$w + rnorm(length(trainedRbf$w), sd = varianceFactor * median(trainedRbf$w)))
+    plotRbf(newRbf, trainedRbf$interpolator, lhdSize = lhdSize)
+  }
+  twiddle(twiddleRbfTestFunctionGenerator(varianceFactor), 
+          varianceFactor = knob(lim = c(0.0001, 0.005), res = 0.0001, default = 0.001),
+          eval = FALSE)
+}
+
+message("*** RBF interpolation demo") 
+message("    Type 'twiddleModelFit()' or 'twiddleTestFunctionGenerator()' to get started.")
+
+# eof
