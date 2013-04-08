@@ -156,7 +156,7 @@ startVisualSr <- function() {
           enableComplexityCriterion = toggle(default = FALSE),
           functionSetString = entry(default = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")'),
           randomSeed = knob(lim = c(1, 1000), res = 1),
-          maxTimeMinutes = knob(lim = c(0.1, 240), res = 0.1))
+          maxTimeMinutes = knob(lim = c(0.1, 480), res = 0.1))
 }
 
 # main entry point
