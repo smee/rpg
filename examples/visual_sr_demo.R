@@ -93,7 +93,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
       message(sprintf(" %s", deparse(bestIndividual)))
       plotFunctions(list(testFunction$f, rescaledBestIndividual, bestIndividual), from = domainInterval[1], to = domainInterval[2], steps = 100,
                     ylim = testFunctionRange,
-                    main = "Current Best Individual vs. True Function",
+                    main = "Current Best Solution vs. True Function",
                     sub = sprintf("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %f",
                                   stepNumber, evaluationNumber, bestFitness, timeElapsed))
     }
