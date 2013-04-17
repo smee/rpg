@@ -57,8 +57,9 @@
 ##' @param functionSet The function set.
 ##' @param inputVariables The input variable set.
 ##' @param constantSet The set of constant factory functions.
-##' @param selectionFunction The selection function to use. Defaults to
-##'   tournament selection. See \link{makeTournamentSelection} for details.
+##' @param searchHeuristic The search-heuristic (i.e. optimization algorithm) to use
+##'   in the search of solutions. See the documentation for \code{searchHeuristics} for
+##'   available algorithms.
 ##' @param crossoverFunction The crossover function.
 ##' @param mutationFunction The mutation function.
 ##' @param restartCondition The restart condition for the evolution main loop. See
@@ -91,11 +92,11 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                                          functionSet = mathFunctionSet,
                                          inputVariables = inputVariableSet("x"),
                                          constantSet = numericConstantSet,
-                                         selectionFunction = makeTournamentSelection(),
                                          crossoverFunction = crossover,
                                          mutationFunction = NULL,
                                          restartCondition = makeEmptyRestartCondition(),
                                          restartStrategy = makeLocalRestartStrategy(),
+                                         searchHeuristic = makeAgeFitnessComplexityParetoGpSearchHeuristic(),
                                          progressMonitor = NULL,
                                          verbose = TRUE,
                                          clusterApply = sfClusterApplyLB,
@@ -133,7 +134,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
       population
   popClass <- class(pop)
   variablesToExportToClusterNodes <- c("quietProgmon", "mutatefunc", "restartCondition", "restartStrategy", "crossoverFunction",
-                                       "selectionFunction", "constantSet", "inputVariables", "functionSet", "eliteSize",
+                                       "searchHeuristic", "constantSet", "inputVariables", "functionSet", "eliteSize",
                                        "passStopCondition", "fitnessFunction")
   stepNumber <- 1
   evaluationNumber <- 0
@@ -152,11 +153,11 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
                        functionSet = functionSet,
                        inputVariables = inputVariables,
                        constantSet = constantSet,
-                       selectionFunction = selectionFunction,
                        crossoverFunction = crossoverFunction,
                        mutationFunction = mutatefunc,
                        restartCondition = restartCondition,
                        restartStrategy = restartStrategy,
+                       searchHeuristic = searchHeuristic,
                        progressMonitor = quietProgmon,
                        verbose = FALSE)
   environment(passWorker) <- globalenv()

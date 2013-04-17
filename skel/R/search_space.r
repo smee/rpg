@@ -149,6 +149,8 @@ getPw <- function(x, default = 1.0)
   if (hasPw(x)) attr(x, "probabilityWeight") else default
 
 ##' @rdname searchSpaceDefinition
+##' @method c functionSet 
+##' @S3method c functionSet 
 ##' @export
 c.functionSet <- function(..., recursive = FALSE) {
   fSets <- list(...)
@@ -158,6 +160,8 @@ c.functionSet <- function(..., recursive = FALSE) {
 }
 
 ##' @rdname searchSpaceDefinition
+##' @method c inputVariableSet
+##' @S3method c inputVariableSet
 ##' @export
 c.inputVariableSet <- function(..., recursive = FALSE) {
   iSets <- list(...)
@@ -167,6 +171,8 @@ c.inputVariableSet <- function(..., recursive = FALSE) {
 }
 
 ##' @rdname searchSpaceDefinition
+##' @method c constantFactorySet
+##' @S3method c constantFactorySet
 ##' @export
 c.constantFactorySet <- function(..., recursive = FALSE) {
   cSets <- list(...)

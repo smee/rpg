@@ -61,8 +61,7 @@
 ##' @param strength The number of individual point mutations (changes, insertions, deletions) to
 ##'   perform.
 ##' @param subtreeDepth The depth of the subtrees to insert or delete.
-##' @param constprob The probability of creating a constant versus an input variable when inserting
-##'   a new subtree.
+##' @param constprob The probability of creating a constant versus an input variable.
 ##' @param insertprob The probability to insert a subtree.
 ##' @param deleteprob The probability to insert a subtree.
 ##' @param constmin The lower limit for numeric constants.
@@ -71,8 +70,6 @@
 ##' @param sigma The normal distribution standard deviation for random numeric constant mutation.
 ##' @param subtreeprob The probability of creating a subtree instead of a leaf in the random subtree
 ##'   generator function.
-##' @param constprob The probability of creating a constant instead of an input variable in the random 
-##'   subtree generator function.
 ##' @param iterations The number of times to apply a mutation operator to a GP individual. This
 ##'   can be used as a generic way of controling the strength of the genotypic effect of mutation. 
 ##' @param changeProbability The probability for selecting the \code{mutateChangeLabel} operator.

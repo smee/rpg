@@ -54,7 +54,7 @@
 ##' @param \code{newIndividualsMaxDepth} The maximum depth of new individuals inserted into the
 ##'   population.
 ##'
-##' @rdname searchHeuristics 
+##' @rdname searchHeuristics
 ##' @export
 makeTinyGpSearchHeuristic <- function(crossoverProbability = 0.9, tournamentSize = 2)
 function(logFunction, stopCondition, pop, fitnessFunction,
@@ -140,6 +140,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     # Apply restart strategy...
     if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                          evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
+      populationSize <- length(pop)
       restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
       pop <- restartResult[[1]]
       elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
@@ -215,13 +216,13 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     bestFitness <- if (min(fitnessValues) < bestFitness) min(fitnessValues) else bestFitness
  
     if (archive) {
-      archiveList[[length(archiveList) + 1]] <- list(individual = child,
-                                                       fitness = childFitness)
+      stop("not implemented")
     }
 
     # Apply restart strategy...
     if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                          evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
+      populationSize <- length(pop)
       restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
       pop <- restartResult[[1]]
       elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
@@ -363,6 +364,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     # Apply restart strategy...
     if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                          evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
+      populationSize <- length(pop)
       restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
       pop <- restartResult[[1]]
       elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
@@ -438,6 +440,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     # Apply restart strategy...
     if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                          evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
+      populationSize <- length(pop)
       restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
       pop <- restartResult[[1]]
       elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
@@ -446,7 +449,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
-    evaluationNumber <- lambda + newIndividualsPerGeneration + evaluationNumber
+    evaluationNumber <- lambda + evaluationNumber
     progressMonitor(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   }
  

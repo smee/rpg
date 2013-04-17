@@ -34,7 +34,7 @@ test: install
 
 check: clean roxygen
 	echo "Running R CMD check..."
-	R CMD check pkg && rm -fR pkg.Rcheck
+	R CMD check --as-cran pkg && rm -fR pkg.Rcheck
 	echo "DONE."
 
 macros:

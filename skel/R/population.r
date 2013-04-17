@@ -86,12 +86,16 @@ makeTypedPopulation <- function(size, type, funcset, inset, conset,
 }
 
 ##' @rdname populationCreation
+##' @method print population 
+##' @S3method print population 
 ##' @export
 print.population <- function(x, ...) {
   print.default(x, ...) # TODO
 }
 
 ##' @rdname populationCreation
+##' @method summary population 
+##' @S3method summary population 
 ##' @export
 summary.population <- function(object, ...) {
   # TODO

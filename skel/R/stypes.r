@@ -73,6 +73,8 @@ is.sType <- function(x) inherits(x, "sType")
 ##'
 ##' @param x The sType to print.
 ##' @param ... Optional parameters to print are ignored in this method.
+##' @method print sType 
+##' @S3method print sType 
 ##' @export
 print.sType <- function(x, ...) {
   cat(x$string, "\n")

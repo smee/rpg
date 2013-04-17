@@ -56,8 +56,8 @@
 ##' @param restartStrategy The strategy for doing restarts. See
 ##'   \link{makeLocalRestartStrategy} for details.
 ##' @param searchHeuristic The search-heuristic (i.e. optimization algorithm) to use
-##'   in the search of solutions. See \link{searchHeuristics} for available
-##'   algorithms.
+##'   in the search of solutions. See the documentation for \code{searchHeuristics} for
+##'   available algorithms.
 ##' @param breedingFitness A "breeding" function. This function is applied after
 ##'   every stochastic operation \emph{Op} that creates or modifies an individal
 ##'   (typically, \emph{Op} is a initialization, mutation, or crossover operation). If
@@ -273,6 +273,8 @@ joinElites <- function(individuals, elite, eliteSize, fitnessFunction) {
 ##' @param ... Ignored in this summary function.
 ##'
 ##' @seealso \code{\link{geneticProgramming}}, \code{\link{symbolicRegression}}
+##' @method summary geneticProgrammingResult
+##' @S3method summary geneticProgrammingResult
 ##' @export
 summary.geneticProgrammingResult <- function(object, reportFitness = FALSE, orderByFitness = TRUE, ...) {
   reportPopulation <- function(individualFunctions, individualFitnessValues) {

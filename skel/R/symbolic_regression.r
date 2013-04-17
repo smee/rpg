@@ -51,8 +51,8 @@
 ##' @param restartStrategy The strategy for doing restarts. See
 ##'   \link{makeLocalRestartStrategy} for details.
 ##' @param searchHeuristic The search-heuristic (i.e. optimization algorithm) to use
-##'   in the search of solutions. See \link{searchHeuristics} for available
-##'   algorithms.
+##'   in the search of solutions. See the documentation for \code{searchHeuristics} for
+##'   available algorithms.
 ##' @param breedingFitness A "breeding" function. This function is applied after
 ##'   every stochastic operation \emph{Op} that creates or modifies an individal
 ##'   (typically, \emph{Op} is a initialization, mutation, or crossover operation). If
@@ -71,7 +71,7 @@
 ##' @param progressMonitor A function of signature
 ##'   \code{function(population, fitnessValues, fitnessFunction, stepNumber, evaluationNumber,
 ##'   bestFitness, timeElapsed)} to be called with each evolution step.
-##' @parem envir The R environment to evaluate individuals in, defaults to
+##' @param envir The R environment to evaluate individuals in, defaults to
 ##'   \code{parent.frame()}.
 ##' @param verbose Whether to print progress messages.
 ##' @return An symbolic regression model that contains an untyped GP population.
@@ -149,6 +149,8 @@ symbolicRegression <- function(formula, data,
 ##'   \code{response} a matrix of predicted versus respone values
 ##'   \code{RMSE} the RMSE between the real and predicted response
 ##'
+##' @method predict symbolicRegressionModel
+##' @S3method predict symbolicRegressionModel
 ##' @export
 predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", detailed = FALSE, ...) {
   ind <- if (model == "BEST") {
