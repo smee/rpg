@@ -38,9 +38,11 @@
 \def\rlang{{\sf R}\xspace}
 \def\rgp{{\sf RGP}\xspace}
 \def\rmse{{\sc RMSE}\xspace}
+\def\roi{{\sc ROI}\xspace}
 \def\rproject{{\sf R Project}\xspace}
 \def\rrules{{\sf Rrules}\xspace}
 \def\rsymbolic{{\sf Rsymbolic}\xspace}
+\def\spo{{\sc SPO}\xspace}
 \def\spot{{\sf SPOT}\xspace}
 \def\spotseven{{\sf SPOTSeven}\xspace}
 \definecolor{linkcol}{rgb}{0, 0, 0} 
@@ -638,10 +640,10 @@ and search space defined, we are now ready to start a strongly typed \gp run:
 
 <<typed_gp_run, eval = FALSE>>=
 typedGpResult1 <- typedGeneticProgramming(parityFitnessFunction, st("logical"),
-                                          functionSet = booleanFunctionSet,
-                                          inputVariables = booleanInputVariableSet,
-                                          constantSet = booleanConstantSet,
-                                          stopCondition = makeTimeStopCondition(30))
+  functionSet = booleanFunctionSet,
+  inputVariables = booleanInputVariableSet,
+  constantSet = booleanConstantSet,
+  stopCondition = makeTimeStopCondition(30))
 @
 
 Note that {\tt typedGeneticProgramming} expects the result type of the
@@ -664,6 +666,86 @@ bestFunction1 <- typedGpResult1$population[[which.min(typedGpResult1$fitnessValu
 See \rgp's online documentation for details on visualizing and analyzing typed
 \gp results. For example, the \rrules package includes as a \rgp dependency
 can be employed for rule-based simplification of boolean functions.
+
+\subsection{Sequential Parameter Optimization for Genetic Programming}
+Finding good algorithm parameter settings for concrete Genetic Programming 
+applications is a complex task. Sequential parameter optimization (\spo)
+provides a framework for applying modern statistical methods to solve this
+task. This tutorial shows how to apply the sequential parameter optimization
+toolbox (\spot) to a very simple \rgp setup.
+
+\paragraph{SPOT Installation}
+As \rgp, \spot is available as an \rlang package on the comprehensive \rlang
+archive network \cran. To install \spot and all it's dependencies, issue the
+following command in a running \rlang session:
+
+<<spot_installation, eval = FALSE>>=
+install.packages("SPOT")
+@
+
+\paragraph{SPO Definition}
+The \spot package includes a very simple example for tuning \rgp algorithm
+parameters. In this example, \rgp is configured to use single-objective \gp
+with tournament selection to solve the two-dimensional symbolic regression
+problem given in the following \rlang script:
+
+<<spot_rgp_, eval = FALSE>>=
+x1 <- seq(0, 4 * pi, length.out = 201)
+x2 <- seq(0, 4 * pi, length.out = 201)
+y <- sin(x1) + cos(2 * x2)
+data1 <- data.frame(y = y, x1 = x1, x2 = x2)
+
+result1 <- symbolicRegression(y ~ x1 + x2,
+  data = data1,
+  populationSize = populationSize,
+  selectionFunction = makeTournamentSelection(tournamentSize = tournamentSize),
+  functionSet = arithmeticFunctionSet,
+  stopCondition = makeTimeStopCondition(time))
+
+bestFitness <- min(sapply(result1$population, result$fitnessFunction))
+@
+
+This \rlang script is part of the \spot package and does not need to entered
+by hand. It is reproduced here for illustrative purposes.
+
+\spo is applied to find parameter settings for {\tt populationSize} and
+{\tt tournamentSize} that optimize (i.e. minimize) {\tt bestFitness}. The region
+of interest (\roi) for this optimization given in the file {\tt rgp0001.roi}
+and shown in Table~\ref{tab:spot_roi}. Parameters belonging to the problem
+design, in this case just the parameter {\tt time}, giving the maximum runtime
+in seconds for a symbolic regression run, are given in the file
+{\tt rgp0001.apd}. Parameters for \spot are given in the file
+{\tt demo17Rgp.conf}. All these files can be found in the directory indicated
+by the \rlang expression {\tt file.path(find.package("SPOT"), "demo17Rgp")}.
+
+\begin{table}[ht]
+\begin{tabular}{lllrr}
+\toprule
+Parameter            & Type    & \roi Interval \\
+\midrule
+{\tt populationSize} & Integer & $[20, 1000]$  \\
+{\tt tournamentSize} & Integer & $[20, 1000]$  \\
+\bottomrule
+\end{tabular}
+\caption{Region of interest used in the \spot example for tuning \rgp algorithm
+parameters.}
+\label{tab:spot_roi}
+\end{table}
+
+\paragraph{SPO Run}
+To start the \spo run, issue the following commands:
+
+<<spot_run, eval = FALSE>>=
+library("SPOT")
+confPath <- find.package("SPOT")
+confPath <- file.path(confPath, "demo17Rgp")
+confFile <- file.path(confPath, "rgp0001.conf")
+spotConfig <- spot(confFile)
+@
+
+\paragraph{SPO Result Analysis}
+After the \spo run, results are available in a list data structure stored in
+the {\tt spotConfig} variable. See the \spot online documentation for details.
 
 
 \section{Outlook}\label{sec:outlook}
