@@ -145,7 +145,7 @@ mutateNumericConst <- function(func, mutateconstprob = 0.1,
     } else if (runif(1) <= mutateconstprob && is.double(expr)) {
       if (runif(1) > buildingBlockTag(expr)) {
         mutatedExpr <- expr + rnorm(1, mean = mu, sd = sigma)
-        withAttributesOf(mutatedExpr, expr)
+        mutatedExpr
       } else expr
     } else expr
   }
@@ -180,7 +180,7 @@ mutateFuncTyped <- function(func, funcset, mutatefuncprob = 0.1,
         newfunccandidateType <- sType(newfunccandidate)
         newfunc <- if (identical(newfunccandidateType, oldfuncType)) newfunccandidate else oldfunc
         newcall <- as.call(append(newfunc, Map(function(e) mutatefuncexprTyped(e, funcset, mutatefuncprob), rest(expr))))
-        withAttributesOf(newcall, expr)
+        newcall
       } else expr
     } else expr
   }
@@ -211,7 +211,7 @@ mutateSubtreeTyped <- function(func, funcset, inset, conset, mutatesubtreeprob =
                        Map(function(e) mutatesubtreeexprTyped(e, funcset, inset, conset,
                                                               mutatesubtreeprob, maxsubtreedepth),
                            rest(expr))))
-      withAttributesOf(mutatedExpr, expr)
+      mutatedExpr
     } else expr
   }
   doMutation <- function() {
@@ -232,11 +232,11 @@ mutateNumericConstTyped <- function(func, mutateconstprob = 0.1,
   mutateconstexprTyped <- function(expr, mutateconstprob) {
     if (is.call(expr)) {
       mutatedExpr <- as.call(append(expr[[1]], Map(function(e) mutateconstexprTyped(e, mutateconstprob), rest(expr))))
-      withAttributesOf(mutatedExpr, expr)
+      mutatedExpr
     } else if (runif(1) <= mutateconstprob && is.double(expr)) {
       if (runif(1) > buildingBlockTag(expr)) {
         mutatedExpr <- expr + rnorm(1)
-        withAttributesOf(mutatedExpr, expr)
+        mutatedExpr
       } else expr
     } else expr
   }
@@ -267,10 +267,10 @@ mutateChangeLabel <- function(func, funcset, inset, conset,
         if (hasStype(expr)) {
           newInputVariable <- toName(randelt(inset$byType[[sType(expr)$string]],
                                              prob = attr(inset$byType[[sType(expr)$string]], "probabilityWeight")))
-          withAttributesOf(newInputVariable, expr)
+          newInputVariable
         } else {
           newInputVariable <- toName(randelt(inset$all, prob = attr(inset$all, "probabilityWeight")))
-          withAttributesOf(newInputVariable, expr)
+          newInputVariable
         }
       } else expr
     } else if (is.call(expr)) {
@@ -280,7 +280,7 @@ mutateChangeLabel <- function(func, funcset, inset, conset,
         ## Just skip parentheses in the expression tree...
         restExpr <- rest(expr)
         mutatedExpr <- as.call(append(expr[[1]], Map(mutateExpressionChangeLabel, restExpr)))
-        withAttributesOf(mutatedExpr, expr)
+        mutatedExpr
       } else {
         mutatedLabel <- if (currentNode %in% sampledMutationPoints && runif(1) > buildingBlockTag(expr)) {
           ## Select a candidate for a new function of matching range type. This can of course result
@@ -301,17 +301,17 @@ mutateChangeLabel <- function(func, funcset, inset, conset,
         } else expr[[1]]
         restExpr <- rest(expr)
         mutatedExpr <- as.call(append(mutatedLabel, Map(mutateExpressionChangeLabel, restExpr)))
-        withAttributesOf(mutatedExpr, expr)
+        mutatedExpr
       }
     } else if (is.numeric(expr)) {
       if (currentNode %in% sampledMutationPoints && runif(1) > buildingBlockTag(expr)) {
         mutatedExpr <- expr + rnorm(1)
-        withAttributesOf(mutatedExpr, expr)
+        mutatedExpr
       } else expr
     } else if (is.logical(expr)) {
       if (currentNode %in% sampledMutationPoints && runif(1) > buildingBlockTag(expr)) {
         mutatedExpr <- as.logical(rbinom(1, 1, 0.5))
-        withAttributesOf(mutatedExpr, expr)
+        mutatedExpr
       } else expr
     } else stop("mutateChangeLabel: Unsupported expression: ", expr, ".")
   }
@@ -344,7 +344,7 @@ mutateInsertSubtree <- function(func, funcset, inset, conset,
       } else {
         restExpr <- rest(expr)
         mutatedExpr <- as.call(append(expr[[1]], Map(mutateExpressionInsertSubtree, restExpr)))
-        withAttributesOf(mutatedExpr, expr)
+        mutatedExpr
       }
     } else if (is.symbol(expr) || is.numeric(expr) || is.logical(expr)) {
       currentLeaf <<- currentLeaf + 1
@@ -354,11 +354,11 @@ mutateInsertSubtree <- function(func, funcset, inset, conset,
           type <- sType(expr)
           newSubtree <- randexprTypedFull(type, funcset, inset, conset,
                                           maxdepth = subtreeDepth, constprob = 0.2)
-          withAttributesOf(newSubtree, expr)
+          newSubtree
         } else {
           newSubtree <- randexprFull(funcset, inset, conset,
                                      maxdepth = subtreeDepth, constprob = 0.2)
-          withAttributesOf(newSubtree, expr)
+          newSubtree
         }
       } else expr
     } else stop("mutateInsertSubtree: Unsupported expression: ", expr, ".")
@@ -394,7 +394,7 @@ mutateDeleteSubtree <- function(func, funcset, inset, conset,
         if (hasStype(expr)) {
           typeString <- rangeTypeOfType(sType(expr))$string
           newLeaf <- randterminalTyped(typeString, inset, conset, constprob)
-          withAttributesOf(newLeaf, expr)
+          newLeaf
         } else {
           newLeaf <- if (runif(1) <= constprob) { # create constant
             constfactory <- randelt(conset$all, prob = attr(conset$all, "probabilityWeight"))
@@ -402,7 +402,7 @@ mutateDeleteSubtree <- function(func, funcset, inset, conset,
           } else { # create input variable
             toName(randelt(inset$all, prob = attr(inset$all, "probabilityWeight")))
           }
-          withAttributesOf(newLeaf, expr)
+          newLeaf
         }
       } else expr
     } else if (is.call(expr)) {
@@ -411,7 +411,7 @@ mutateDeleteSubtree <- function(func, funcset, inset, conset,
       } else {
         restExpr <- rest(expr)
         mutatedExpr <- as.call(append(expr[[1]], Map(mutateExpressionDeleteSubtree, restExpr)))
-        withAttributesOf(mutatedExpr, expr)
+        mutatedExpr
       }
     } else if (is.symbol(expr) || is.numeric(expr) || is.logical(expr)) {
       expr

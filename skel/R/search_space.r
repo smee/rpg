@@ -188,6 +188,7 @@ c.constantFactorySet <- function(..., recursive = FALSE) {
 sortByType <- function(x) {
   byTypeTable <- list()
   for (o in x) {
+    o <- if (is.character(o)) as.name(o) else o
     if (hasStype(o)) {
       oStype <- sType(o)
       if (is.null(byTypeTable[[oStype$string]])) byTypeTable[[oStype$string]] <- list()
@@ -204,6 +205,7 @@ sortByType <- function(x) {
 sortByRange <- function(x) {
   byRangeTable <- list()
   for (o in x) {
+    o <- if (is.character(o)) as.name(o) else o
     if (hasStype(o)) {
       oStype <- sType(o)
       oStypeRange <- if (inherits(oStype, "sFunctionType")) oStype$range else oStype

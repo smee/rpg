@@ -33,7 +33,7 @@ rgpSTypeEnvironment <- new.env(parent = emptyenv())
 ##' list(st("numeric"), st("numeric")) \%->\% st("logical")
 ##' is.sType(st("logical"))
 ##' 
-##' @seealso sTypeTags
+##' @seealso sTypeInference
 ##' @rdname sTypeConstructors
 ##' @export
 st <- function(baseTypeName) {
@@ -81,43 +81,13 @@ print.sType <- function(x, ...) {
   invisible(x)
 }
 
-##' Tagging objects with sTypes
-##'
-##' Objects may be tagged with sTypes. Type tags are stored in the "sType" attribute.
-##' \code{sType} returns the sType tag for an object. Assign to the result of this function
-##' to set the sType tag for an object (e.g. \code{sType(foo) <- st("integer")}).
-##' The \code{\%::\%} operator returns its first argument tagged with the sType given as its
-##' second argument, without modifying the sType of its first argument.
-##' \code{hasStype} returns true if \code{x} is tagged with an sType.
-##' 
-##' @param x The object to retreive, check, or set the sType tag for.
-##' @param value An sType.
-##'
-##' @examples
-##' foo <- "foo"
-##' sType(foo) <- st("string")
-##' sType(foo)
-##' foo \%::\% st("string")
-##' 
-##' @seealso sTypeConstructors, attr
-##' @rdname sTypeTags
-##' @export
-sType <- function(x) attr(x, "sType", exact = TRUE)
-
-# TODO remove old sType function and rename this one to "sType"
-calculateSType <- function(x, typeEnvir = rgpSTypeEnvironment)
-  calculateSTypeRecursive(x, typeEnvir = typeEnvir)$type
-
-calculateSTypeq <- function(x, typeEnvir = rgpSTypeEnvironment)
-  calculateSType(substitute(x), typeEnvir = typeEnvir)
-
 ##' Inference of sTypes
 ##'
 ##' RGP internally infers the sTypes of compound expressions like function applications
 ##' and function definitions from the sTypes of atomic expressions. The sTypes of building
 ##' blocks are defined by the user via the \code{\%::\%} operator and are stored in the
 ##' package-internal global variable \code{rgpSTypeEnvironment}.
-##' \code{calculateSTypeRecursive} calculates the sType of the R expression \code{x}.
+##' \code{sType} calculates the sType of the R expression \code{x}.
 ##' SType inference of function definitions relies on a typed stack of formal arguments of
 ##' the function definition to infer the sType for.
 ##' \code{getSTypeFromFormalsStack} and \code{setSTypeOnFormalsStack} get or set the sType
@@ -127,10 +97,17 @@ calculateSTypeq <- function(x, typeEnvir = rgpSTypeEnvironment)
 ##' @param value An sType. 
 ##' @param typeEnvir The type environment, containing user-supplied sTypes of building blocks.
 ##' @param formalsStack A stack of formal arguments with their sTypes.
+##' @param returnNullOnFailure Return NULL on failure instead of stopping, defaults to FALSE.
 ##'
-##' @seealso sTypeConstructors, sTypeTags
+##' @seealso sTypeConstructors
 ##' @rdname sTypeInference
-calculateSTypeRecursive <- function(x, typeEnvir = rgpSTypeEnvironment, formalsStack = list()) {
+##' @export
+sType <- function(x, typeEnvir = rgpSTypeEnvironment, returnNullOnFailure = FALSE)
+  calculateSTypeRecursive(x, typeEnvir = typeEnvir, returnNullOnFailure = returnNullOnFailure)$type
+
+##' @rdname sTypeInference
+calculateSTypeRecursive <- function(x, typeEnvir = rgpSTypeEnvironment, formalsStack = list(),
+                                    returnNullOnFailure = FALSE) {
   if (!is.language(x)) {
     ## a constant: get type from the constant' R class
     list(type = st(as.character(class(x))),
@@ -144,6 +121,8 @@ calculateSTypeRecursive <- function(x, typeEnvir = rgpSTypeEnvironment, formalsS
     } else if (exists(as.character(x), envir = rgpSTypeEnvironment)) {
       list(type = get(as.character(x), envir = rgpSTypeEnvironment),
            formalsStack = formalsStack)
+    } else if (returnNullOnFailure) {
+      return(NULL)
     } else stop("sType: Could not determine sType of object ", x, ".")
   } else if (is.call(x) && identical(x[[1]], as.symbol("function"))) {
     ## a function definition: calculate function type
@@ -186,8 +165,14 @@ calculateSTypeRecursive <- function(x, typeEnvir = rgpSTypeEnvironment, formalsS
       list(type = functionType$range,
            formalsStack = updatedFormalsStack)
     }
+  } else if (returnNullOnFailure) {
+    return(NULL)
   } else stop("sType: Could not determine sType of object ", x, ".")
 }
+
+##' @rdname sTypeInference
+calculateSTypeq <- function(x, typeEnvir = rgpSTypeEnvironment)
+  calculateSType(substitute(x), typeEnvir = typeEnvir)
 
 ##' @rdname sTypeInference
 getSTypeFromFormalsStack <- function(x, formalsStack) {
@@ -217,33 +202,21 @@ setSTypeOnFormalsStack <- function(x, value, formalsStack) {
   formalsStack
 }
 
-## TODO remove this
-##' @rdname sTypeTags
+##' @rdname sTypeInference
 ##' @export
-`sType<-` <- function(x, value) {
-  attr(x, "sType") <- value
-  x
-}
+hasStype <- function(x) !is.null(sType(x, returnNullOnFailure = TRUE))
 
-## TODO remove this
-##' @rdname sTypeTags
-##' @export
-hasStype <- function(x) !is.null(sType(x))
-
-##' @rdname sTypeTags
+##' @rdname sTypeInference
 ##' @export
 `%::%` <- function(x, value) {
   if (!is.sType(value)) stop("%::%: ", value, " is not an sType.")
-  #xString <- as.character(x)
-  #if (exists(xString, envir = rgpSTypeEnvironment) &&
-  #    !identical(get(xString, envir = rgpSTypeEnvironment), value)) {
-  #  stop("%::%: The symbol ", xString, " already has an sType of ",
-  #       get(xString, envir = rgpSTypeEnvironment)$string, ".")
-  #}
-  #assign(xString, value, envir = rgpSTypeEnvironment)
-  ## TODO remove the sType attribute entirely ...
-  attr(x, "sType") <- value # TODO
-  ## ... .
+  xString <- as.character(x)
+  if (exists(xString, envir = rgpSTypeEnvironment) &&
+      !identical(get(xString, envir = rgpSTypeEnvironment), value)) {
+    stop("%::%: The symbol ", xString, " already has an sType of ",
+         get(xString, envir = rgpSTypeEnvironment)$string, ".")
+  }
+  assign(xString, value, envir = rgpSTypeEnvironment)
   x
 }
 
@@ -261,7 +234,7 @@ rangeTypeOfType <- function(t)
 ##' @param sourceExpr The expression to provide the attributes for \code{expr}.
 ##' @return A copy of \code{expr}, tagged with the attributes and sType of
 ##'   \code{sourceExpr}.
-withAttributesOf <- function(expr, sourceExpr) {
-  mostattributes(expr) <- attributes(sourceExpr)
-  if (hasStype(sourceExpr)) expr %::% sType(sourceExpr) else expr
-}
+#withAttributesOf <- function(expr, sourceExpr) {
+#  mostattributes(expr) <- attributes(sourceExpr)
+#  return(expr)
+#}

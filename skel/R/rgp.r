@@ -23,13 +23,27 @@ NA
 
 ## Package startup functions used to initialize static objects...
 .onLoad <- function(libname, pkgname) {
+  # initialize types for standard GP functions...
+  "rnorm" %::% (list(st("numeric"), st("numeric"), st("numeric")) %->% st("numeric"))
+  "runif" %::% (list(st("numeric"), st("numeric"), st("numeric")) %->% st("numeric"))
+  "+" %::% (list(st("numeric"), st("numeric")) %->% st("numeric"))
+  "-" %::% (list(st("numeric"), st("numeric")) %->% st("numeric"))
+  "*" %::% (list(st("numeric"), st("numeric")) %->% st("numeric"))
+  "/" %::% (list(st("numeric"), st("numeric")) %->% st("numeric"))
+  "sqrt" %::% (list(st("numeric")) %->% st("numeric"))
+  "exp" %::% (list(st("numeric")) %->% st("numeric"))
+  "log" %::% (list(st("numeric")) %->% st("numeric"))
+  "sin" %::% (list(st("numeric")) %->% st("numeric"))
+  "cos" %::% (list(st("numeric")) %->% st("numeric"))
+  "tan" %::% (list(st("numeric")) %->% st("numeric"))
+
   # initialize standard GP function and constant sets...
   arithmeticFunctionSet <<- functionSet("+", "-", "*", "/")
   expLogFunctionSet <<- functionSet("sqrt", "exp", "log")
   trigonometricFunctionSet <<- functionSet("sin", "cos", "tan")
   mathFunctionSet <<- c(arithmeticFunctionSet, expLogFunctionSet, trigonometricFunctionSet)
 
-  numericConstantSet <<- constantFactorySet(function() runif(1, -1, 1))
+  numericConstantSet <<- constantFactorySet(function() rnorm(1, 0, 1))
 }
 
 .onAttach <- function(libname, pkgname) {
