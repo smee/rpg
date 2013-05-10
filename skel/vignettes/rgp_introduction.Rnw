@@ -586,8 +586,9 @@ The constant factory set contains a single constant factory that creates
 boolean constants by fair coin-tosses:
 
 <<typed_boolean_constant_set>>=
+booleanConstantFactory <- function() runif(1) > .5
 booleanConstantSet <- constantFactorySet(
-  (function() runif(1) > .5) %::% (list() %->% st("logical")))
+  "booleanConstantFactory" %::% (list() %->% st("logical")))
 @
 
 The function set contains the boolean functions {\em and} ({\tt \&}), {\em or}
@@ -659,7 +660,7 @@ seconds) can be adjusted by changing the parameter to
 \paragraph{Result Analysis} Selection of the boolean function with best
 fitness is performed much like in the previous tutorials:
 
-<<pendulum_result_analysis, eval = FALSE>>=
+<<typed_gp_result_analysis, eval = FALSE>>=
 bestFunction1 <- typedGpResult1$population[[which.min(typedGpResult1$fitnessValues)]]
 @
 
