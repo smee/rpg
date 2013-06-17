@@ -15,7 +15,6 @@ data1 <- {
 mdl <- symbolicRegression(y ~ x1 + x2,
                           data = data1,
                           populationSize = 100,
-                          selectionFunction = makeTournamentSelection(tournamentSize = 10),
                           functionSet = arithmeticFunctionSet,
                           stopCondition = makeTimeStopCondition(120))
 
@@ -29,3 +28,4 @@ bestFitness <- min(sapply(mdl$population, mdl$fitnessFunction))
 bestIndividual <- mdl$population[[which.min(sapply(mdl$population, mdl$fitnessFunction))]]
 worstIndividual <- mdl$population[[which.max(sapply(mdl$population, mdl$fitnessFunction))]]
 
+# eof
