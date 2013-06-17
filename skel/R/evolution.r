@@ -417,7 +417,7 @@ makeLocalRestartStrategy <- function(populationType = NULL,
 ##' timeElapsed)}.
 ##' They are used to decide when to finish a GP evolution run. Stop conditions must be members
 ##' of the S3 class \code{c("stopCondition", "function")}. They can be combined using the
-##' generic \emph{and} (\code{&}), \emph{or} (\code{|}) and \emph{not} (\code{!}) functions.
+##' functions \code{andStopCondition}, \code{orStopCondition} and \code{notStopCondition}.
 ##'
 ##' \code{makeStepsStopCondition} creates a stop condition that is fulfilled if the number
 ##' of evolution steps exceeds a given limit.
@@ -470,7 +470,7 @@ makeTimeStopCondition <- function(timeLimit) {
 
 ##' @rdname evolutionStopConditions
 ##' @export
-"&.stopCondition" <- function(e1, e2) {
+andStopCondition <- function(e1, e2) {
   stopCondition <- function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
     e1(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) && e2(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   class(stopCondition) <- c("stopCondition", "function")
@@ -479,7 +479,7 @@ makeTimeStopCondition <- function(timeLimit) {
 
 ##' @rdname evolutionStopConditions
 ##' @export
-"|.stopCondition" <- function(e1, e2) {
+orStopCondition <- function(e1, e2) {
   stopCondition <- function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
     e1(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) || e2(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   class(stopCondition) <- c("stopCondition", "function")
@@ -488,7 +488,7 @@ makeTimeStopCondition <- function(timeLimit) {
 
 ##' @rdname evolutionStopConditions
 ##' @export
-"!.stopCondition" <- function(e1) {
+notStopCondition <- function(e1) {
   stopCondition <- function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
     !e1(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   class(stopCondition) <- c("stopCondition", "function")

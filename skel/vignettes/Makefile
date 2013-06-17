@@ -6,7 +6,7 @@ all: pdf
 
 rgp_introduction.tex:
 	echo "Building package vignette LaTeX source..."
-	R CMD sweave --encoding=utf8 rgp_introduction.Rnw 
+	"$(R_HOME)/bin/R" CMD sweave --encoding=utf8 rgp_introduction.Rnw 
 	echo "DONE."
 
 pdf: rgp_introduction.tex
@@ -15,6 +15,7 @@ pdf: rgp_introduction.tex
 	bibtex rgp_introduction
 	pdflatex rgp_introduction.tex
 	pdflatex rgp_introduction.tex
+	"$(R_HOME)/bin/Rscript" -e 'tools::compactPDF("rgp_introduction.pdf", gs_quality = "ebook")'
 	echo "DONE."
 
 clean:

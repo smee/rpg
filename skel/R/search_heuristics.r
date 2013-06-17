@@ -8,53 +8,17 @@
 ## released under the GPL v2
 ##
 
-##' Search-heuristics for GP
+##' Tiny GP Search Heuristic for RGP
 ##'
-##' The search-heuristic, i.e. the concrete GP search algorithm, is a modular component of RGP. RGP
-##' already provides a set of search-heuristics for GP, including the following:
-##'
+##' The search-heuristic, i.e. the concrete GP search algorithm, is a modular component of RGP.
 ##' \code{makeTinyGpSearchHeuristic} creates an RGP search-heuristic that mimics the search heuristic
 ##' implemented in Riccardo Poli's TinyGP system.
 ##'
-##' \code{makeCommaEvolutionStrategySearchHeuristic} creates a RGP search-heuristic that implements a
-##' (mu, lambda) Evolution Strategy. The lambda parameter is fixed to the population size.
-##' TODO description based on Luke09a
-##'
-##' \code{makeAgeFitnessComplexityParetoGpSearchHeuristic} creates a RGP search-heuristic that implements
-##' a generational evolutionary multi objective optimization algorithm (EMOA) that selects on three criteria:
-##' Individual age, individual fitness, and individual complexity.
-##'
-##' \code{makeSimpleParetoTournamentSearchHeuristic} creates a RGP search-heuristic that implements
-##' a simple Pareto tournament multi objective optimization algorithm (EMOA) that selects on three criteria:
-##' Individual individual fitness and individual complexity.
-##'
-##' @param selectionFunction The selection function to use in search-heuristics that support
-##'   different selection functions. Defaults to tournament selection. See
-##'   \link{makeTournamentSelection} for details.
 ##' @param crossoverProbability The crossover probability for search-heuristics that support
 ##'   this setting (i.e. TinyGP). Defaults to \code{0.9}.
-##  @param tournamentSize The tournament size for search-heuristics that support this setting
-##'   (i.e. TinyGP). Defaults to \code{2}.
-##' @param mu The number of surviving parents for the Evolution Strategy search-heuristic. Note that
-##'   with \code{makeCommaEvolutionStrategySearchHeuristic}, lambda is fixed to the population size,
-##'   i.e. \code{length(pop)}.
-##' @param lambda The number of children to create in each generation.
-##' @param enableComplexityCriterion Whether to enable the complexity criterion in multi-criterial
-##'   search heuristics.
-##' @param enableAgeCriterion Whether to enable the age criterion in multi-criterial search heuristics.
-##' @param ndsParentSelection Whether to use non-dominated sorting to select parents. When set to
-##'   \code{FALSE}, parents are selected by uniform random sampling without replacement.
-##' @param ndsSelectionFunction The function to use for non-dominated sorting in Pareto GP selection.
-##'   Defaults to \code{nds_cd_selection}.
-##' @param complexityMeasure The complexity measure, a function of signature \code{function(ind, fitness)}
-##'   returning a single numeric value.
-##' @param \code{newIndividualsPerGeneration} The number of new individuals per generation to
-##'   insert into the population. Defaults to \code{2} if \code{enableAgeCriterion == TRUE}
-##'   else to \code{0}.
-##' @param \code{newIndividualsMaxDepth} The maximum depth of new individuals inserted into the
-##'   population.
+##' @param tournamentSize The size of TinyGP's selection tournaments.
+##' @return An RGP search heuristic.
 ##'
-##' @rdname searchHeuristics
 ##' @export
 makeTinyGpSearchHeuristic <- function(crossoverProbability = 0.9, tournamentSize = 2)
 function(logFunction, stopCondition, pop, fitnessFunction,
@@ -169,7 +133,18 @@ function(logFunction, stopCondition, pop, fitnessFunction,
        searchHeuristicResults = list())
 }
 
-##' @rdname searchHeuristics 
+##' Comma Evolution Strategy Search Heuristic for RGP
+##'
+##' The search-heuristic, i.e. the concrete GP search algorithm, is a modular component of RGP.
+##' \code{makeCommaEvolutionStrategySearchHeuristic} creates a RGP search-heuristic that implements a
+##' (mu, lambda) Evolution Strategy. The lambda parameter is fixed to the population size.
+##' TODO description based on Luke09a
+##'
+##' @param mu The number of surviving parents for the Evolution Strategy search-heuristic. Note that
+##'   with \code{makeCommaEvolutionStrategySearchHeuristic}, lambda is fixed to the population size,
+##'   i.e. \code{length(pop)}.
+##' @return An RGP search heuristic.
+##'
 ##' @export
 makeCommaEvolutionStrategySearchHeuristic <- function(mu = 1)
 function(logFunction, stopCondition, pop, fitnessFunction,
@@ -251,7 +226,36 @@ function(logFunction, stopCondition, pop, fitnessFunction,
        searchHeuristicResults = list())
 }
 
-##' @rdname searchHeuristics 
+##' Age Fitness Complexity Pareto GP Search Heuristic for RGP
+##'
+##' The search-heuristic, i.e. the concrete GP search algorithm, is a modular component of RGP.
+##' \code{makeAgeFitnessComplexityParetoGpSearchHeuristic} creates a RGP search-heuristic that implements
+##' a generational evolutionary multi objective optimization algorithm (EMOA) that selects on three criteria:
+##' Individual age, individual fitness, and individual complexity.
+##'
+##' @param lambda The number of children to create in each generation.
+##' @param crossoverProbability The crossover probability for search-heuristics that support
+##'   this setting (i.e. TinyGP). Defaults to \code{0.9}.
+##' @param enableComplexityCriterion Whether to enable the complexity criterion in multi-criterial
+##'   search heuristics.
+##' @param enableAgeCriterion Whether to enable the age criterion in multi-criterial search heuristics.
+##' @param ndsParentSelection Whether to use non-dominated sorting to select parents. When set to
+##'   \code{FALSE}, parents are selected by uniform random sampling without replacement.
+##' @param ndsSelectionFunction The function to use for non-dominated sorting in Pareto GP selection.
+##'   Defaults to \code{nds_cd_selection}.
+##' @param complexityMeasure The complexity measure, a function of signature \code{function(ind, fitness)}
+##'   returning a single numeric value.
+##' @param ageMergeFunction The function used for merging ages of crossover children, defaults
+##'   to \code{max}.
+##' @param newIndividualsPerGeneration The number of new individuals per generation to
+##'   insert into the population. Defaults to \code{2} if \code{enableAgeCriterion == TRUE}
+##'   else to \code{0}.
+##' @param newIndividualsMaxDepth The maximum depth of new individuals inserted into the
+##'   population.
+##' @param plotFront Whether to plot the pareto front during GP runs (for monitoring
+##'   and debugging).
+##' @return An RGP search heuristic.
+##'
 ##' @export
 makeAgeFitnessComplexityParetoGpSearchHeuristic <- function(lambda = 20,
                                                             crossoverProbability = 0.9,
@@ -259,7 +263,7 @@ makeAgeFitnessComplexityParetoGpSearchHeuristic <- function(lambda = 20,
                                                             enableAgeCriterion = FALSE,
                                                             ndsParentSelection = FALSE,
                                                             ndsSelectionFunction = nds_cd_selection,
-                                                            complexityMesaure = function(ind, fitness) funcVisitationLength(ind),
+                                                            complexityMeasure = function(ind, fitness) funcVisitationLength(ind),
                                                             ageMergeFunction = max,
                                                             newIndividualsPerGeneration = if (enableAgeCriterion) 2 else 0,
                                                             newIndividualsMaxDepth = 8,
@@ -278,7 +282,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   mu <- length(pop)
   if (mu < 2 * lambda) stop("makeAgeFitnessComplexityParetoGpSearchHeuristic: condition mu >= 2 * lambda must be fulfilled")
   fitnessValues <- as.numeric(sapply(pop, fitnessFunction))
-  complexityValues <- as.numeric(Map(complexityMesaure, pop, fitnessValues))
+  complexityValues <- as.numeric(Map(complexityMeasure, pop, fitnessValues))
   ageValues <- integer(mu) # initialize ages with zeros
 
   ## Initialize statistic counters...
@@ -329,7 +333,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 
     # Evaluate children individuals...
     childrenFitnessValues <- as.numeric(sapply(children, fitnessFunction))
-    childrenComplexityValues <- as.numeric(Map(complexityMesaure, children, childrenFitnessValues))
+    childrenComplexityValues <- as.numeric(Map(complexityMeasure, children, childrenFitnessValues))
     childrenAgeValues <- 1 + as.integer(Map(ageMergeFunction, ageValues[motherIndices], ageValues[fatherIndices]))
 
     # Create and evaluate new individuals...
@@ -338,7 +342,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
                                      extinctionPrevention = extinctionPrevention,
                                      breedingFitness = breedingFitness, breedingTries = breedingTries)
     newIndividualsFitnessValues <- as.numeric(sapply(newIndividuals, fitnessFunction))
-    newIndividualsComplexityValues <- as.numeric(Map(complexityMesaure, newIndividuals, newIndividualsFitnessValues))
+    newIndividualsComplexityValues <- as.numeric(Map(complexityMeasure, newIndividuals, newIndividualsFitnessValues))
     newIndividualsAgeValues <- integer(newIndividualsPerGeneration) # initialize ages with zeros
 
     # Create the pool of individuals to select the next generation from...
@@ -396,14 +400,32 @@ function(logFunction, stopCondition, pop, fitnessFunction,
                                      ageValues = ageValues))
 }
 
-##' @rdname searchHeuristics 
+##' Simple Pareto Tournament Search Heuristic for RGP
+##'
+##' The search-heuristic, i.e. the concrete GP search algorithm, is a modular component of RGP.
+##' \code{makeSimpleParetoTournamentSearchHeuristic} creates a RGP search-heuristic that implements
+##' a simple Pareto tournament multi objective optimization algorithm (EMOA) that selects on three criteria:
+##' Individual individual fitness and individual complexity.
+##'
+##' @param lambda The number of children to create in each generation.
+##' @param tournamentSize The size of the Pareto tournaments.
+##' @param crossoverProbability The crossover probability for search-heuristics that support
+##'   this setting (i.e. TinyGP). Defaults to \code{0.9}.
+##' @param enableComplexityCriterion Whether to enable the complexity criterion in multi-criterial
+##'   search heuristics.
+##' @param complexityMeasure The complexity measure, a function of signature \code{function(ind, fitness)}
+##'   returning a single numeric value.
+##' @param plotFront Whether to plot the pareto front during GP runs (for monitoring
+##'   and debugging).
+##' @return An RGP search heuristic.
+##'
 ##' @export
 makeSimpleParetoTournamentSearchHeuristic <- function(lambda = 20,
                                                       tournamentSize = 2,
                                                       crossoverProbability = 0.9,
                                                       enableComplexityCriterion = TRUE,
-                                                      complexityMesaure = function(ind, fitness) funcVisitationLength(ind),
-                                                      plotFront = TRUE)
+                                                      complexityMeasure = function(ind, fitness) funcVisitationLength(ind),
+                                                      plotFront = FALSE)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
          functionSet, inputVariables, constantSet,
@@ -418,7 +440,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   mu <- length(pop)
   if (mu < 2 * lambda) stop("makeAgeFitnessComplexityParetoGpSearchHeuristic: condition mu >= 2 * lambda must be fulfilled")
   fitnessValues <- as.numeric(sapply(pop, fitnessFunction))
-  complexityValues <- as.numeric(Map(complexityMesaure, pop, fitnessValues))
+  complexityValues <- as.numeric(Map(complexityMeasure, pop, fitnessValues))
 
   ## Initialize statistic counters...
   stepNumber <- 1
