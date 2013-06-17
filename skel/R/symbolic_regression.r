@@ -166,10 +166,8 @@ predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", det
   formulaVars <- as.list(attr(terms(object$formula), "variables")[-1])
   responseVariable <- formulaVars[[1]]
   explanatoryVariables <- formulaVars[-1]
-  attach(data)
-  trueResponse <- eval(responseVariable)
-  explanatories <- lapply(explanatoryVariables, eval)
-  detach(data)
+  trueResponse <- with(data, eval(responseVariable))
+  explanatories <- with(data, lapply(explanatoryVariables, eval))
   ysind <- do.call(ind, explanatories) # vectorized evaluation
   errorind <- rmse(trueResponse, ysind)
   

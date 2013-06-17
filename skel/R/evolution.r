@@ -36,7 +36,7 @@
 ##' @param type The range type of the individual functions. This parameter
 ##'   only applies to \code{typedGeneticProgramming}.
 ##' @param stopCondition The stop condition for the evolution main loop. See
-##'   \link{makeStepsStopCondition} For details.
+##'   code \code{makeStepsStopCondition} for details.
 ##' @param population The GP population to start the run with. If this parameter
 ##'   is missing, a new GP population of size \code{populationSize} is created
 ##'   through random growth.
@@ -470,7 +470,7 @@ makeTimeStopCondition <- function(timeLimit) {
 
 ##' @rdname evolutionStopConditions
 ##' @export
-`&.stopCondition` <- function(e1, e2) {
+"&.stopCondition" <- function(e1, e2) {
   stopCondition <- function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
     e1(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) && e2(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   class(stopCondition) <- c("stopCondition", "function")
@@ -479,7 +479,7 @@ makeTimeStopCondition <- function(timeLimit) {
 
 ##' @rdname evolutionStopConditions
 ##' @export
-`|.stopCondition` <- function(e1, e2) {
+"|.stopCondition" <- function(e1, e2) {
   stopCondition <- function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
     e1(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) || e2(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   class(stopCondition) <- c("stopCondition", "function")
@@ -488,7 +488,7 @@ makeTimeStopCondition <- function(timeLimit) {
 
 ##' @rdname evolutionStopConditions
 ##' @export
-`!.stopCondition` <- function(e1) {
+"!.stopCondition" <- function(e1) {
   stopCondition <- function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
     !e1(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   class(stopCondition) <- c("stopCondition", "function")

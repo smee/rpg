@@ -30,7 +30,7 @@
 ##' @param fitnessFunctionFactoryParameters Additional parameters to pass to the
 ##'   \code{fitnessFunctionFactory}.
 ##' @param stopCondition The stop condition for the evolution main loop. See
-##'   \link{makeStepsStopCondition} for details.
+##'   \code{makeStepsStopCondition} for details.
 ##' @param population The GP population to start the run with. If this parameter
 ##'   is missing, a new GP population of size \code{populationSize} is created
 ##'   through random growth.

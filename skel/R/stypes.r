@@ -88,8 +88,8 @@ print.sType <- function(x, ...) {
 ##' blocks are defined by the user via the \code{\%::\%} operator and are stored in the
 ##' package-internal global variable \code{rgpSTypeEnvironment}.
 ##' \code{sType} calculates the sType of the R expression \code{x}.
+##' \code{sTypeq} quotes its argument \code{x} before calling \code{sType}. 
 ##' SType inference of function definitions relies on a typed stack of formal arguments of
-##' the function definition to infer the sType for.
 ##' \code{getSTypeFromFormalsStack} and \code{setSTypeOnFormalsStack} get or set the sType
 ##' of a formal argument \code{x} and a \code{formalsStack}, respectively.
 ##'
@@ -171,8 +171,8 @@ calculateSTypeRecursive <- function(x, typeEnvir = rgpSTypeEnvironment, formalsS
 }
 
 ##' @rdname sTypeInference
-calculateSTypeq <- function(x, typeEnvir = rgpSTypeEnvironment)
-  calculateSType(substitute(x), typeEnvir = typeEnvir)
+sTypeq <- function(x, typeEnvir = rgpSTypeEnvironment)
+  sType(substitute(x), typeEnvir = typeEnvir)
 
 ##' @rdname sTypeInference
 getSTypeFromFormalsStack <- function(x, formalsStack) {

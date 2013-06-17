@@ -34,9 +34,9 @@
 ##'   selection function is used, \code{fitnessFunction} must return a numerical
 ##'   vector of fitness values.
 ##' @param stopCondition The stop condition for the evolution main loop. See
-##'   \link{makeStepsStopCondition} for details.
+##'   \code{makeStepsStopCondition} for details.
 ##' @param passStopCondition The stop condition for each parallel pass. See
-##'   \link{makeStepsStopCondition} for details.
+##'   \code{makeStepsStopCondition} for details.
 ##' @param numberOfNiches The number of niches to cluster the population into.
 ##' @param clusterFunction The function used to cluster the population into
 ##'   niches. The first parameter of this function is a GP population, the
@@ -218,9 +218,9 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
 ##'   symbolic regression run. The variables in \code{formula} must match
 ##'   column names in this data frame.
 ##' @param stopCondition The stop condition for the evolution main loop. See
-##'   \link{makeStepsStopCondition} for details.
+##'   \code{makeStepsStopCondition} for details.
 ##' @param passStopCondition The stop condition for each parallel pass. See
-##'   \link{makeStepsStopCondition} for details.
+##'   \code{makeStepsStopCondition} for details.
 ##' @param numberOfNiches The number of niches to cluster the population into.
 ##' @param clusterFunction The function used to cluster the population into
 ##'   niches. The first parameter of this function is a GP population, the

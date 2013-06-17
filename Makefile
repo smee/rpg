@@ -24,7 +24,7 @@ help: usage
 
 install: clean roxygen
 	echo "Installing package..."
-	R CMD INSTALL --no-multiarch pkg > install.log 2>&1 || cat install.log
+	$(R_HOME)/bin/R CMD INSTALL --no-multiarch pkg > install.log 2>&1 || cat install.log
 	echo "DONE."
 
 test: install
@@ -34,7 +34,7 @@ test: install
 
 check: clean roxygen
 	echo "Running R CMD check..."
-	R CMD check --as-cran pkg && rm -fR pkg.Rcheck
+	$(R_HOME)/bin/R CMD check --as-cran pkg && rm -fR pkg.Rcheck
 	echo "DONE."
 
 macros:
@@ -44,7 +44,7 @@ macros:
 
 shlibs: macros
 	echo "Buiding shared libraries of C-based components..."
-	R CMD SHLIB playground/evolution.c playground/selection.c playground/mutate_function.c playground/create_expr_tree.c playground/eval_vectorized.c playground/population.c
+	$(R_HOME)/bin/R CMD SHLIB playground/evolution.c playground/selection.c playground/mutate_function.c playground/create_expr_tree.c playground/eval_vectorized.c playground/population.c
 	echo "DONE."
 
 roxygen:
@@ -72,7 +72,7 @@ package: clean roxygen
 	echo "Building package..."
 	echo "Date: $(date +%Y-%m-%d)" >> pkg/DESCRIPTION
 	git log --no-merges -M --date=iso pkg/ > pkg/ChangeLog
-	R CMD build pkg > build.log 2>&1
+	$(R_HOME)/bin/R CMD build pkg > build.log 2>&1
 	rm -fR pkg
 	echo "DONE."
 

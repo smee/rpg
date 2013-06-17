@@ -61,8 +61,9 @@ buildingBlockTag <- function(x) {
 }
 
 ##' @rdname buildingBlockTags
+##' @usage buildingBlockTag(x) <- value
 ##' @export
-`buildingBlockTag<-` <- function(x, value) {
+"buildingBlockTag<-" <- function(x, value) {
     attr(x, "buildingBlockTag") <- value
       x
 }
