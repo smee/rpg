@@ -44,9 +44,13 @@ makePopulation <- function(size, funcset, inset, conset,
                            breedingFitness = function(individual) TRUE,
                            breedingTries = 50,
                            extinctionPrevention = FALSE,
-                           funcfactory = function() randfuncRampedHalfAndHalf(funcset, inset, conset,
-                             maxfuncdepth, constprob = constprob,
-                             breedingFitness = breedingFitness, breedingTries = breedingTries)) {
+                           funcfactory = NULL) {
+  funcfactory <- if (is.null(funcfactory)) {
+    function() randfuncRampedHalfAndHalf(funcset, inset, conset, maxfuncdepth, constprob = constprob,
+                                         breedingFitness = breedingFitness, breedingTries = breedingTries)
+  } else {
+    funcfactory
+  }
   pop <- if (size <= 0) {
     list()
   } else if (extinctionPrevention) {
@@ -75,9 +79,14 @@ makeTypedPopulation <- function(size, type, funcset, inset, conset,
                                 breedingFitness = function(individual) TRUE,
                                 breedingTries = 50,
                                 extinctionPrevention = FALSE,
-                                funcfactory = function() randfuncTypedRampedHalfAndHalf(type, funcset, inset, conset,
-                                  maxfuncdepth, constprob = constprob,
-                                  breedingFitness = breedingFitness, breedingTries = breedingTries)) {
+                                funcfactory = NULL) {
+  if (is.null(funcfactory)) {
+    function() randfuncTypedRampedHalfAndHalf(type, funcset, inset, conset,
+                                              maxfuncdepth, constprob = constprob,
+                                              breedingFitness = breedingFitness, breedingTries = breedingTries)
+  } else {
+    funcfactory
+  }
   pop <- makePopulation(size, funcset, inset, conset, maxfuncdepth, funcfactory = funcfactory, constprob = constprob,
                         breedingFitness = breedingFitness, breedingTries = breedingTries,
                         extinctionPrevention = extinctionPrevention)

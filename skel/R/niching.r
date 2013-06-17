@@ -326,8 +326,9 @@ multiNicheSymbolicRegression <- function(formula, data,
 ##' @rdname populationClustering
 ##' @seealso \code{\link{multiNicheGeneticProgramming}}, \code{\link{multiNicheSymbolicRegression}}
 ##' @export
-makeHierarchicalClusterFunction <- function(distanceMeasure = normInducedFunctionDistance(exprVisitationLength),
+makeHierarchicalClusterFunction <- function(distanceMeasure = NULL,
                                             minNicheSize = 1) {
+  distanceMeasure <- if (is.null(distanceMeasure)) normInducedFunctionDistance(exprVisitationLength) else distanceMeasure
   function(p, numberOfClusters) {
     dm <- customDist(p, distanceMeasure)
     groups <- cutree(hclust(dm, method = "ward"), numberOfClusters)

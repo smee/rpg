@@ -28,6 +28,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                       maxTimeMinutes = 15,
                                       newIndividualsPerGeneration = 2,
                                       populationSize = 100,
+                                      subSamplingShare = 1.0,
                                       randomSeed = 1,
                                       testFunctionName = "Salutowicz1d") {
   set.seed(randomSeed)
@@ -119,6 +120,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                            stopCondition = makeTimeStopCondition(maxTimeMinutes * 60),
                            populationSize = populationSize,
                            individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
+                           subSamplingShare = subSamplingShare,
                            mutationFunction = mutationFunction,
                            crossoverFunction = crossoverFunction,
                            searchHeuristic = searchHeuristic,
@@ -147,7 +149,7 @@ rescaleIndividual <- function(ind, trueY, domainInterval, samples = 100) {
 }
 
 startVisualSr <- function() {
-  twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, functionSetString, lambda, maxTimeMinutes, newIndividualsPerGeneration, populationSize, randomSeed, testFunctionName), eval = FALSE,
+  twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, functionSetString, lambda, maxTimeMinutes, newIndividualsPerGeneration, populationSize, subSamplingShare, randomSeed, testFunctionName), eval = FALSE,
           testFunctionName = combo("Salutowicz1d", "UnwrappedBall1d"),
           populationSize = knob(lim = c(1, 1000), default = 100, res = 1),
           lambda = knob(lim = c(1, 100), default = 20, res = 1),
@@ -155,6 +157,7 @@ startVisualSr <- function() {
           enableAgeCriterion = toggle(default = TRUE),
           enableComplexityCriterion = toggle(default = FALSE),
           functionSetString = entry(default = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")'),
+          subSamplingShare = knob(lim = c(0.01, 1.0), default = 1.0, res = 0.01),
           randomSeed = knob(lim = c(1, 1000), res = 1),
           maxTimeMinutes = knob(lim = c(0.1, 480), res = 0.1))
 }

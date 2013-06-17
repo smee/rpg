@@ -42,6 +42,9 @@
 ##'   exceeds this size limit will get a fitness of \code{Inf}.
 ##' @param penalizeGenotypeConstantIndividuals Individuals that do not contain
 ##'   any input variables will get a fitness of \code{Inf}.
+##' @param subSamplingShare The share of fitness cases \deqn{s} sampled for
+##'   evaluation with each function evaluation. \deqn{0 < s \leq 1} must
+##'   hold, defaults to \code{1.0}.
 ##' @param functionSet The function set.
 ##' @param constantSet The set of constant factory functions.
 ##' @param crossoverFunction The crossover function.
@@ -88,6 +91,7 @@ symbolicRegression <- function(formula, data,
                                archive = FALSE,
                                individualSizeLimit = 64,
                                penalizeGenotypeConstantIndividuals = FALSE,
+                               subSamplingShare = 1.0,
                                functionSet = mathFunctionSet,
                                constantSet = numericConstantSet,
                                crossoverFunction = crossover,
@@ -105,6 +109,7 @@ symbolicRegression <- function(formula, data,
                                                           list(envir = envir,
                                                                errorMeasure = errorMeasure,
                                                                penalizeGenotypeConstantIndividuals = penalizeGenotypeConstantIndividuals,
+                                                               subSamplingShare = subSamplingShare,
                                                                indsizelimit = individualSizeLimit),
                                                           stopCondition = stopCondition,
                                                           population = population,
@@ -195,12 +200,16 @@ predict.symbolicRegressionModel <- function(object, newdata, model = "BEST", det
 ##'   a fitness of \code{Inf}.
 ##' @param penalizeGenotypeConstantIndividuals Individuals that do not
 ##'   contain any input variables will get a fitness of \code{Inf}.
+##' @param subSamplingShare The share of fitness cases \deqn{s} sampled for
+##'   evaluation with each function evaluation. \deqn{0 < s \leq 1} must
+##'   hold, defaults to \code{1.0}.
 ##' @return A fitness function to be used in symbolic regression.
 ##' @export
 makeRegressionFitnessFunction <- function(formula, data, envir,
                                           errorMeasure = rmse,
                                           indsizelimit = NA,
-                                          penalizeGenotypeConstantIndividuals = FALSE) {
+                                          penalizeGenotypeConstantIndividuals = FALSE,
+                                          subSamplingShare = 1.0) {
   data <- if (any(is.na(data))) {
     dataWithoutNAs <- na.omit(data)
     warning(sprintf("removed %i data rows containing NA values",
@@ -212,17 +221,34 @@ makeRegressionFitnessFunction <- function(formula, data, envir,
   explanatoryVariables <- formulaVars[-1]
   trueResponse <- eval(responseVariable, envir = data)
   explanatories <- lapply(explanatoryVariables, eval, envir = data)
-  function(ind) {
-    ysind <- do.call(ind, explanatories, envir = envir) # vectorized fitness-case evaluation
-    errorind <- errorMeasure(trueResponse, ysind)    
-    if (!is.na(indsizelimit) && funcSize(ind) > indsizelimit)
-      Inf # individual size limit exceeded
-    else if (is.na(errorind) || is.nan(errorind))
-      Inf # error value is NA or NaN
-    else if (penalizeGenotypeConstantIndividuals
-             && is.empty(inputVariablesOfIndividual(ind, explanatoryVariables)))
-      Inf # individual does not contain any input variables
-    else errorind
+  if (subSamplingShare < 1.0) { # do sub sampling of fitness cases
+    function(ind) {
+      numberOfFitnessCases <- length(trueResponse)
+      sampleIndices <- sample(1:numberOfFitnessCases, subSamplingShare * numberOfFitnessCases, replace = FALSE)
+      ysind <- do.call(ind, Map(function(explanatory) explanatory[sampleIndices], explanatories), envir = envir) # vectorized fitness-case evaluation
+      errorind <- errorMeasure(trueResponse[sampleIndices], ysind)
+      if (!is.na(indsizelimit) && funcSize(ind) > indsizelimit)
+        Inf # individual size limit exceeded
+      else if (is.na(errorind) || is.nan(errorind))
+        Inf # error value is NA or NaN
+      else if (penalizeGenotypeConstantIndividuals
+               && is.empty(inputVariablesOfIndividual(ind, explanatoryVariables)))
+        Inf # individual does not contain any input variables
+      else errorind
+    }
+  } else { # no subsampling of fitness cases
+    function(ind) {
+      ysind <- do.call(ind, explanatories, envir = envir) # vectorized fitness-case evaluation
+      errorind <- errorMeasure(trueResponse, ysind)
+      if (!is.na(indsizelimit) && funcSize(ind) > indsizelimit)
+        Inf # individual size limit exceeded
+      else if (is.na(errorind) || is.nan(errorind))
+        Inf # error value is NA or NaN
+      else if (penalizeGenotypeConstantIndividuals
+               && is.empty(inputVariablesOfIndividual(ind, explanatoryVariables)))
+        Inf # individual does not contain any input variables
+      else errorind
+    }
   }
 }
 

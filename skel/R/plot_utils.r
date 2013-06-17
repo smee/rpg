@@ -33,7 +33,10 @@
 ##'   For example, use the \code{main} parameter to set a title.
 ##'
 ##' @examples
-##' plotFunctions(list(function(x) sin(x), function(x) cos(x), function(x) 0.5*sin(2*x)+1), -pi, pi, 256)
+##' plotFunctions(list(function(x) sin(x),
+##'                    function(x) cos(x),
+##'                    function(x) 0.5*sin(2*x)+1),
+##'               -pi, pi, 256)
 ##'
 ##' @export
 plotFunctions <- function(funcs, from = 0, to = 1, steps = 1024,
