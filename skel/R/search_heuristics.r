@@ -104,8 +104,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     # Apply restart strategy...
     if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                          evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
-      populationSize <- length(pop)
-      restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
+      restartResult <- restartStrategy(fitnessFunction, pop, mu, functionSet, inputVariables, constantSet)
       pop <- restartResult[[1]]
       elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
       logFunction("restarted run")
@@ -162,7 +161,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 
   ## Global variables...
   lambda <- length(pop)
-  if(mu > lambda) stop("makeCommaEvolutionStrategySearchHeuristic: mu must be less or equal to the population size")
+  if (mu > lambda) stop("makeCommaEvolutionStrategySearchHeuristic: mu must be less or equal to the population size")
   childrenPerParent <- ceiling(lambda / mu)
   fitnessValues <- sapply(pop, fitnessFunction)
 
@@ -368,8 +367,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     # Apply restart strategy...
     if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                          evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
-      populationSize <- length(pop)
-      restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
+      restartResult <- restartStrategy(fitnessFunction, pop, mu, functionSet, inputVariables, constantSet)
       pop <- restartResult[[1]]
       elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
       logFunction("restarted run")
@@ -400,32 +398,38 @@ function(logFunction, stopCondition, pop, fitnessFunction,
                                      ageValues = ageValues))
 }
 
-##' Simple Pareto Tournament Search Heuristic for RGP
+##' Archive-based Pareto Tournament Search Heuristic for RGP
 ##'
 ##' The search-heuristic, i.e. the concrete GP search algorithm, is a modular component of RGP.
-##' \code{makeSimpleParetoTournamentSearchHeuristic} creates a RGP search-heuristic that implements
-##' a simple Pareto tournament multi objective optimization algorithm (EMOA) that selects on three criteria:
-##' Individual individual fitness and individual complexity.
+##' \code{makeArchiveBasedParetoTournamentSearchHeuristic} creates a RGP search-heuristic that implements
+##' a archive-based Pareto tournament multi objective optimization algorithm (EMOA) that selects on three 
+##' criteria: Individual fitness, individual complexity and individual age.
+##' TODO reference Vlad08a
 ##'
-##' @param lambda The number of children to create in each generation.
+##' @param archiveSize The number of individuals in the archive, defaults to \code{50}.
 ##' @param tournamentSize The size of the Pareto tournaments.
-##' @param crossoverProbability The crossover probability for search-heuristics that support
-##'   this setting (i.e. TinyGP). Defaults to \code{0.9}.
+##' @param crossoverRate The probabilty to do crossover with an archive member instead of mutation of an
+##'   archive member.
 ##' @param enableComplexityCriterion Whether to enable the complexity criterion in multi-criterial
 ##'   search heuristics.
 ##' @param complexityMeasure The complexity measure, a function of signature \code{function(ind, fitness)}
 ##'   returning a single numeric value.
+##' @param reInitializationInterval The number of generations after which the population is re-initialized
+##'   from scratch. The archive is left untouched.
 ##' @param plotFront Whether to plot the pareto front during GP runs (for monitoring
 ##'   and debugging).
+##' TODO document parameters
 ##' @return An RGP search heuristic.
 ##'
 ##' @export
-makeSimpleParetoTournamentSearchHeuristic <- function(lambda = 20,
-                                                      tournamentSize = 2,
-                                                      crossoverProbability = 0.9,
-                                                      enableComplexityCriterion = TRUE,
-                                                      complexityMeasure = function(ind, fitness) funcVisitationLength(ind),
-                                                      plotFront = FALSE)
+makeArchiveBasedParetoTournamentSearchHeuristic <- function(archiveSize = 50,
+                                                            tournamentSize = 2,
+                                                            crossoverRate = 0.95,
+                                                            enableComplexityCriterion = TRUE,
+                                                            complexityMeasure = function(ind, fitness) funcVisitationLength(ind),
+                                                            ndsSelectionFunction = nds_cd_selection,
+                                                            reInitializationInterval = 10,
+                                                            plotFront = FALSE)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
          functionSet, inputVariables, constantSet,
@@ -434,11 +438,11 @@ function(logFunction, stopCondition, pop, fitnessFunction,
          restartCondition, restartStrategy,
          breedingFitness, breedingTries,
          progressMonitor) {
-  logFunction("STARTING genetic programming evolution run (Simple Pareto tournament GP search-heuristic) ...")
+  logFunction("STARTING genetic programming evolution run (Archive-based Pareto tournament GP search-heuristic) ...")
 
   ## Initialize run-global variables...
   mu <- length(pop)
-  if (mu < 2 * lambda) stop("makeAgeFitnessComplexityParetoGpSearchHeuristic: condition mu >= 2 * lambda must be fulfilled")
+  if (mu < archiveSize) stop("makeAgeFitnessComplexityParetoGpSearchHeuristic: population size (mu) must be larger than or equal to archive size")
   fitnessValues <- as.numeric(sapply(pop, fitnessFunction))
   complexityValues <- as.numeric(Map(complexityMeasure, pop, fitnessValues))
 
@@ -452,6 +456,18 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   bestFitness <- min(fitnessValues) # best fitness value seen in this run, if multi-criterial, only the first component counts
   startTime <- proc.time()["elapsed"]
 
+  ## Initialize archive with best individuals of population...
+  fitnessValues <- as.numeric(sapply(pop, fitnessFunction))
+  complexityValues <- as.numeric(Map(complexityMeasure, pop, fitnessValues))
+
+  worstPopIndices <- selectIndividualsForReplacement(fitnessValues, complexityValues, 0,
+                                                     enableComplexityCriterion, FALSE, # TODO add age criterion
+                                                     ndsSelectionFunction, mu - archiveSize,
+                                                     plotFront = plotFront)
+  archive <- pop[-worstPopIndices]
+
+  browser(); # TODO
+
   ## Execute GP run...
   while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
@@ -462,8 +478,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     # Apply restart strategy...
     if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                          evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
-      populationSize <- length(pop)
-      restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
+      restartResult <- restartStrategy(fitnessFunction, pop, mu, functionSet, inputVariables, constantSet)
       pop <- restartResult[[1]]
       elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
       logFunction("restarted run")

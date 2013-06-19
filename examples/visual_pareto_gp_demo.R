@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 #
-# visual_sr_demo.R
-# simple visual example of untyped RGP symbolic regression runs
+# visual_pareto_gp_demo.R
+# visual example of untyped RGP symbolic regression runs with archive-based Pareto GP
 # 2011 Oiver Flasch
 #
 
@@ -44,16 +44,16 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                   length.out = testFunction$samples)
   fitnessCases <- data.frame(x1 = testFunctionSamplePoints, y = testFunction$f(testFunctionSamplePoints))
 
-  #searchHeuristic <- makeTinyGpSearchHeuristic()
-  #searchHeuristic <- makeCommaEvolutionStrategySearchHeuristic(mu = 25)
-  searchHeuristic <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = lambda,
-                                                                     newIndividualsPerGeneration = newIndividualsPerGeneration,
+  # TODO add search heuristic parameters
+  searchHeuristic <- makeArchiveBasedParetoTournamentSearchHeuristic(archiveSize = 50,
+                                                                     tournamentSize = 2,
+                                                                     crossoverRate = 0.95,
                                                                      enableComplexityCriterion = enableComplexityCriterion,
-                                                                     enableAgeCriterion = enableAgeCriterion)
+                                                                     reInitializationInterval = 10)
 
   funSet <- do.call(functionSet, as.list(eval(parse(text = functionSetString))))
   inVarSet <- inputVariableSet("x1")
-  constSet <- numericConstantSet
+  constSet <- numericConstantSet # TODO
 
   population <- Map(function(i) makeClosure(.Call("initialize_expression_grow_R",
                                                   as.list(funSet$nameStrings),
