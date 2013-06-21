@@ -22,13 +22,12 @@ DampedOscillator1d <- defineTestFunction(function(x) 1.5 * exp(-0.5 * x) * sin(p
 
 # main symbolic regression driver function for twiddler...
 #
-twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
-                                      enableComplexityCriterion = FALSE,
+twiddleSymbolicRegression <- function(enableComplexityCriterion = FALSE,
                                       functionSetString = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")',
-                                      lambda = 20,
                                       maxTimeMinutes = 15,
-                                      newIndividualsPerGeneration = 2,
                                       populationSize = 100,
+                                      archiveSize = 50,
+                                      restartInterval = 20,
                                       subSamplingShare = 1.0,
                                       randomSeed = 1,
                                       testFunctionName = "Salutowicz1d") {
@@ -45,24 +44,31 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
   fitnessCases <- data.frame(x1 = testFunctionSamplePoints, y = testFunction$f(testFunctionSamplePoints))
 
   # TODO add search heuristic parameters
-  searchHeuristic <- makeArchiveBasedParetoTournamentSearchHeuristic(archiveSize = 50,
-                                                                     tournamentSize = 2,
+  searchHeuristic <- makeArchiveBasedParetoTournamentSearchHeuristic(archiveSize = archiveSize,
+                                                                     popTournamentSize = 5,
+                                                                     archiveTournamentSize = 3,
                                                                      crossoverRate = 0.95,
-                                                                     enableComplexityCriterion = enableComplexityCriterion,
-                                                                     reInitializationInterval = 10)
+                                                                     enableComplexityCriterion = enableComplexityCriterion)
 
   funSet <- do.call(functionSet, as.list(eval(parse(text = functionSetString))))
   inVarSet <- inputVariableSet("x1")
   constSet <- numericConstantSet # TODO
 
-  population <- Map(function(i) makeClosure(.Call("initialize_expression_grow_R",
-                                                  as.list(funSet$nameStrings),
-                                                  as.integer(funSet$arities),
-                                                  as.list(inVarSet$nameStrings),
-                                                  -10.0, 10.0,
-                                                  0.8, 0.2,
-                                                  as.integer(8)),
-                                            as.list(inVarSet$nameStrings)), 1:populationSize)
+  populationFactory <- function(populationSize, funSet, inVarSet) {
+    Map(function(i) makeClosure(.Call("initialize_expression_grow_R",
+                                      as.list(funSet$nameStrings),
+                                      as.integer(funSet$arities),
+                                      as.list(inVarSet$nameStrings),
+                                      -10.0, 10.0,
+                                      0.8, 0.2,
+                                      as.integer(8)),
+                                      as.list(inVarSet$nameStrings)), 1:populationSize)
+  }
+
+  restartStrategy <- function(fitnessFunction, population, populationSize, functionSet, inputVariableSet, constantSet) {
+    restartedPopulation <- populationFactory(populationSize, functionSet, inputVariableSet)
+    list(population = restartedPopulation, elite = NULL)
+  }
 
   mutationFunction <- function(ind) {
     subtreeMutantBody <- mutateSubtreeFast(body(ind), funSet, inVarSet, -1, 1, 0.33, 0.75, 1.0, 0.5, 2) 
@@ -88,6 +94,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
     ys <- as.vector(Map(f, xs), mode = "numeric")
     ys
   }
+
   testFunctionRange <- range(sampleFunction(testFunction$f, from = domainInterval[1], to = domainInterval[2], steps = 100))
 
   statistics <- NULL 
@@ -123,12 +130,16 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
     }
   }
 
+  population <- populationFactory(populationSize, funSet, inVarSet)
+
   sr <- symbolicRegression(y ~ x1, data = fitnessCases,
                            functionSet = funSet,
                            #errorMeasure = mae,
                            errorMeasure = smse,
                            #stopCondition = makeStepsStopCondition(250),
                            stopCondition = makeTimeStopCondition(maxTimeMinutes * 60),
+                           restartCondition = makeStepLimitRestartCondition(restartInterval),
+                           restartStrategy = restartStrategy,
                            population = population,
                            populationSize = populationSize,
                            individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
@@ -161,13 +172,12 @@ rescaleIndividual <- function(ind, trueY, domainInterval, samples = 100) {
 }
 
 startVisualSr <- function() {
-  twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, functionSetString, lambda, maxTimeMinutes, newIndividualsPerGeneration, populationSize, subSamplingShare, randomSeed, testFunctionName), eval = FALSE,
+  twiddle(twiddleSymbolicRegression(enableComplexityCriterion, functionSetString, maxTimeMinutes, populationSize, archiveSize, restartInterval, subSamplingShare, randomSeed, testFunctionName), eval = FALSE,
           testFunctionName = combo("Salutowicz1d", "UnwrappedBall1d", "DampedOscillator1d"),
           populationSize = knob(lim = c(1, 1000), default = 100, res = 1),
-          lambda = knob(lim = c(1, 100), default = 20, res = 1),
-          newIndividualsPerGeneration = knob(lim = c(1, 100), default = 2, res = 1),
-          enableAgeCriterion = toggle(default = TRUE),
-          enableComplexityCriterion = toggle(default = FALSE),
+          archiveSize = knob(lim = c(1, 100), default = 50, res = 1),
+          enableComplexityCriterion = toggle(default = TRUE),
+          restartInterval = knob(lim = c(1, 1000), default = 20, res = 1),
           functionSetString = entry(default = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")'),
           subSamplingShare = knob(lim = c(0.01, 1.0), default = 1.0, res = 0.01),
           randomSeed = knob(lim = c(1, 1000), res = 1),

@@ -31,6 +31,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                       populationSize = 100,
                                       subSamplingShare = 1.0,
                                       randomSeed = 1,
+                                      plotFront = TRUE,
                                       testFunctionName = "Salutowicz1d") {
   set.seed(randomSeed)
 
@@ -44,25 +45,26 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                   length.out = testFunction$samples)
   fitnessCases <- data.frame(x1 = testFunctionSamplePoints, y = testFunction$f(testFunctionSamplePoints))
 
-  #searchHeuristic <- makeTinyGpSearchHeuristic()
-  #searchHeuristic <- makeCommaEvolutionStrategySearchHeuristic(mu = 25)
   searchHeuristic <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = lambda,
                                                                      newIndividualsPerGeneration = newIndividualsPerGeneration,
                                                                      enableComplexityCriterion = enableComplexityCriterion,
-                                                                     enableAgeCriterion = enableAgeCriterion)
+                                                                     enableAgeCriterion = enableAgeCriterion,
+                                                                     plotFront = plotFront)
 
   funSet <- do.call(functionSet, as.list(eval(parse(text = functionSetString))))
   inVarSet <- inputVariableSet("x1")
   constSet <- numericConstantSet
 
-  population <- Map(function(i) makeClosure(.Call("initialize_expression_grow_R",
-                                                  as.list(funSet$nameStrings),
-                                                  as.integer(funSet$arities),
-                                                  as.list(inVarSet$nameStrings),
-                                                  -10.0, 10.0,
-                                                  0.8, 0.2,
-                                                  as.integer(8)),
-                                            as.list(inVarSet$nameStrings)), 1:populationSize)
+  makePopulation <- function(populationSize, funSet, inVarSet) { 
+    Map(function(i) makeClosure(.Call("initialize_expression_grow_R",
+                                      as.list(funSet$nameStrings),
+                                      as.integer(funSet$arities),
+                                      as.list(inVarSet$nameStrings),
+                                      -10.0, 10.0,
+                                      0.8, 0.2,
+                                      as.integer(8)),
+                                as.list(inVarSet$nameStrings)), 1:populationSize)
+  }
 
   mutationFunction <- function(ind) {
     subtreeMutantBody <- mutateSubtreeFast(body(ind), funSet, inVarSet, -1, 1, 0.33, 0.75, 1.0, 0.5, 2) 
@@ -88,7 +90,13 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
     ys <- as.vector(Map(f, xs), mode = "numeric")
     ys
   }
+
   testFunctionRange <- range(sampleFunction(testFunction$f, from = domainInterval[1], to = domainInterval[2], steps = 100))
+
+  if (length(dev.list()) == 0) {
+    dev.new() # create device for pMon
+    if (plotFront) dev.new() # create device for plotParetoFront
+  }
 
   statistics <- NULL 
   startTime1 <- Sys.time()
@@ -103,6 +111,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
       rescaledBestIndividual <- rescaleIndividual(bestIndividual, fitnessCases$y, domainInterval)
       message("current best individual (not rescaled):")
       message(sprintf(" %s", deparse(bestIndividual)))
+      dev.set(2)
       plotFunctions(list(testFunction$f, rescaledBestIndividual, bestIndividual), from = domainInterval[1], to = domainInterval[2], steps = 100,
                     ylim = testFunctionRange,
                     main = "Current Best Solution vs. True Function",
@@ -122,6 +131,8 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
               " time: ", timeTaken)
     }
   }
+
+  population <- makePopulation(populationSize, funSet, inVarSet)
 
   sr <- symbolicRegression(y ~ x1, data = fitnessCases,
                            functionSet = funSet,
@@ -161,8 +172,9 @@ rescaleIndividual <- function(ind, trueY, domainInterval, samples = 100) {
 }
 
 startVisualSr <- function() {
-  twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, functionSetString, lambda, maxTimeMinutes, newIndividualsPerGeneration, populationSize, subSamplingShare, randomSeed, testFunctionName), eval = FALSE,
+  twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, functionSetString, lambda, maxTimeMinutes, newIndividualsPerGeneration, populationSize, subSamplingShare, randomSeed, plotFront, testFunctionName), eval = FALSE,
           testFunctionName = combo("Salutowicz1d", "UnwrappedBall1d", "DampedOscillator1d"),
+          plotFront = toggle(default = TRUE),
           populationSize = knob(lim = c(1, 1000), default = 100, res = 1),
           lambda = knob(lim = c(1, 100), default = 20, res = 1),
           newIndividualsPerGeneration = knob(lim = c(1, 100), default = 2, res = 1),

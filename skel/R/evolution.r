@@ -311,6 +311,9 @@ summary.geneticProgrammingResult <- function(object, reportFitness = FALSE, orde
 ##'
 ##' \code{makeEmptyRestartCondition} creates a restart condition that is never fulfilled, i.e.
 ##' restarts will never occur.
+##' \code{makeStepLimitRestartCondition} creates a restart condition that holds if the
+##' number if evolution steps is an integer multiple of a given step limit.
+##' restarts will never occur.
 ##' \code{makeFitnessStagnationRestartCondition} creates a restart strategy that holds if the
 ##' standard deviation of a last \code{fitnessHistorySize} best fitness values falls below
 ##' a given \code{fitnessStandardDeviationLimit}.
@@ -318,6 +321,7 @@ summary.geneticProgrammingResult <- function(object, reportFitness = FALSE, orde
 ##' if the standard deviation of the fitness values of the individuals in the current
 ##' population falls below a given \code{fitnessStandardDeviationLimit}.
 ##'
+##' @param stepLimit The step limit for \code{makeStepLimitRestartCondition}.
 ##' @param fitnessHistorySize The number of past best fitness values to look at when calculating
 ##'   the best fitness standard deviation for \code{makeFitnessStagnationRestartCondition}.
 ##' @param testFrequency The frequency to test for the restart condition, in evolution
@@ -332,6 +336,14 @@ makeEmptyRestartCondition <- function() {
   stopCondition <- function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) FALSE
   class(stopCondition) <- c("stopCondition", "function")
   stopCondition
+}
+
+##' @rdname evolutionRestartConditions
+##' @export
+makeStepLimitRestartCondition <- function(stepLimit = 10) {
+  function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) {
+    stepNumber %% stepLimit == 0
+  }
 }
 
 ##' @rdname evolutionRestartConditions

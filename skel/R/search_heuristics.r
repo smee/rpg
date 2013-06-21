@@ -31,33 +31,6 @@ function(logFunction, stopCondition, pop, fitnessFunction,
          progressMonitor) {
   logFunction("STARTING genetic programming evolution run (TinyGP search-heuristic) ...")
   
-  ## Tool functions...
-  randomIndex <- function(maxIndex) as.integer(runif(1, min = 1, max = maxIndex + 1)) 
-  tournament <- function(fitnessValues, popSize, tournamentSize) {
-    bestIndex <- randomIndex(popSize) 
-    bestFitness <- Inf
-    for (i in 1:tournamentSize) {
-      competitorIndex <- randomIndex(popSize)
-      if (fitnessValues[competitorIndex] < bestFitness) {
-        bestFitness <- fitnessValues[competitorIndex]
-        bestIndex <- competitorIndex
-      }
-    }
-    bestIndex
-  }
-  negativeTournament <- function(fitnessValues, popSize, tournamentSize) {
-    worstIndex <- randomIndex(popSize) 
-    worstFitness <- -Inf
-    for (i in 1:tournamentSize) {
-      competitorIndex <- randomIndex(popSize)
-      if (fitnessValues[competitorIndex] > worstFitness) {
-        worstFitness <- fitnessValues[competitorIndex]
-        worstIndex <- competitorIndex
-      }
-    }
-    worstIndex
-  }
-
   ## Global variables...
   popSize <- length(pop)
   fitnessValues <- sapply(pop, fitnessFunction)
@@ -251,6 +224,8 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##'   else to \code{0}.
 ##' @param newIndividualsMaxDepth The maximum depth of new individuals inserted into the
 ##'   population.
+##' @param newIndividualFactory The factory function for creating new individuals. Defaults
+##'   to \code{makePopulation}.
 ##' @param plotFront Whether to plot the pareto front during GP runs (for monitoring
 ##'   and debugging).
 ##' @return An RGP search heuristic.
@@ -266,6 +241,7 @@ makeAgeFitnessComplexityParetoGpSearchHeuristic <- function(lambda = 20,
                                                             ageMergeFunction = max,
                                                             newIndividualsPerGeneration = if (enableAgeCriterion) 2 else 0,
                                                             newIndividualsMaxDepth = 8,
+                                                            newIndividualFactory = makePopulation,
                                                             plotFront = FALSE)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
@@ -336,10 +312,10 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     childrenAgeValues <- 1 + as.integer(Map(ageMergeFunction, ageValues[motherIndices], ageValues[fatherIndices]))
 
     # Create and evaluate new individuals...
-    newIndividuals <- makePopulation(newIndividualsPerGeneration, functionSet, inputVariables, constantSet,
-                                     maxfuncdepth = newIndividualsMaxDepth,
-                                     extinctionPrevention = extinctionPrevention,
-                                     breedingFitness = breedingFitness, breedingTries = breedingTries)
+    newIndividuals <- newIndividualFactory(newIndividualsPerGeneration, functionSet, inputVariables, constantSet,
+                                           maxfuncdepth = newIndividualsMaxDepth,
+                                           extinctionPrevention = extinctionPrevention,
+                                           breedingFitness = breedingFitness, breedingTries = breedingTries)
     newIndividualsFitnessValues <- as.numeric(sapply(newIndividuals, fitnessFunction))
     newIndividualsComplexityValues <- as.numeric(Map(complexityMeasure, newIndividuals, newIndividualsFitnessValues))
     newIndividualsAgeValues <- integer(newIndividualsPerGeneration) # initialize ages with zeros
@@ -423,12 +399,12 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##'
 ##' @export
 makeArchiveBasedParetoTournamentSearchHeuristic <- function(archiveSize = 50,
-                                                            tournamentSize = 2,
+                                                            popTournamentSize = 5,
+                                                            archiveTournamentSize = 3,
                                                             crossoverRate = 0.95,
                                                             enableComplexityCriterion = TRUE,
                                                             complexityMeasure = function(ind, fitness) funcVisitationLength(ind),
                                                             ndsSelectionFunction = nds_cd_selection,
-                                                            reInitializationInterval = 10,
                                                             plotFront = FALSE)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
@@ -443,8 +419,8 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   ## Initialize run-global variables...
   mu <- length(pop)
   if (mu < archiveSize) stop("makeAgeFitnessComplexityParetoGpSearchHeuristic: population size (mu) must be larger than or equal to archive size")
-  fitnessValues <- as.numeric(sapply(pop, fitnessFunction))
-  complexityValues <- as.numeric(Map(complexityMeasure, pop, fitnessValues))
+  popFitnessValues <- as.numeric(sapply(pop, fitnessFunction))
+  popComplexityValues <- as.numeric(Map(complexityMeasure, pop, popFitnessValues))
 
   ## Initialize statistic counters...
   stepNumber <- 1
@@ -453,45 +429,67 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   archiveList <- list() # the archive of all individuals selected in this run, only used if archive == TRUE
   archiveIndexOf <- function(archive, individual)
     Position(function(a) identical(body(a$individual), body(individual)), archive)
-  bestFitness <- min(fitnessValues) # best fitness value seen in this run, if multi-criterial, only the first component counts
+  bestFitness <- min(popFitnessValues) # best fitness value seen in this run, if multi-criterial, only the first component counts
   startTime <- proc.time()["elapsed"]
 
   ## Initialize archive with best individuals of population...
-  fitnessValues <- as.numeric(sapply(pop, fitnessFunction))
-  complexityValues <- as.numeric(Map(complexityMeasure, pop, fitnessValues))
-
-  worstPopIndices <- selectIndividualsForReplacement(fitnessValues, complexityValues, 0,
+  worstPopIndices <- selectIndividualsForReplacement(popFitnessValues, popComplexityValues, 0,
                                                      enableComplexityCriterion, FALSE, # TODO add age criterion
                                                      ndsSelectionFunction, mu - archiveSize,
                                                      plotFront = plotFront)
-  archive <- pop[-worstPopIndices]
-
-  browser(); # TODO
+  archive <- pop[-worstPopIndices] # initialize archive with best individuals from population
+  archiveFitnessValues <- popFitnessValues[-worstPopIndices]
+  archiveComplexityValues <- popComplexityValues[-worstPopIndices]
 
   ## Execute GP run...
   while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
-    # TODO implement this search heuristic 
-    stop("not implemented")
+    # Generate the next generation's population by crossover and mutation...
+    childrenPop <- list()
+    for (i in 1:mu) {
+      if (runif(1) <= crossoverRate) { # create individual by crossover
+        archiveParentIndex <- tournament(archiveFitnessValues, archiveSize, archiveTournamentSize)
+        popParentIndex <- tournament(popFitnessValues, mu, popTournamentSize)
+        childrenPop[[i]] <- crossoverFunction(archive[[archiveParentIndex]], pop[[popParentIndex]],
+                                              breedingFitness = breedingFitness,
+                                              breedingTries = breedingTries)
+      } else { # create individual by mutation
+        parentIndex <- tournament(archiveFitnessValues, archiveSize, archiveTournamentSize)
+        childrenPop[[i]] <- mutationFunction(archive[[parentIndex]])
+      }
+    }
 
+    # Update pop and archive...
+    pop <- childrenPop
+    popFitnessValues <- as.numeric(sapply(pop, fitnessFunction))
+    popComplexityValues <- as.numeric(Map(complexityMeasure, pop, popFitnessValues))
+    allIndividuals <- c(pop, archive)
+    allFitnessValues <- c(popFitnessValues, archiveFitnessValues)
+    allComplexityValues <- c(popComplexityValues, archiveComplexityValues)
+    worstIndices <- selectIndividualsForReplacement(allFitnessValues, allComplexityValues, 0,
+                                                    enableComplexityCriterion, FALSE, # TODO add age criterion
+                                                    ndsSelectionFunction, mu,
+                                                    plotFront = plotFront)
+    archive <- allIndividuals[-worstIndices]
+    archiveFitnessValues <- allFitnessValues[-worstIndices]
+    archiveComplexityValues <- allComplexityValues[-worstIndices]
+    if (min(archiveFitnessValues) < bestFitness) bestFitness <- min(archiveFitnessValues) # update best fitness
 
     # Apply restart strategy...
     if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                          evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
       restartResult <- restartStrategy(fitnessFunction, pop, mu, functionSet, inputVariables, constantSet)
       pop <- restartResult[[1]]
-      elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
       logFunction("restarted run")
     }
 
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
-    evaluationNumber <- lambda + evaluationNumber
-    progressMonitor(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
-  }
+    evaluationNumber <- mu + evaluationNumber
+    progressMonitor(pop, popFitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
+  } # evolution main loop
  
-  elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
-  bestFitness <- min(fitnessValues)
+  bestFitness <- min(archiveFitnessValues)
   logFunction("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
               stepNumber, evaluationNumber, formatSeconds(timeElapsed))
 
@@ -501,15 +499,43 @@ function(logFunction, stopCondition, pop, fitnessFunction,
        evaluationNumber = evaluationNumber,
        bestFitness = bestFitness,
        population = pop,
-       fitnessValues = fitnessValues,
-       elite = elite,
+       fitnessValues = popFitnessValues,
+       elite = archive,
        archiveList = archiveList,
-       searchHeuristicResults = list(fitnessValues = fitnessValues,
-                                     complexityValues = complexityValues))
+       searchHeuristicResults = list(fitnessValues = popFitnessValues,
+                                     complexityValues = popComplexityValues))
 }
 
 
 ## Tool functions...
+randomIndex <- function(maxIndex) as.integer(runif(1, min = 1, max = maxIndex + 1)) 
+
+tournament <- function(fitnessValues, popSize, tournamentSize) {
+  bestIndex <- randomIndex(popSize) 
+  bestFitness <- Inf
+  for (i in 1:tournamentSize) {
+    competitorIndex <- randomIndex(popSize)
+    if (fitnessValues[competitorIndex] < bestFitness) {
+      bestFitness <- fitnessValues[competitorIndex]
+      bestIndex <- competitorIndex
+    }
+  }
+  bestIndex
+}
+
+negativeTournament <- function(fitnessValues, popSize, tournamentSize) {
+  worstIndex <- randomIndex(popSize) 
+  worstFitness <- -Inf
+  for (i in 1:tournamentSize) {
+    competitorIndex <- randomIndex(popSize)
+    if (fitnessValues[competitorIndex] > worstFitness) {
+      worstFitness <- fitnessValues[competitorIndex]
+      worstIndex <- competitorIndex
+    }
+  }
+  worstIndex
+}
+
 selectIndividualsForReplacement <- function(fitnessValues, complexityValues, ageValues,
                                             enableComplexityCriterion, enableAgeCriterion,
                                             ndsSelectionFunction,
@@ -523,11 +549,6 @@ selectIndividualsForReplacement <- function(fitnessValues, complexityValues, age
     rbind(fitnessValues, ageValues)
   else
     rbind(fitnessValues)
-  if (plotFront) {
-    ndsRanks <- nds_rank(points)
-    plotParetoFront(fitnessValues, complexityValues, ndsRanks, ageValues,
-                    xlab = "Fitness", ylab = "Complexity")
-  }
   indicesToRemove <- if (!enableComplexityCriterion & !enableAgeCriterion) {
     # single-criterial case
     order(points, decreasing = TRUE)[1:n]
@@ -535,18 +556,29 @@ selectIndividualsForReplacement <- function(fitnessValues, complexityValues, age
     # multi-criteral case
     ndsSelectionFunction(points, n)
   }
+  if (plotFront) {
+    ndsRanks <- nds_rank(points)
+    plotParetoFront(fitnessValues, complexityValues, ndsRanks, ageValues, indicesToRemove,
+                    xlab = "Fitness", ylab = "Complexity")
+  }
   return (indicesToRemove)
 }
 
-plotParetoFront <- function(x, y, ranks, ages,
+plotParetoFront <- function(x, y, ranks, ages, indicesToRemove,
                             xlab = "X", ylab = "Y",
-                            maxAge = 50) {
+                            maxAge = 50, dev = 3) {
   ageColorScale <- colorRamp(c("#00FF00", "#006600","#0000FF", "#000000"))
   rankOneXs <- x[ranks == 1]; rankOneYs <- y[ranks == 1]; rankOneAges <- ages[ranks == 1]
-  rankOneAgeColors <- rgb(ageColorScale(rankOneAges / maxAge), maxColorValue = 255)
+  ageColorScaleIndex <- pmin(rankOneAges / maxAge, 1.0)
+  rankOneAgeColors <- rgb(ageColorScale(ageColorScaleIndex), maxColorValue = 255)
+
+  oldDev <- dev.cur()
+  dev.set(dev)
   plot(rankOneXs, rankOneYs,
        xlab = xlab, ylab = ylab,
-       col = rankOneAgeColors, pch = 1, main = "Pareto Plot")
-  points(x[ranks > 1], y[ranks > 1], col = "gray", pch = 4)
+       col = rankOneAgeColors, pch = 19, main = "Pareto Plot")
+  points(x[ranks > 1], y[ranks > 1], col = "gray", pch = 1)
+  points(x[indicesToRemove], y[indicesToRemove], col = "red", pch = 4)
+  dev.set(oldDev)
 }
 
