@@ -29,7 +29,7 @@ install: clean roxygen
 
 test: install
 	echo "Running unit tests..."
-	Rscript pkg/inst/unittests/runner.r
+	"$(R_HOME)/bin/Rscript" pkg/inst/unittests/runner.r
 	echo "DONE."
 
 check: clean roxygen
@@ -50,7 +50,6 @@ shlibs: macros
 roxygen:
 	echo "Roxygenizing package..."
 	./roxygenize > roxygen.log 2>&1 || cat roxygen.log
-	#./roxygen-fixup >> roxygen.log 2>&1
 	echo "DONE."
 
 clean:
