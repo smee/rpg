@@ -77,7 +77,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     # Apply restart strategy...
     if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
                          evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
-      restartResult <- restartStrategy(fitnessFunction, pop, mu, functionSet, inputVariables, constantSet)
+      restartResult <- restartStrategy(fitnessFunction, pop, popSize, functionSet, inputVariables, constantSet)
       pop <- restartResult[[1]]
       elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
       logFunction("restart")
@@ -382,21 +382,22 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##' \code{makeArchiveBasedParetoTournamentSearchHeuristic} creates a RGP search-heuristic that implements
 ##' a archive-based Pareto tournament multi objective optimization algorithm (EMOA) that selects on three 
 ##' criteria: Individual fitness, individual complexity and individual age.
-##' TODO reference Vlad08a
 ##'
 ##' @param archiveSize The number of individuals in the archive, defaults to \code{50}.
-##' @param tournamentSize The size of the Pareto tournaments.
+##' @param popTournamentSize The size of the Pareto tournaments for selecting individuals
+##'   for reproduction from the population.
+##' @param archiveTournamentSize The size of the Pareto tournaments for selecting individuals
+##'   for reproduction from the archive.
 ##' @param crossoverRate The probabilty to do crossover with an archive member instead of mutation of an
 ##'   archive member.
 ##' @param enableComplexityCriterion Whether to enable the complexity criterion in multi-criterial
 ##'   search heuristics.
 ##' @param complexityMeasure The complexity measure, a function of signature \code{function(ind, fitness)}
 ##'   returning a single numeric value.
-##' @param reInitializationInterval The number of generations after which the population is re-initialized
-##'   from scratch. The archive is left untouched.
 ##' @param plotFront Whether to plot the pareto front during GP runs (for monitoring
 ##'   and debugging).
-##' TODO document parameters
+##' @param ndsSelectionFunction The function to use for non-dominated sorting in Pareto GP selection.
+##'   Defaults to \code{nds_cd_selection}.
 ##' @return An RGP search heuristic.
 ##'
 ##' @export
