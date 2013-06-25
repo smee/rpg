@@ -30,6 +30,7 @@ twiddleSymbolicRegression <- function(enableComplexityCriterion = FALSE,
                                       restartInterval = 20,
                                       subSamplingShare = 1.0,
                                       randomSeed = 1,
+                                      plotFront = TRUE,
                                       testFunctionName = "Salutowicz1d") {
   set.seed(randomSeed)
 
@@ -48,7 +49,8 @@ twiddleSymbolicRegression <- function(enableComplexityCriterion = FALSE,
                                                                      popTournamentSize = 5,
                                                                      archiveTournamentSize = 3,
                                                                      crossoverRate = 0.95,
-                                                                     enableComplexityCriterion = enableComplexityCriterion)
+                                                                     enableComplexityCriterion = enableComplexityCriterion,
+                                                                     plotFront = plotFront)
 
   funSet <- do.call(functionSet, as.list(eval(parse(text = functionSetString))))
   inVarSet <- inputVariableSet("x1")
@@ -96,6 +98,11 @@ twiddleSymbolicRegression <- function(enableComplexityCriterion = FALSE,
   }
 
   testFunctionRange <- range(sampleFunction(testFunction$f, from = domainInterval[1], to = domainInterval[2], steps = 100))
+  
+  if (length(dev.list()) == 0) {
+    dev.new() # create device for pMon
+    if (plotFront) dev.new() # create device for plotParetoFront
+  }
 
   statistics <- NULL 
   startTime1 <- Sys.time()
@@ -110,6 +117,7 @@ twiddleSymbolicRegression <- function(enableComplexityCriterion = FALSE,
       rescaledBestIndividual <- rescaleIndividual(bestIndividual, fitnessCases$y, domainInterval)
       message("current best individual (not rescaled):")
       message(sprintf(" %s", deparse(bestIndividual)))
+      dev.set(2)
       plotFunctions(list(testFunction$f, rescaledBestIndividual, bestIndividual), from = domainInterval[1], to = domainInterval[2], steps = 100,
                     ylim = testFunctionRange,
                     main = "Current Best Solution vs. True Function",
@@ -172,8 +180,9 @@ rescaleIndividual <- function(ind, trueY, domainInterval, samples = 100) {
 }
 
 startVisualSr <- function() {
-  twiddle(twiddleSymbolicRegression(enableComplexityCriterion, functionSetString, maxTimeMinutes, populationSize, archiveSize, restartInterval, subSamplingShare, randomSeed, testFunctionName), eval = FALSE,
+  twiddle(twiddleSymbolicRegression(enableComplexityCriterion, functionSetString, maxTimeMinutes, populationSize, archiveSize, restartInterval, subSamplingShare, randomSeed, plotFront, testFunctionName), eval = FALSE,
           testFunctionName = combo("Salutowicz1d", "UnwrappedBall1d", "DampedOscillator1d"),
+          plotFront = toggle(default = TRUE),
           populationSize = knob(lim = c(1, 1000), default = 100, res = 1),
           archiveSize = knob(lim = c(1, 100), default = 50, res = 1),
           enableComplexityCriterion = toggle(default = TRUE),
@@ -181,7 +190,7 @@ startVisualSr <- function() {
           functionSetString = entry(default = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")'),
           subSamplingShare = knob(lim = c(0.01, 1.0), default = 1.0, res = 0.01),
           randomSeed = knob(lim = c(1, 1000), res = 1),
-          maxTimeMinutes = knob(lim = c(0.1, 480), res = 0.1))
+          maxTimeMinutes = knob(lim = c(0.1, 30), res = 0.1))
 }
 
 # main entry point

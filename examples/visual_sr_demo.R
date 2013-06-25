@@ -45,27 +45,34 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                   length.out = testFunction$samples)
   fitnessCases <- data.frame(x1 = testFunctionSamplePoints, y = testFunction$f(testFunctionSamplePoints))
 
-  searchHeuristic <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = lambda,
-                                                                     newIndividualsPerGeneration = newIndividualsPerGeneration,
-                                                                     enableComplexityCriterion = enableComplexityCriterion,
-                                                                     enableAgeCriterion = enableAgeCriterion,
-                                                                     plotFront = plotFront)
-
   funSet <- do.call(functionSet, as.list(eval(parse(text = functionSetString))))
   inVarSet <- inputVariableSet("x1")
   constSet <- numericConstantSet
 
-  makePopulation <- function(populationSize, funSet, inVarSet) { 
+  populationFactory <- function(populationSize, funSet, inVarSet, maxfuncdepth, constMin, constMax) { 
     Map(function(i) makeClosure(.Call("initialize_expression_grow_R",
                                       as.list(funSet$nameStrings),
                                       as.integer(funSet$arities),
                                       as.list(inVarSet$nameStrings),
-                                      -10.0, 10.0,
+                                      constMin, constMax,
                                       0.8, 0.2,
-                                      as.integer(8)),
+                                      as.integer(maxfuncdepth)),
                                 as.list(inVarSet$nameStrings)), 1:populationSize)
   }
 
+  #newIndividualFactory <- function(n, functionSet, inputVariables, constantSet,
+  #                                 maxfuncdepth, extinctionPrevention,
+  #                                 breedingFitness, breedingTries) {
+  #  makePopulation(n, functionSet, inputVariables, maxfuncdepth, -1.0, 1.0)
+  #}
+ 
+  searchHeuristic <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = lambda,
+                                                                     newIndividualsPerGeneration = newIndividualsPerGeneration,
+                                                                     enableComplexityCriterion = enableComplexityCriterion,
+                                                                     enableAgeCriterion = enableAgeCriterion,
+                                                                     #newIndividualFactory = newIndividualFactory,
+                                                                     plotFront = plotFront)
+  
   mutationFunction <- function(ind) {
     subtreeMutantBody <- mutateSubtreeFast(body(ind), funSet, inVarSet, -1, 1, 0.33, 0.75, 1.0, 0.5, 2) 
     #print("--1"); print(subtreeMutantBody)
@@ -132,7 +139,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
     }
   }
 
-  population <- makePopulation(populationSize, funSet, inVarSet)
+  population <- populationFactory(populationSize, funSet, inVarSet, 8, -10.0, 10.0)
 
   sr <- symbolicRegression(y ~ x1, data = fitnessCases,
                            functionSet = funSet,
@@ -183,7 +190,7 @@ startVisualSr <- function() {
           functionSetString = entry(default = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")'),
           subSamplingShare = knob(lim = c(0.01, 1.0), default = 1.0, res = 0.01),
           randomSeed = knob(lim = c(1, 1000), res = 1),
-          maxTimeMinutes = knob(lim = c(0.1, 480), res = 0.1))
+          maxTimeMinutes = knob(lim = c(0.1, 30), res = 0.1))
 }
 
 # main entry point

@@ -80,7 +80,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
       restartResult <- restartStrategy(fitnessFunction, pop, mu, functionSet, inputVariables, constantSet)
       pop <- restartResult[[1]]
       elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
-      logFunction("restarted run")
+      logFunction("restart")
     }
 
     timeElapsed <- proc.time()["elapsed"] - startTime
@@ -173,7 +173,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
       restartResult <- restartStrategy(fitnessFunction, pop, populationSize, functionSet, inputVariables, constantSet)
       pop <- restartResult[[1]]
       elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
-      logFunction("restarted run")
+      logFunction("restart")
     }
 
     timeElapsed <- proc.time()["elapsed"] - startTime
@@ -345,8 +345,10 @@ function(logFunction, stopCondition, pop, fitnessFunction,
                          evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
       restartResult <- restartStrategy(fitnessFunction, pop, mu, functionSet, inputVariables, constantSet)
       pop <- restartResult[[1]]
-      elite <- joinElites(restartResult[[2]], elite, eliteSize, fitnessFunction)
-      logFunction("restarted run")
+      fitnessValues <- as.numeric(sapply(pop, fitnessFunction))
+      complexityValues <- as.numeric(Map(complexityMeasure, pop, fitnessValues))
+      ageValues <- integer(mu) # initialize ages with zeros
+      logFunction("restart")
     }
 
     timeElapsed <- proc.time()["elapsed"] - startTime
@@ -421,6 +423,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   if (mu < archiveSize) stop("makeAgeFitnessComplexityParetoGpSearchHeuristic: population size (mu) must be larger than or equal to archive size")
   popFitnessValues <- as.numeric(sapply(pop, fitnessFunction))
   popComplexityValues <- as.numeric(Map(complexityMeasure, pop, popFitnessValues))
+  popAgeValues <- integer(mu) # initialize ages with zeros
 
   ## Initialize statistic counters...
   stepNumber <- 1
@@ -433,13 +436,16 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   startTime <- proc.time()["elapsed"]
 
   ## Initialize archive with best individuals of population...
-  worstPopIndices <- selectIndividualsForReplacement(popFitnessValues, popComplexityValues, 0,
+  worstPopIndices <- selectIndividualsForReplacement(popFitnessValues, popComplexityValues, popAgeValues,
                                                      enableComplexityCriterion, FALSE, # TODO add age criterion
                                                      ndsSelectionFunction, mu - archiveSize,
                                                      plotFront = plotFront)
   archive <- pop[-worstPopIndices] # initialize archive with best individuals from population
   archiveFitnessValues <- popFitnessValues[-worstPopIndices]
   archiveComplexityValues <- popComplexityValues[-worstPopIndices]
+  archiveAgeValues <- popAgeValues[-worstPopIndices]
+
+  allAgeValues <- c(popAgeValues, archiveAgeValues)
 
   ## Execute GP run...
   while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
@@ -466,7 +472,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     allIndividuals <- c(pop, archive)
     allFitnessValues <- c(popFitnessValues, archiveFitnessValues)
     allComplexityValues <- c(popComplexityValues, archiveComplexityValues)
-    worstIndices <- selectIndividualsForReplacement(allFitnessValues, allComplexityValues, 0,
+    worstIndices <- selectIndividualsForReplacement(allFitnessValues, allComplexityValues, allAgeValues,
                                                     enableComplexityCriterion, FALSE, # TODO add age criterion
                                                     ndsSelectionFunction, mu,
                                                     plotFront = plotFront)
@@ -480,7 +486,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
                          evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
       restartResult <- restartStrategy(fitnessFunction, pop, mu, functionSet, inputVariables, constantSet)
       pop <- restartResult[[1]]
-      logFunction("restarted run")
+      logFunction("restart")
     }
 
     timeElapsed <- proc.time()["elapsed"] - startTime
