@@ -51,7 +51,7 @@ crossoverFunction1 <- function(func1, func2, crossoverprob = 1,
 statistics1 <- NULL 
 startTime1 <- Sys.time()
 
-progressMonitor1 <- function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) {
+progressMonitor1 <- function(pop, objectiveVectors, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) {
   if (stepNumber %% 10 == 0) {
     message(sprintf("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %f",
                     stepNumber, evaluationNumber, bestFitness, timeElapsed))

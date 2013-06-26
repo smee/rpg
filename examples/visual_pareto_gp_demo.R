@@ -107,7 +107,8 @@ twiddleSymbolicRegression <- function(enableComplexityCriterion = FALSE,
   statistics <- NULL 
   startTime1 <- Sys.time()
 
-  pMon <- function(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) {
+  pMon <- function(pop, objectiveVectors, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) {
+    fitnessValues <- objectiveVectors$fitnessValues
     if (stepNumber %% 10 == 0) {
       message(sprintf("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %f",
                       stepNumber, evaluationNumber, bestFitness, timeElapsed))

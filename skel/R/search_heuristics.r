@@ -86,7 +86,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- 1 + evaluationNumber
-    progressMonitor(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
+    progressMonitor(pop, list(fitnessValues = fitnessValues), fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   }
   
   elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
@@ -179,7 +179,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- lambda + evaluationNumber
-    progressMonitor(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
+    progressMonitor(pop, list(fitnessValues = fitnessValues), fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   }
  
   elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
@@ -226,8 +226,6 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##'   population.
 ##' @param newIndividualFactory The factory function for creating new individuals. Defaults
 ##'   to \code{makePopulation}.
-##' @param plotFront Whether to plot the pareto front during GP runs (for monitoring
-##'   and debugging).
 ##' @return An RGP search heuristic.
 ##'
 ##' @export
@@ -241,8 +239,7 @@ makeAgeFitnessComplexityParetoGpSearchHeuristic <- function(lambda = 20,
                                                             ageMergeFunction = max,
                                                             newIndividualsPerGeneration = if (enableAgeCriterion) 2 else 0,
                                                             newIndividualsMaxDepth = 8,
-                                                            newIndividualFactory = makePopulation,
-                                                            plotFront = FALSE)
+                                                            newIndividualFactory = makePopulation)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
          functionSet, inputVariables, constantSet,
@@ -280,8 +277,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
       indicesToRemove <- selectIndividualsForReplacement(fitnessValues, complexityValues, ageValues,
                                                          enableComplexityCriterion, enableAgeCriterion,
                                                          ndsSelectionFunction,
-                                                         mu - (2 * lambda),
-                                                         plotFront = FALSE)
+                                                         mu - (2 * lambda))
       indicesToKeep <- setdiff(1:mu, indicesToRemove)
       indicesToKeep
     } else {
@@ -330,8 +326,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     poolIndicesToRemove <- selectIndividualsForReplacement(poolFitnessValues, poolComplexityValues, poolAgeValues,
                                                            enableComplexityCriterion, enableAgeCriterion,
                                                            ndsSelectionFunction,
-                                                           lambda + newIndividualsPerGeneration,
-                                                           plotFront = plotFront)
+                                                           lambda + newIndividualsPerGeneration)
 
     # Replace current population with next generation...
     pop <- pool[-poolIndicesToRemove]
@@ -354,7 +349,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- lambda + newIndividualsPerGeneration + evaluationNumber
-    progressMonitor(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
+    progressMonitor(pop, list(fitnessValues = poolFitnessValues, complexityValues = poolComplexityValues, ageValues = poolAgeValues), fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed, poolIndicesToRemove)
   }
  
   elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
@@ -394,8 +389,6 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##'   search heuristics.
 ##' @param complexityMeasure The complexity measure, a function of signature \code{function(ind, fitness)}
 ##'   returning a single numeric value.
-##' @param plotFront Whether to plot the pareto front during GP runs (for monitoring
-##'   and debugging).
 ##' @param ndsSelectionFunction The function to use for non-dominated sorting in Pareto GP selection.
 ##'   Defaults to \code{nds_cd_selection}.
 ##' @return An RGP search heuristic.
@@ -407,8 +400,7 @@ makeArchiveBasedParetoTournamentSearchHeuristic <- function(archiveSize = 50,
                                                             crossoverRate = 0.95,
                                                             enableComplexityCriterion = TRUE,
                                                             complexityMeasure = function(ind, fitness) funcVisitationLength(ind),
-                                                            ndsSelectionFunction = nds_cd_selection,
-                                                            plotFront = FALSE)
+                                                            ndsSelectionFunction = nds_cd_selection)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,
          functionSet, inputVariables, constantSet,
@@ -439,8 +431,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   ## Initialize archive with best individuals of population...
   worstPopIndices <- selectIndividualsForReplacement(popFitnessValues, popComplexityValues, popAgeValues,
                                                      enableComplexityCriterion, FALSE, # TODO add age criterion
-                                                     ndsSelectionFunction, mu - archiveSize,
-                                                     plotFront = plotFront)
+                                                     ndsSelectionFunction, mu - archiveSize)
   archive <- pop[-worstPopIndices] # initialize archive with best individuals from population
   archiveFitnessValues <- popFitnessValues[-worstPopIndices]
   archiveComplexityValues <- popComplexityValues[-worstPopIndices]
@@ -475,8 +466,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     allComplexityValues <- c(popComplexityValues, archiveComplexityValues)
     worstIndices <- selectIndividualsForReplacement(allFitnessValues, allComplexityValues, allAgeValues,
                                                     enableComplexityCriterion, FALSE, # TODO add age criterion
-                                                    ndsSelectionFunction, mu,
-                                                    plotFront = plotFront)
+                                                    ndsSelectionFunction, mu)
     archive <- allIndividuals[-worstIndices]
     archiveFitnessValues <- allFitnessValues[-worstIndices]
     archiveComplexityValues <- allComplexityValues[-worstIndices]
@@ -493,7 +483,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- mu + evaluationNumber
-    progressMonitor(pop, popFitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
+    progressMonitor(pop, list(fitnessValues = popFitnessValues, complexityValues = popComplexityValues, ageValues = popAgeValues), fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed)
   } # evolution main loop
  
   bestFitness <- min(archiveFitnessValues)
@@ -546,8 +536,7 @@ negativeTournament <- function(fitnessValues, popSize, tournamentSize) {
 selectIndividualsForReplacement <- function(fitnessValues, complexityValues, ageValues,
                                             enableComplexityCriterion, enableAgeCriterion,
                                             ndsSelectionFunction,
-                                            n,
-                                            plotFront = FALSE) {
+                                            n) {
   points <- if (enableAgeCriterion & enableComplexityCriterion)
     rbind(fitnessValues, complexityValues, ageValues)
   else if (enableComplexityCriterion)
@@ -563,29 +552,6 @@ selectIndividualsForReplacement <- function(fitnessValues, complexityValues, age
     # multi-criteral case
     ndsSelectionFunction(points, n)
   }
-  if (plotFront) {
-    ndsRanks <- nds_rank(points)
-    plotParetoFront(fitnessValues, complexityValues, ndsRanks, ageValues, indicesToRemove,
-                    xlab = "Fitness", ylab = "Complexity")
-  }
   return (indicesToRemove)
-}
-
-plotParetoFront <- function(x, y, ranks, ages, indicesToRemove,
-                            xlab = "X", ylab = "Y",
-                            maxAge = 50, dev = 3) {
-  ageColorScale <- colorRamp(c("#00FF00", "#006600","#0000FF", "#000000"))
-  rankOneXs <- x[ranks == 1]; rankOneYs <- y[ranks == 1]; rankOneAges <- ages[ranks == 1]
-  ageColorScaleIndex <- pmin(rankOneAges / maxAge, 1.0)
-  rankOneAgeColors <- rgb(ageColorScale(ageColorScaleIndex), maxColorValue = 255)
-
-  oldDev <- dev.cur()
-  dev.set(dev)
-  plot(rankOneXs, rankOneYs,
-       xlab = xlab, ylab = ylab,
-       col = rankOneAgeColors, pch = 19, main = "Pareto Plot")
-  points(x[ranks > 1], y[ranks > 1], col = "gray", pch = 1)
-  points(x[indicesToRemove], y[indicesToRemove], col = "red", pch = 4)
-  dev.set(oldDev)
 }
 

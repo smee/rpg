@@ -26,12 +26,14 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                       enableComplexityCriterion = FALSE,
                                       functionSetString = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")',
                                       lambda = 20,
+                                      crossoverProbability = 0.9,
                                       maxTimeMinutes = 15,
                                       newIndividualsPerGeneration = 2,
                                       populationSize = 100,
                                       subSamplingShare = 1.0,
                                       randomSeed = 1,
                                       plotFront = TRUE,
+                                      plotProgress = TRUE,
                                       testFunctionName = "Salutowicz1d") {
   set.seed(randomSeed)
 
@@ -67,11 +69,10 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
   #}
  
   searchHeuristic <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = lambda,
+                                                                     crossoverProbability = crossoverProbability,
                                                                      newIndividualsPerGeneration = newIndividualsPerGeneration,
                                                                      enableComplexityCriterion = enableComplexityCriterion,
-                                                                     enableAgeCriterion = enableAgeCriterion,
-                                                                     #newIndividualFactory = newIndividualFactory,
-                                                                     plotFront = plotFront)
+                                                                     enableAgeCriterion = enableAgeCriterion)
   
   mutationFunction <- function(ind) {
     subtreeMutantBody <- mutateSubtreeFast(body(ind), funSet, inVarSet, -1, 1, 0.33, 0.75, 1.0, 0.5, 2) 
@@ -101,17 +102,55 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
   testFunctionRange <- range(sampleFunction(testFunction$f, from = domainInterval[1], to = domainInterval[2], steps = 100))
 
   if (length(dev.list()) == 0) {
-    dev.new() # create device for pMon
-    if (plotFront) dev.new() # create device for plotParetoFront
+    dev.new() # create device for phenotype plot 
+    if (plotFront) dev.new() # create device for Pareto plot 
+    if (plotProgress) dev.new() # create device for progress plot
   }
 
   statistics <- NULL 
   startTime1 <- Sys.time()
+  fitnessHistory <- c()
+  complexityHistory <- c()
+  ageHistory <- c()
+  dominatedHypervolumeHistory <- c()
 
-  pMon <- function(pop, fitnessValues, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) {
+  pMon <- function(pop, objectiveVectors, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed, indicesToRemove) {
+    fitnessValues <- objectiveVectors$fitnessValues
+    if (plotFront) {
+      oldDev <- dev.cur()
+      dev.set(3)
+      plotParetoFront(objectiveVectors$fitnessValues, objectiveVectors$complexityValues, objectiveVectors$ageValues,
+                      indicesToRemove, main = "Selection Pool Pareto Plot",
+                      xlab = "Fitness (SRMSE)", ylab = "Complexity (Visitation Length)")
+      dev.set(oldDev)
+    }
     if (stepNumber %% 10 == 0) {
       message(sprintf("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %f",
                       stepNumber, evaluationNumber, bestFitness, timeElapsed))
+      if (plotProgress) {
+        points <- do.call(rbind, objectiveVectors)
+        finitePoints <- points[, !apply(is.infinite(points), 2, any)]
+        bestFitnessIndex <- which.min(objectiveVectors$fitnessValues)
+        fitnessHistory <<- c(fitnessHistory, objectiveVectors$fitnessValues[bestFitnessIndex])
+        complexityHistory <<- c(complexityHistory, objectiveVectors$complexityValues[bestFitnessIndex])
+        ageHistory <<- c(ageHistory, objectiveVectors$ageValues[bestFitnessIndex])
+        dominatedHypervolumeHistory <<- c(dominatedHypervolumeHistory, dominated_hypervolume(finitePoints))
+        generations <- 1:length(fitnessHistory) * 10
+        oldDev <- dev.cur()
+        dev.set(4)
+        oldPar <- par(no.readonly = TRUE)
+        layout(matrix(1:4, 4, 1, byrow = TRUE))
+        plot(generations, fitnessHistory, type = "l",
+             main = "Fittest Individual Fitness", xlab = "Generation", ylab = "Fitness (SRMSE)")
+        plot(generations, complexityHistory, type = "l", col = "red",
+             main = "Fittest Individual Complexity", xlab = "Generation", ylab = "Complexity (Visitation Length)")
+        plot(generations, ageHistory, type = "l", col = "green",
+             main = "Fittest Individual Age", xlab = "Generation", ylab = "Age (Generations)")
+        plot(generations, dominatedHypervolumeHistory, type = "l", col = "gray",
+             main = "Dominated Hypervolume", xlab = "Generation", ylab = "Hypervolume")
+        par(oldPar)
+        dev.set(oldDev)
+      }
     }
     if (stepNumber %% 50 == 0) {
       bestIndividual <- pop[order(fitnessValues)][[1]] 
@@ -179,11 +218,13 @@ rescaleIndividual <- function(ind, trueY, domainInterval, samples = 100) {
 }
 
 startVisualSr <- function() {
-  twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, functionSetString, lambda, maxTimeMinutes, newIndividualsPerGeneration, populationSize, subSamplingShare, randomSeed, plotFront, testFunctionName), eval = FALSE,
+  twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, functionSetString, lambda, crossoverProbability, maxTimeMinutes, newIndividualsPerGeneration, populationSize, subSamplingShare, randomSeed, plotFront, plotProgress, testFunctionName), eval = FALSE,
           testFunctionName = combo("Salutowicz1d", "UnwrappedBall1d", "DampedOscillator1d"),
           plotFront = toggle(default = TRUE),
+          plotProgress = toggle(default = TRUE),
           populationSize = knob(lim = c(1, 1000), default = 100, res = 1),
           lambda = knob(lim = c(1, 100), default = 20, res = 1),
+          crossoverProbability = knob(lim = c(0.0, 1.0), default = 0.9, res = .01),
           newIndividualsPerGeneration = knob(lim = c(1, 100), default = 2, res = 1),
           enableAgeCriterion = toggle(default = TRUE),
           enableComplexityCriterion = toggle(default = FALSE),
