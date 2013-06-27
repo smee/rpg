@@ -119,7 +119,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
     if (plotFront) {
       oldDev <- dev.cur()
       dev.set(3)
-      plotParetoFront(objectiveVectors$fitnessValues, objectiveVectors$complexityValues, objectiveVectors$ageValues,
+      plotParetoFront(objectiveVectors$poolFitnessValues, objectiveVectors$poolComplexityValues, objectiveVectors$poolAgeValues,
                       indicesToRemove, main = "Selection Pool Pareto Plot",
                       xlab = "Fitness (SRMSE)", ylab = "Complexity (Visitation Length)")
       dev.set(oldDev)
@@ -128,10 +128,10 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
       message(sprintf("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %f",
                       stepNumber, evaluationNumber, bestFitness, timeElapsed))
       if (plotProgress) {
-        points <- do.call(rbind, objectiveVectors)
+        points <- rbind(objectiveVectors$fitnessValues, objectiveVectors$complexityValues, objectiveVectors$ageValues)
         finitePoints <- points[, !apply(is.infinite(points), 2, any)]
         bestFitnessIndex <- which.min(objectiveVectors$fitnessValues)
-        fitnessHistory <<- c(fitnessHistory, objectiveVectors$fitnessValues[bestFitnessIndex])
+        fitnessHistory <<- c(fitnessHistory, log(objectiveVectors$fitnessValues[bestFitnessIndex]))
         complexityHistory <<- c(complexityHistory, objectiveVectors$complexityValues[bestFitnessIndex])
         ageHistory <<- c(ageHistory, objectiveVectors$ageValues[bestFitnessIndex])
         dominatedHypervolumeHistory <<- c(dominatedHypervolumeHistory, dominated_hypervolume(finitePoints))
@@ -141,7 +141,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
         oldPar <- par(no.readonly = TRUE)
         layout(matrix(1:4, 4, 1, byrow = TRUE))
         plot(generations, fitnessHistory, type = "l",
-             main = "Fittest Individual Fitness", xlab = "Generation", ylab = "Fitness (SRMSE)")
+             main = "Fittest Individual Fitness", xlab = "Generation", ylab = "Fitness (log SRMSE)")
         plot(generations, complexityHistory, type = "l", col = "red",
              main = "Fittest Individual Complexity", xlab = "Generation", ylab = "Complexity (Visitation Length)")
         plot(generations, ageHistory, type = "l", col = "green",

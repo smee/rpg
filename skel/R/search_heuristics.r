@@ -349,7 +349,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     timeElapsed <- proc.time()["elapsed"] - startTime
     stepNumber <- 1 + stepNumber
     evaluationNumber <- lambda + newIndividualsPerGeneration + evaluationNumber
-    progressMonitor(pop, list(fitnessValues = poolFitnessValues, complexityValues = poolComplexityValues, ageValues = poolAgeValues), fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed, poolIndicesToRemove)
+    progressMonitor(pop, list(fitnessValues = fitnessValues, complexityValues = complexityValues, ageValues = ageValues, poolFitnessValues = poolFitnessValues, poolComplexityValues = poolComplexityValues, poolAgeValues = poolAgeValues), fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed, poolIndicesToRemove)
   }
  
   elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
