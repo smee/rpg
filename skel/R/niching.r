@@ -111,7 +111,7 @@ multiNicheGeneticProgramming <- function(fitnessFunction,
   environment(quietProgmon) <- globalenv() # prevent a possible memory-leak
   progmon <-
     if (verbose) {
-      function(pop, fitnessVectors, fitnessFunction, evaluationNumber, stepNumber, bestFitness, timeElapsed, ...) {
+      function(pop, objectiveVectors, fitnessFunction, evaluationNumber, stepNumber, bestFitness, timeElapsed, ...) {
         if (!is.null(progressMonitor))
           progressMonitor(pop, objectiveVectors, fitnessFunction, evaluationNumber, stepNumber, bestFitness, timeElapsed, ...)
         if (stepNumber %% 100 == 0)

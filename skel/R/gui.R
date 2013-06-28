@@ -1,37 +1,61 @@
-#!/usr/bin/env Rscript
-#
-# visual_sr_demo.R
-# visual example for untyped RGP symbolic regression
-# 2011-13 Oiver Flasch
-#
+## gui.R
+##   - RGP GUIs 
+##
+## RGP - a GP system for R
+## 2010-13 Oliver Flasch (oliver.flasch@fh-koeln.de)
+## with contributions of Thomas Bartz-Beielstein, Olaf Mersmann and Joerg Stork
+## released under the GPL v2
+##
 
-require("twiddler")
-require("rgl")
-require("rgp")
+##' Symbolic Regression GUI 
+##'
+##' Shows the GUI for (untyped) symbolic regression. This GUI is limited to functions of one
+##' variable (1D function) as of now. See the documentation on \code{symbolicRegression}
+##' on how to perform symbolic regression for higher dimensional data.
+##' This function returns the symbolic regression result object after the user closes
+##' the GUI window.
+##'
+##' @return A symbolic regression result object.
+##' @export
+symbolicRegressionGui <- function() {
+  # init variables to make CRAN happy
+  enableAgeCriterion <- NULL; enableComplexityCriterion <- NULL; functionSetString <- NULL
+  lambda <- NULL; crossoverProbability <- NULL; maxTimeMinutes <- NULL
+  newIndividualsPerGeneration <- NULL; populationSize <- NULL
+  subSamplingShare <- NULL; randomSeed <- NULL
+  plotFront <- NULL; plotProgress <- NULL; targetFunctionName <- NULL
+  csvFileName <- NULL
+  twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion,
+                                    functionSetString, lambda, crossoverProbability, maxTimeMinutes,
+                                    newIndividualsPerGeneration, populationSize, subSamplingShare,
+                                    randomSeed, plotFront, plotProgress, targetFunctionName, csvFileName),
+          auto = FALSE, eval = FALSE, label = "RGP Symbolic Regression GUI",
+          targetFunctionName = combo("Salutowicz 1d", "Unwrapped Ball 1d", "Damped Oscillator 1d", "CSV File"),
+          csvFileName = filer(),
+          plotFront = toggle(default = TRUE),
+          plotProgress = toggle(default = TRUE),
+          populationSize = knob(lim = c(1, 1000), default = 100, res = 1),
+          lambda = knob(lim = c(1, 100), default = 20, res = 1),
+          crossoverProbability = knob(lim = c(0.0, 1.0), default = 0.9, res = .01),
+          newIndividualsPerGeneration = knob(lim = c(1, 100), default = 2, res = 1),
+          enableAgeCriterion = toggle(default = TRUE),
+          enableComplexityCriterion = toggle(default = FALSE),
+          functionSetString = entry(default = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")'),
+          subSamplingShare = knob(lim = c(0.01, 1.0), default = 1.0, res = 0.01),
+          randomSeed = knob(lim = c(1, 1000), res = 1),
+          maxTimeMinutes = knob(lim = c(0.1, 30), res = 0.1))
+}
 
-
-# define test functions...
+# Test target functions...
 #
 defineTargetFunction <- function(f, domainInterval = c(0, 1), dim = 1, samples = 100)
   structure(list(f = f, domainInterval = domainInterval, dim = dim, samples = samples), class = "targetFunction")
-
-makeDataFrameTargetFunction <- function(dataFrame) {
-  stopifnot(ncol(dataFrame) == 2)
-  defineTargetFunction(f = approxfun(x = dataFrame[[1]], y = dataFrame[[2]], rule = 1),
-                       domainInterval = as.numeric(range(dataFrame[[1]])),
-                       dim = 1,
-                       samples = nrow(dataFrame))
-}
-
-makeCsvFileTargetFunction <- function(csvFileName)
-  makeDataFrameTargetFunction(read.csv(csvFileName))
 
 Salutowicz1d <- defineTargetFunction(function(x) exp(-1*x)*x*x*x*sin(x)*cos(x)*(sin(x)*sin(x)*cos(x)-1), c(0, 10))
 UnwrappedBall1d <- defineTargetFunction(function(x) 10/((x - 3)*(x - 3) + 5), c(-10, 10))
 DampedOscillator1d <- defineTargetFunction(function(x) 1.5 * exp(-0.5 * x) * sin(pi * x + pi), c(0, 10))
 
-
-# main symbolic regression driver function for twiddler...
+# Symbolic regression driver function for twiddler...
 #
 twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                       enableComplexityCriterion = FALSE,
@@ -47,7 +71,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                       plotProgress = TRUE,
                                       targetFunctionName = "Salutowicz 1d",
                                       csvFileName = "") {
-  system(sprintf("afplay -t %d ./data/gp_music.mp4", as.integer(maxTimeMinutes * 60)), wait = FALSE) # TODO playing music may lead to better GP run results
+  system(sprintf("afplay -t %d ~/repos/rgp/examples/data/gp_music.mp4", as.integer(maxTimeMinutes * 60)), wait = FALSE) # TODO playing music may lead to better GP results
 
   set.seed(randomSeed)
 
@@ -218,6 +242,15 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
 
 # Tool functions...
 #
+makeDataFrameTargetFunction <- function(dataFrame) {
+  stopifnot(ncol(dataFrame) == 2)
+  defineTargetFunction(f = approxfun(x = dataFrame[[1]], y = dataFrame[[2]], rule = 1),
+                       domainInterval = as.numeric(range(dataFrame[[1]])),
+                       dim = 1,
+                       samples = nrow(dataFrame))
+}
+
+makeCsvFileTargetFunction <- function(csvFileName) makeDataFrameTargetFunction(read.csv(csvFileName))
 rescaleIndividual <- function(ind, trueY, domainInterval, samples = 100) {
   indX <- seq(from = domainInterval[1], to = domainInterval[2], length.out = samples)
   indY <- ind(indX)
@@ -226,26 +259,3 @@ rescaleIndividual <- function(ind, trueY, domainInterval, samples = 100) {
   function(x1) a + b * ind(x1)
 }
 
-symbolicRegressionGui <- function() {
-  twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, functionSetString, lambda, crossoverProbability, maxTimeMinutes, newIndividualsPerGeneration, populationSize, subSamplingShare, randomSeed, plotFront, plotProgress, targetFunctionName, csvFileName), eval = FALSE, label = "RGP Visual Symbolic Regression",
-          targetFunctionName = combo("Salutowicz 1d", "Unwrapped Ball 1d", "Damped Oscillator 1d", "CSV File"),
-          csvFileName = filer(),
-          plotFront = toggle(default = TRUE),
-          plotProgress = toggle(default = TRUE),
-          populationSize = knob(lim = c(1, 1000), default = 100, res = 1),
-          lambda = knob(lim = c(1, 100), default = 20, res = 1),
-          crossoverProbability = knob(lim = c(0.0, 1.0), default = 0.9, res = .01),
-          newIndividualsPerGeneration = knob(lim = c(1, 100), default = 2, res = 1),
-          enableAgeCriterion = toggle(default = TRUE),
-          enableComplexityCriterion = toggle(default = FALSE),
-          functionSetString = entry(default = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")'),
-          subSamplingShare = knob(lim = c(0.01, 1.0), default = 1.0, res = 0.01),
-          randomSeed = knob(lim = c(1, 1000), res = 1),
-          maxTimeMinutes = knob(lim = c(0.1, 30), res = 0.1))
-}
-
-# Main entry point...
-#
-symbolicRegressionGui()
-
-# EOF
