@@ -12,12 +12,23 @@ require("rgp")
 
 # define test functions...
 #
-defineTestFunction <- function(f, domainInterval = c(0, 1), samples = 100)
-  structure(list(f = f, domainInterval = domainInterval, samples = samples), class = "testFunction")
+defineTargetFunction <- function(f, domainInterval = c(0, 1), dim = 1, samples = 100)
+  structure(list(f = f, domainInterval = domainInterval, dim = dim, samples = samples), class = "targetFunction")
 
-Salutowicz1d <- defineTestFunction(function(x) exp(-1*x)*x*x*x*sin(x)*cos(x)*(sin(x)*sin(x)*cos(x)-1), c(0, 10))
-UnwrappedBall1d <- defineTestFunction(function(x) 10/((x - 3)*(x - 3) + 5), c(-10, 10))
-DampedOscillator1d <- defineTestFunction(function(x) 1.5 * exp(-0.5 * x) * sin(pi * x + pi), c(0, 10))
+makeDataFrameTargetFunction <- function(dataFrame) {
+  stopifnot(ncol(dataFrame) == 2)
+  defineTargetFunction(f = approxfun(x = dataFrame[[1]], y = dataFrame[[2]], rule = 1),
+                       domainInterval = as.numeric(range(dataFrame[[1]])),
+                       dim = 1,
+                       samples = nrow(dataFrame))
+}
+
+makeCsvFileTargetFunction <- function(csvFileName)
+  makeDataFrameTargetFunction(read.csv(csvFileName))
+
+Salutowicz1d <- defineTargetFunction(function(x) exp(-1*x)*x*x*x*sin(x)*cos(x)*(sin(x)*sin(x)*cos(x)-1), c(0, 10))
+UnwrappedBall1d <- defineTargetFunction(function(x) 10/((x - 3)*(x - 3) + 5), c(-10, 10))
+DampedOscillator1d <- defineTargetFunction(function(x) 1.5 * exp(-0.5 * x) * sin(pi * x + pi), c(0, 10))
 
 
 # main symbolic regression driver function for twiddler...
@@ -34,18 +45,20 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                       randomSeed = 1,
                                       plotFront = TRUE,
                                       plotProgress = TRUE,
-                                      testFunctionName = "Salutowicz1d") {
+                                      targetFunctionName = "Salutowicz 1d",
+                                      csvFileName = "") {
   set.seed(randomSeed)
 
-  testFunction <- switch(testFunctionName,
-                         "DampedOscillator1d" = DampedOscillator1d,
-                         "Salutowicz1d" = Salutowicz1d,
-                         "UnwrappedBall1d" = UnwrappedBall1d,
-                         stop("twiddleSymbolicRegression: unkown test function name: ", testFunctionName))
-  domainInterval <- testFunction$domainInterval
-  testFunctionSamplePoints <- seq(from = domainInterval[1], to = domainInterval[2],
-                                  length.out = testFunction$samples)
-  fitnessCases <- data.frame(x1 = testFunctionSamplePoints, y = testFunction$f(testFunctionSamplePoints))
+  targetFunction <- switch(targetFunctionName,
+                         "Damped Oscillator 1d" = DampedOscillator1d,
+                         "Salutowicz 1d" = Salutowicz1d,
+                         "Unwrapped Ball 1d" = UnwrappedBall1d,
+                         "CSV File" = makeCsvFileTargetFunction(csvFileName),
+                         stop("twiddleSymbolicRegression: unkown test function name: ", targetFunctionName))
+  domainInterval <- targetFunction$domainInterval
+  targetFunctionSamplePoints <- seq(from = domainInterval[1], to = domainInterval[2],
+                                  length.out = targetFunction$samples)
+  fitnessCases <- data.frame(x1 = targetFunctionSamplePoints, y = targetFunction$f(targetFunctionSamplePoints))
 
   funSet <- do.call(functionSet, as.list(eval(parse(text = functionSetString))))
   inVarSet <- inputVariableSet("x1")
@@ -99,7 +112,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
     ys
   }
 
-  testFunctionRange <- range(sampleFunction(testFunction$f, from = domainInterval[1], to = domainInterval[2], steps = 100))
+  targetFunctionRange <- range(sampleFunction(targetFunction$f, from = domainInterval[1], to = domainInterval[2], steps = 100))
 
   if (length(dev.list()) == 0) {
     dev.new() # create device for phenotype plot 
@@ -114,7 +127,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
   ageHistory <- c()
   dominatedHypervolumeHistory <- c()
 
-  pMon <- function(pop, objectiveVectors, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed, indicesToRemove) {
+  progressMonitor <- function(pop, objectiveVectors, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed, indicesToRemove) {
     fitnessValues <- objectiveVectors$fitnessValues
     if (plotFront) {
       oldDev <- dev.cur()
@@ -158,8 +171,8 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
       message("current best individual (not rescaled):")
       message(sprintf(" %s", deparse(bestIndividual)))
       dev.set(2)
-      plotFunctions(list(testFunction$f, rescaledBestIndividual, bestIndividual), from = domainInterval[1], to = domainInterval[2], steps = 100,
-                    ylim = testFunctionRange,
+      plotFunctions(list(targetFunction$f, rescaledBestIndividual, bestIndividual), from = domainInterval[1], to = domainInterval[2], steps = 100,
+                    ylim = targetFunctionRange,
                     main = "Current Best Solution vs. True Function",
                     sub = sprintf("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %f",
                                   stepNumber, evaluationNumber, bestFitness, timeElapsed))
@@ -195,7 +208,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                            searchHeuristic = searchHeuristic,
                            envir = environment(), # TODO
                            verbose = TRUE,
-                           progressMonitor = pMon)
+                           progressMonitor = progressMonitor)
 
   #quartz()
   #old.par <- par(mfcol = c(2, 1))
@@ -218,8 +231,9 @@ rescaleIndividual <- function(ind, trueY, domainInterval, samples = 100) {
 }
 
 startVisualSr <- function() {
-  twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, functionSetString, lambda, crossoverProbability, maxTimeMinutes, newIndividualsPerGeneration, populationSize, subSamplingShare, randomSeed, plotFront, plotProgress, testFunctionName), eval = FALSE,
-          testFunctionName = combo("Salutowicz1d", "UnwrappedBall1d", "DampedOscillator1d"),
+  twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, functionSetString, lambda, crossoverProbability, maxTimeMinutes, newIndividualsPerGeneration, populationSize, subSamplingShare, randomSeed, plotFront, plotProgress, targetFunctionName, csvFileName), eval = FALSE, label = "Visual Symbolic Regression with RGP",
+          targetFunctionName = combo("Salutowicz 1d", "UnwrappedBall 1d", "DampedOscillator 1d", "CSV File"),
+          csvFileName = filer(),
           plotFront = toggle(default = TRUE),
           plotProgress = toggle(default = TRUE),
           populationSize = knob(lim = c(1, 1000), default = 100, res = 1),
