@@ -125,7 +125,8 @@ twiddleInitialPopulationObjectiveSpaceStatistics <- function(targetFunctionName 
     oldPar <- par(no.readonly = TRUE)
     par(mfrow = c(2, 1))
     hist(populationFitnessValues, xlab = "Fitness (SRMSE)", main = "Histogram of Population Fitness Values")
-    hist(populationComplexityValues, xlab = "Complexity (Visitation Length)", main = "Histogram of Population Complexity Values")
+    hist(if (removeInfFitnessValues) populationComplexityValues[!is.na(populationFitnessValuesNA)] else  populationComplexityValues, 
+         xlab = "Complexity (Visitation Length)", main = "Histogram of Population Complexity Values")
 #TODO
     par(oldPar)
     dev.set(oldDev)
