@@ -109,8 +109,10 @@ twiddleInitialPopulationObjectiveSpaceStatistics <- function(targetFunctionName 
          main = "Population Pareto Plot", pch = 20, col = alpha(col, 0.1),
          xlab = "Fitness (SRMSE)", ylab = "Complexity (Visitation Length)")
     legend("topleft",
-           c(paste("Fitness = +Inf (", numberOfInfFitnessValues / length(populationFitnessValues) * 100, " %)", sep = "")),
-           pch = 20, col = c("red"))
+           c(paste("Fitness = +Inf (", numberOfInfFitnessValues / length(populationFitnessValues) * 100, " %)", sep = ""),
+             paste("Fitness Mean = ", round(mean(populationFitnessValuesNA, na.rm = TRUE), digits = 4),
+                   " Complexity Mean = ", round(mean(populationComplexityValues), digits = 4), sep = "")),
+           pch = 20, col = c("red", "black"))
     dev.set(oldDev)
   }
   if (plotHistograms) {
