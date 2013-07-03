@@ -111,8 +111,12 @@ twiddleInitialPopulationObjectiveSpaceStatistics <- function(targetFunctionName 
     legend("topleft",
            c(paste("Fitness = +Inf (", numberOfInfFitnessValues / length(populationFitnessValues) * 100, " %)", sep = ""),
              paste("Fitness Mean = ", round(mean(populationFitnessValuesNA, na.rm = TRUE), digits = 4),
-                   " Complexity Mean = ", round(mean(populationComplexityValues), digits = 4), sep = "")),
-           pch = 20, col = c("red", "black"))
+                   " Complexity Mean = ", round(mean(y), digits = 4), sep = ""),
+             paste("Fitness SD = ", round(sd(populationFitnessValuesNA, na.rm = TRUE), digits = 4),
+                   " Complexity SD = ", round(sd(y), digits = 4), sep = ""),
+             paste("Fitness Median = ", round(median(populationFitnessValuesNA, na.rm = TRUE), digits = 4),
+                   " Complexity Median = ", round(median(y), digits = 4), sep = "")),
+           pch = 20, col = c("red", "black", "black", "black"))
     dev.set(oldDev)
   }
   if (plotHistograms) {
