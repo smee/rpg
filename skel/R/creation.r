@@ -47,7 +47,7 @@ randexprGrow <- function(funcset, inset, conset,
   } else { # create terminal
     if (runif(1) <= constprob) { # create constant
       constfactoryName <- randelt(conset$all, prob = attr(conset$all, "probabilityWeight"))
-      constfactory <- eval(constfactoryName)
+      constfactory <- if (is.function(constfactoryName)) constfactoryName else get(constfactoryName)
       constfactory()
     } else { # create input variable
       toName(randelt(inset$all, prob = attr(inset$all, "probabilityWeight")))
@@ -222,14 +222,14 @@ randterminalTyped <- function(typeString, inset, conset, constprob) {
   if (runif(1) <= constprob) { # create constant of correct type
     constfactoryName <- randelt(conset$byRange[[typeString]], prob = attr(conset$byRange[[typeString]], "probabilityWeight"))
     if (is.null(constfactoryName)) stop("randterminalTyped: Could not find a constant factory for type ", typeString, ".")
-    constfactory <- eval(constfactoryName)
+    constfactory <- get(as.character(constfactoryName))
     constfactory()
   } else { # create input variable of correct type
     invar <- toName(randelt(inset$byRange[[typeString]], prob = attr(inset$byRange[[typeString]], "probabilityWeight")))
     if (is.null(invar)) { # there are no input variables of the requested type, try to create a contant instead
       constfactoryName <- randelt(conset$byRange[[typeString]], prob = attr(conset$byRange[[typeString]], "probabilityWeight"))
       if (is.null(constfactoryName)) stop("randterminalTyped: Could not find an input variable or constant factory for type ", typeString, ".")
-      constfactory <- eval(constfactoryName)
+      constfactory <- get(as.character(constfactoryName))
       constfactory()
     } else {
       invar
