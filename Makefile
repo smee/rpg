@@ -42,6 +42,7 @@ macros:
 	m4 codegen/evaluate_language_expression.m4 > playground/evaluate_language_expression.h
 	echo "DONE."
 
+# TODO production C-code now lives in skel/src
 shlibs: macros
 	echo "Buiding shared libraries of C-based components..."
 	"$(R_HOME)/bin/R" CMD SHLIB playground/evolution.c playground/selection.c playground/mutate_function.c playground/create_expr_tree.c playground/eval_vectorized.c playground/population.c
