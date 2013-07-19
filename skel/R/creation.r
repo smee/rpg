@@ -165,7 +165,7 @@ randexprTypedGrow <- function(type, funcset, inset, conset,
 randexprTypedFull <- function(type, funcset, inset, conset,
                               maxdepth = 8,
                               constprob = 0.2) {
-  randexprTypedGrow(type, funcset, inset, conset, maxdepth, constprob, 1.0)
+  randexprTypedGrow(type, funcset, inset, conset, maxdepth = maxdepth, constprob = constprob, subtreeprob = 1.0)
 }
 
 ##' Creates a well-typed R function with a random expression as its body
@@ -204,10 +204,10 @@ randfuncTypedRampedHalfAndHalf <- function(type, funcset, inset, conset, maxdept
                                            breedingFitness = function(individual) TRUE,
                                            breedingTries = 50) {
   if (runif(1) > 0.5)
-    randfuncTyped(type, funcset, inset, conset, maxdepth, exprfactory = randexprTypedFull, constprob = constprob,
+    randfuncTyped(type, funcset, inset, conset, maxdepth = maxdepth, constprob = constprob, exprfactory = randexprTypedFull,
                   breedingFitness = breedingFitness, breedingTries = breedingTries)
   else
-    randfuncTyped(type, funcset, inset, conset, maxdepth, exprfactory = randexprTypedGrow, constprob = constprob,
+    randfuncTyped(type, funcset, inset, conset, maxdepth = maxdepth, constprob = constprob, exprfactory = randexprTypedGrow,
                   breedingFitness = breedingFitness, breedingTries = breedingTries)
 }
 

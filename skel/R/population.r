@@ -80,7 +80,7 @@ makeTypedPopulation <- function(size, type, funcset, inset, conset,
                                 breedingTries = 50,
                                 extinctionPrevention = FALSE,
                                 funcfactory = NULL) {
-  if (is.null(funcfactory)) {
+  funcfactory <- if (is.null(funcfactory)) {
     function() randfuncTypedRampedHalfAndHalf(type, funcset, inset, conset,
                                               maxfuncdepth, constprob = constprob,
                                               breedingFitness = breedingFitness, breedingTries = breedingTries)
