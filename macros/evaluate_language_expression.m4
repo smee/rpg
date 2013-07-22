@@ -559,7 +559,7 @@ static R_INLINE void evaluate_language_expression(SEXP s_expr,
     const R_len_t samples = context->samples;
 
     *out_is_scalar_result = 0; // out_result is a vector by default
-    
+
 include(`macros/function_definitions.m4')dnl
     eval_vectorized_fallback(s_expr, context, out_result);
     return;

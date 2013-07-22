@@ -188,7 +188,7 @@ SEXP eval_vectorized(SEXP rFunction, SEXP actualParameters, int keepIntermediate
   UNPROTECT(1 + 4); // 4 are PROTECTed in "initialize_eval_vectorized_context"
   
   if (keepIntermediateResults) {
-      const int numberOfIntermediateResults = length(context.outIntermediateResults);
+      const R_len_t numberOfIntermediateResults = length(context.outIntermediateResults);
       UNPROTECT(numberOfIntermediateResults); // intermediate result vectors are protected on creation
       return context.outIntermediateResults;
   } else
