@@ -14,7 +14,7 @@ usage:
 	echo "  distclean - Clean up and remove all generated artifacts."
 	echo "  help      - Show this message."
 	echo "  install   - Install the package, writing the output into install.log."
-	echo "  macros    - Generate code from m4 macros in codegen/ into skel/."
+	echo "  m4macros  - Generate code from m4 macros in macros/ into skel/."
 	echo "  package   - Build source package of last commit."
 	echo "  roxygen   - Roxygenize skel/ into pkg/."
 	echo "  shlibs    - Build shared libraries of C-based components (for interactive testing)."
@@ -37,18 +37,18 @@ check: clean roxygen
 	"$(R_HOME)/bin/R" CMD check --as-cran pkg && rm -fR pkg.Rcheck
 	echo "DONE."
 
-macros:
+m4macros:
 	echo "Generating code from m4 macros..."
-	m4 codegen/evaluate_language_expression.m4 > skel/src/evaluate_language_expression.h
+	m4 macros/evaluate_language_expression.m4 > skel/src/evaluate_language_expression.h
 	echo "DONE."
 
 # TODO production C-code now lives in skel/src
-shlibs: macros
+shlibs: m4macros
 	echo "Buiding shared libraries of C-based components..."
 	"$(R_HOME)/bin/R" CMD SHLIB playground/evolution.c playground/selection.c playground/mutate_function.c playground/create_expr_tree.c playground/population.c
 	echo "DONE."
 
-roxygen: macros
+roxygen: m4macros
 	echo "Roxygenizing package..."
 	./roxygenize > roxygen.log 2>&1 || cat roxygen.log
 	echo "DONE."

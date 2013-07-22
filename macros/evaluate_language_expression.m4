@@ -9,7 +9,7 @@ define(`_forloop',
   `$0(`$1', incr(`$2'), `$3', `$4')')')dnl
 dnl
 dnl ---------------------------------------------------- language SEXP evaluator
-/* !!! Automatically generated from codegen/evaluate_language_expression.m4.
+/* !!! Automatically generated from macros/evaluate_language_expression.m4.
  * !!! Do not modify this generated code, as all changes will be overwritten.
  * !!! START OF GENERATED CODE
  */
@@ -235,7 +235,7 @@ static R_INLINE void evaluate_language_expression(SEXP s_expr,
 
     *out_is_scalar_result = 0; // out_result is a vector by default
     
-include(`codegen/function_definitions.m4')dnl
+include(`macros/function_definitions.m4')dnl
     eval_vectorized_fallback(s_expr, context, out_result);
     return;
 }

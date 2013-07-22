@@ -75,8 +75,8 @@ static R_INLINE void eval_vectorized_fallback(SEXP rExpr,
 #include "evaluate_language_expression.h"
 
 void eval_vectorized_recursive(SEXP rExpr, 
-                             struct EvalVectorizedContext *context, 
-                             double *out_result) {
+                               struct EvalVectorizedContext *context, 
+                               double *out_result) {
     const int samples = context->samples;
     /* Composite R expression: */
     if (isLanguage(rExpr)) {
@@ -118,9 +118,9 @@ void eval_vectorized_recursive(SEXP rExpr,
     }
 }
 
-void initializeEvalVectorizedContext(SEXP rFunction, 
-                                     SEXP actualParameters, 
-                                     struct EvalVectorizedContext *contextOut) {
+void initialize_eval_vectorized_context(SEXP rFunction, 
+                                        SEXP actualParameters, 
+                                        struct EvalVectorizedContext *contextOut) {
     SEXP rFormals, rFormalNames;
     
     PROTECT(rFormals = FORMALS(rFunction));
@@ -142,19 +142,19 @@ void initializeEvalVectorizedContext(SEXP rFunction,
 
 SEXP eval_vectorized(SEXP rFunction, SEXP actualParameters) {
   struct EvalVectorizedContext context;
-  initializeEvalVectorizedContext(rFunction, actualParameters, &context);
+  initialize_eval_vectorized_context(rFunction, actualParameters, &context);
   
   SEXP rResult;
   PROTECT(rResult = allocVector(REALSXP, context.samples));  
   double *result = REAL(rResult);
   eval_vectorized_recursive(BODY(rFunction), &context, result);
-  UNPROTECT(1);
+  UNPROTECT(1 + 4); // 4 are PROTECTed in "initialize_eval_vectorized_context"
   return rResult;
 }
 
 SEXP eval_vectorized_rmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues, double * bestRMSE) {
   struct EvalVectorizedContext context;
-  initializeEvalVectorizedContext(rFunction, actualParameters, &context);
+  initialize_eval_vectorized_context(rFunction, actualParameters, &context);
   double result[context.samples];
   
   eval_vectorized_recursive(BODY(rFunction), &context, result);
