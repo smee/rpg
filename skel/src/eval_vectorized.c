@@ -39,7 +39,7 @@ static R_INLINE void eval_vectorized_fallback(SEXP rExpr,
   //PROTECT(rExpr= coerceVector(rExpr, VECSXP));
   //const int arity = LENGTH(rExpr) - 1;
   const int samples = context->samples;
-  //Rprintf("fallback to eval for function of arity %d\n", arity); // TODO
+  //Rprintf("fallback to eval for function of arity %d\n", arity);
   int argIdx; // argument index
   SEXP argItor; // argument iterator
   SEXP call; // call object, initialized with function name
@@ -63,10 +63,23 @@ static R_INLINE void eval_vectorized_fallback(SEXP rExpr,
   
   // evaluate rExpr via R's evaluator...
   SEXP result = PROTECT(eval(call, env));
+  double *resultData = REAL(result);
   for (int i = 0; i < samples; i++) {
-      /* TODO this will of course fail miserably for results of other
+      /* this will of course fail miserably for results of other
        * type than real */
-      out_result[i] = REAL(result)[i]; 
+      out_result[i] = resultData[i]; 
+  }
+  if (context->keepIntermediateResults) {
+      SEXP intermediateResult;
+      PROTECT(intermediateResult = allocVector(REALSXP, samples));
+      double *intermediateResultData = REAL(intermediateResult);
+      memcpy(intermediateResultData, out_result, samples * sizeof(double));
+      context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+      UNPROTECT(1);
+      //Rprintf("0) intermediate result: ");
+      //for (int i = 0; i < samples; i++)
+      //    Rprintf("%f ", out_result[i]);
+      //Rprintf("\n");
   }
   UNPROTECT(2 + 1);//arity);
   return;
