@@ -36,11 +36,9 @@ void eval_vectorized_recursive(SEXP rExpr,
 static R_INLINE void eval_vectorized_fallback(SEXP rExpr, 
                                               struct EvalVectorizedContext *context, 
                                               double *out_result) {
-  //PROTECT(rExpr= coerceVector(rExpr, VECSXP));
-  //const int arity = LENGTH(rExpr) - 1;
   const int samples = context->samples;
-  //Rprintf("fallback to eval for function of arity %d\n", arity);
-  int argIdx; // argument index
+  Rprintf("eval_vectorized_fallback for function %s\n", CHAR(PRINTNAME(CAR(rExpr))));
+  int argIndex; // argument index
   SEXP argItor; // argument iterator
   SEXP call; // call object, initialized with function name
   SEXP callRev, env;
@@ -48,9 +46,9 @@ static R_INLINE void eval_vectorized_fallback(SEXP rExpr,
   PROTECT(env = make_environment(R_GlobalEnv)); // fresh R environment for holding argument values
   
   // evaluate the arguments with eval_vectorized_recursive...
-  for (argItor = CDR(rExpr), argIdx = 0; !isNull(argItor); argItor = CDR(argItor), argIdx++) {
+  for (argItor = CDR(rExpr), argIndex = 0; !isNull(argItor); argItor = CDR(argItor), argIndex++) {
       SEXP argName;
-      PROTECT(argName = make_fresh_symbol(argIdx, env));
+      PROTECT(argName = make_fresh_symbol(argIndex, env));
       SEXP argVal;
       PROTECT(argVal = allocVector(REALSXP, samples));
       eval_vectorized_recursive(CAR(argItor), context, REAL(argVal));
@@ -75,13 +73,12 @@ static R_INLINE void eval_vectorized_fallback(SEXP rExpr,
       double *intermediateResultData = REAL(intermediateResult);
       memcpy(intermediateResultData, out_result, samples * sizeof(double));
       context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-      UNPROTECT(1);
       //Rprintf("0) intermediate result: ");
       //for (int i = 0; i < samples; i++)
       //    Rprintf("%f ", out_result[i]);
       //Rprintf("\n");
   }
-  UNPROTECT(2 + 1);//arity);
+  UNPROTECT(3 + argIndex * 2);
   return;
 }
 
@@ -118,7 +115,6 @@ void eval_vectorized_recursive(SEXP rExpr,
                 double *intermediateResultData = REAL(intermediateResult);
                 memcpy(intermediateResultData, out_result, samples * sizeof(double));
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("1) intermediate result: ");
                 //for (int i = 0; i < samples; i++)
                 //    Rprintf("%f ", out_result[i]);
@@ -140,7 +136,6 @@ void eval_vectorized_recursive(SEXP rExpr,
                         double *intermediateResultData = REAL(intermediateResult);
                         memcpy(intermediateResultData, out_result, samples * sizeof(double));
                         context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                        UNPROTECT(1);
                         //Rprintf("2) intermediate result: ");
                         //for (int i = 0; i < samples; i++)
                         //    Rprintf("%f ", out_result[i]);
@@ -193,6 +188,8 @@ SEXP eval_vectorized(SEXP rFunction, SEXP actualParameters, int keepIntermediate
   UNPROTECT(1 + 4); // 4 are PROTECTed in "initialize_eval_vectorized_context"
   
   if (keepIntermediateResults) {
+      const int numberOfIntermediateResults = length(context.outIntermediateResults);
+      UNPROTECT(numberOfIntermediateResults); // intermediate result vectors are protected on creation
       return context.outIntermediateResults;
   } else
       return rResult;

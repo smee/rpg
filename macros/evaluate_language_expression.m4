@@ -47,7 +47,6 @@ dnl double qoute to avoid a problem with "(" as a unary function symbol
                 double *intermediateResultData = REAL(intermediateResult);
                 intermediateResultData[0] = REAL(s_arg)[0];
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("3.1) intermediate result: ");
                 //for (int i = 0; i < samples; i++)
                 //    Rprintf("%f ", REAL(s_arg)[0]);
@@ -56,7 +55,6 @@ dnl double qoute to avoid a problem with "(" as a unary function symbol
                 intermediateResultData = REAL(intermediateResult);
                 memcpy(intermediateResultData, out_result, samples * sizeof(double));
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("3.2) intermediate result: ");
                 //for (int i = 0; i < samples; i++)
                 //    Rprintf("%f ", out_result[i]);
@@ -73,7 +71,6 @@ dnl double qoute to avoid a problem with "(" as a unary function symbol
                 double *intermediateResultData = REAL(intermediateResult);
                 memcpy(intermediateResultData, value, samples * sizeof(double));
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("4.1) intermediate result: ");
                 //for (int i = 0; i < samples; i++)
                 //    Rprintf("%f ", value[i]);
@@ -82,7 +79,6 @@ dnl double qoute to avoid a problem with "(" as a unary function symbol
                 intermediateResultData = REAL(intermediateResult);
                 memcpy(intermediateResultData, out_result, samples * sizeof(double));
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("4.2) intermediate result: ");
                 //for (int i = 0; i < samples; i++)
                 //    Rprintf("%f ", out_result[i]);
@@ -100,7 +96,6 @@ dnl double qoute to avoid a problem with "(" as a unary function symbol
                     double *intermediateResultData = REAL(intermediateResult);
                     intermediateResultData[0] = out_result[0];
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("5) intermediate result: %f\n", out_result[0]);
                 }
             } else {
@@ -112,7 +107,6 @@ dnl double qoute to avoid a problem with "(" as a unary function symbol
                     double *intermediateResultData = REAL(intermediateResult);
                     memcpy(intermediateResultData, out_result, samples * sizeof(double));
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("6) intermediate result: ");
                     //for (int i = 0; i < samples; i++)
                     //    Rprintf("%f ", out_result[i]);
@@ -160,19 +154,16 @@ define(`_DEFINITION', `$2')dnl
                 double *intermediateResultData = REAL(intermediateResult);
                 intermediateResultData[0] = value1;
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("7.1) intermediate result: %f\n", value1);
                 PROTECT(intermediateResult = allocVector(REALSXP, 1));
                 intermediateResultData = REAL(intermediateResult);
                 intermediateResultData[0] = value2;
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("7.2) intermediate result: %f\n", value2);
                 PROTECT(intermediateResult = allocVector(REALSXP, 1));
                 intermediateResultData = REAL(intermediateResult);
                 intermediateResultData[0] = out_result[0];
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("7.3) intermediate result: %f\n", out_result[0]);
             }
         } else if (isNumeric(s_arg1) && isSymbol(s_arg2)) {
@@ -187,13 +178,11 @@ define(`_DEFINITION', `$2')dnl
                 double *intermediateResultData = REAL(intermediateResult);
                 intermediateResultData[0] = value1;
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("8.1) intermediate result: %f\n", value1);
                 PROTECT(intermediateResult = allocVector(REALSXP, samples));
                 intermediateResultData = REAL(intermediateResult);
                 memcpy(intermediateResultData, value2, samples * sizeof(double));
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("8.2) intermediate result: ");
                 //for (int i = 0; i < samples; i++)
                 //    Rprintf("%f ", value2[i]);
@@ -202,7 +191,6 @@ define(`_DEFINITION', `$2')dnl
                 intermediateResultData = REAL(intermediateResult);
                 memcpy(intermediateResultData, out_result, samples * sizeof(double));
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("8.3) intermediate result: ");
                 //for (int i = 0; i < samples; i++)
                 //    Rprintf("%f ", out_result[i]);
@@ -221,13 +209,11 @@ define(`_DEFINITION', `$2')dnl
                     double *intermediateResultData = REAL(intermediateResult);
                     intermediateResultData[0] = value1;
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("9.1) intermediate result: %f\n", value1);
                     PROTECT(intermediateResult = allocVector(REALSXP, 1));
                     intermediateResultData = REAL(intermediateResult);
                     intermediateResultData[0] = out_result[0];
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("9.2) intermediate result: %f\n", out_result[0]);
                 }
             } else {
@@ -239,13 +225,11 @@ define(`_DEFINITION', `$2')dnl
                     double *intermediateResultData = REAL(intermediateResult);
                     intermediateResultData[0] = value1;
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("10.1) intermediate result: %f\n", value1);
                     PROTECT(intermediateResult = allocVector(REALSXP, samples));
                     intermediateResultData = REAL(intermediateResult);
                     memcpy(intermediateResultData, out_result, samples * sizeof(double));
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("10.2) intermediate result: ");
                     //for (int i = 0; i < samples; i++)
                     //    Rprintf("%f ", out_result[i]);
@@ -264,7 +248,6 @@ define(`_DEFINITION', `$2')dnl
                 double *intermediateResultData = REAL(intermediateResult);
                 memcpy(intermediateResultData, value1, samples * sizeof(double));
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("11.1) intermediate result: ");
                 //for (int i = 0; i < samples; i++)
                 //    Rprintf("%f ", value1[i]);
@@ -273,13 +256,11 @@ define(`_DEFINITION', `$2')dnl
                 intermediateResultData = REAL(intermediateResult);
                 intermediateResultData[0] = value2;
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("11.2) intermediate result: %f\n", value2);
                 PROTECT(intermediateResult = allocVector(REALSXP, samples));
                 intermediateResultData = REAL(intermediateResult);
                 memcpy(intermediateResultData, out_result, samples * sizeof(double));
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("11.3) intermediate result: ");
                 //for (int i = 0; i < samples; i++)
                 //    Rprintf("%f ", out_result[i]);
@@ -305,7 +286,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                 double *intermediateResultData = REAL(intermediateResult);
                 memcpy(intermediateResultData, value1, samples * sizeof(double));
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("12.1) intermediate result: ");
                 //for (int i = 0; i < samples; i++)
                 //    Rprintf("%f ", value1[i]);
@@ -314,7 +294,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                 intermediateResultData = REAL(intermediateResult);
                 memcpy(intermediateResultData, value2, samples * sizeof(double));
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("12.2) intermediate result: ");
                 //for (int i = 0; i < samples; i++)
                 //    Rprintf("%f ", value2[i]);
@@ -323,7 +302,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                 intermediateResultData = REAL(intermediateResult);
                 memcpy(intermediateResultData, out_result, samples * sizeof(double));
                 context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                UNPROTECT(1);
                 //Rprintf("12.3) intermediate result: ");
                 //for (int i = 0; i < samples; i++)
                 //    Rprintf("%f ", out_result[i]);
@@ -343,7 +321,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                     double *intermediateResultData = REAL(intermediateResult);
                     memcpy(intermediateResultData, value1, samples * sizeof(double));
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("13.1) intermediate result: ");
                     //for (int i = 0; i < samples; i++)
                     //    Rprintf("%f ", value1[i]);
@@ -352,7 +329,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                     intermediateResultData = REAL(intermediateResult);
                     memcpy(intermediateResultData, out_result, samples * sizeof(double));
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("13.2) intermediate result: ");
                     //for (int i = 0; i < samples; i++)
                     //    Rprintf("%f ", out_result[i]);
@@ -367,7 +343,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                     double *intermediateResultData = REAL(intermediateResult);
                     memcpy(intermediateResultData, value1, samples * sizeof(double));
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("14.1) intermediate result: ");
                     //for (int i = 0; i < samples; i++)
                     //    Rprintf("%f ", value1[i]);
@@ -376,7 +351,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                     intermediateResultData = REAL(intermediateResult);
                     memcpy(intermediateResultData, out_result, samples * sizeof(double));
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("14.2) intermediate result: ");
                     //for (int i = 0; i < samples; i++)
                     //    Rprintf("%f ", out_result[i]);
@@ -396,13 +370,11 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                     double *intermediateResultData = REAL(intermediateResult);
                     intermediateResultData[0] = out_result[0];
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("15.1) intermediate result: %f\n", out_result[0]);
                     PROTECT(intermediateResult = allocVector(REALSXP, 1));
                     intermediateResultData = REAL(intermediateResult);
                     intermediateResultData[0] = value2;
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("15.2) intermediate result: %f\n", value2);
                 }
             } else {
@@ -414,7 +386,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                     double *intermediateResultData = REAL(intermediateResult);
                     memcpy(intermediateResultData, out_result, samples * sizeof(double));
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("16.1) intermediate result: ");
                     //for (int i = 0; i < samples; i++)
                     //    Rprintf("%f ", out_result[i]);
@@ -423,7 +394,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                     intermediateResultData = REAL(intermediateResult);
                     intermediateResultData[0] = value2;
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("16.2) intermediate result: %f\n", value2);
                 }
             }
@@ -441,7 +411,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                     double *intermediateResultData = REAL(intermediateResult);
                     memcpy(intermediateResultData, out_result, samples * sizeof(double));
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("17.1) intermediate result: ");
                     //for (int i = 0; i < samples; i++)
                     //    Rprintf("%f ", out_result[i]);
@@ -450,7 +419,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                     intermediateResultData = REAL(intermediateResult);
                     memcpy(intermediateResultData, value2, samples * sizeof(double));
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("17.2) intermediate result: ");
                     //for (int i = 0; i < samples; i++)
                     //    Rprintf("%f ", value2[i]);
@@ -465,7 +433,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                     double *intermediateResultData = REAL(intermediateResult);
                     memcpy(intermediateResultData, out_result, samples * sizeof(double));
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("18.1) intermediate result: ");
                     //for (int i = 0; i < samples; i++)
                     //    Rprintf("%f ", out_result[i]);
@@ -474,7 +441,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                     intermediateResultData = REAL(intermediateResult);
                     memcpy(intermediateResultData, value2, samples * sizeof(double));
                     context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                    UNPROTECT(1);
                     //Rprintf("18.2) intermediate result: ");
                     //for (int i = 0; i < samples; i++)
                     //    Rprintf("%f ", value2[i]);
@@ -502,7 +468,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                         double *intermediateResultData = REAL(intermediateResult);
                         memcpy(intermediateResultData, out_result, samples * sizeof(double));
                         context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                        UNPROTECT(1);
                         //Rprintf("19) intermediate result: ");
                         //for (int i = 0; i < samples; i++)
                         //    Rprintf("%f ", out_result[i]);
@@ -519,7 +484,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                         double *intermediateResultData = REAL(intermediateResult);
                         memcpy(intermediateResultData, out_result, samples * sizeof(double));
                         context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                        UNPROTECT(1);
                         //Rprintf("20) intermediate result: ");
                         //for (int i = 0; i < samples; i++)
                         //    Rprintf("%f ", out_result[i]);
@@ -540,7 +504,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                         double *intermediateResultData = REAL(intermediateResult);
                         memcpy(intermediateResultData, out_result, samples * sizeof(double));
                         context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                        UNPROTECT(1);
                         //Rprintf("21) intermediate result: ");
                         //for (int i = 0; i < samples; i++)
                         //    Rprintf("%f ", out_result[i]);
@@ -555,7 +518,6 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                         double *intermediateResultData = REAL(intermediateResult);
                         intermediateResultData[0] = out_result[0];
                         context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-                        UNPROTECT(1);
                         //Rprintf("22) intermediate result: %f\n", out_result[0]);
                     }
                 }
