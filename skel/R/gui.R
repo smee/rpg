@@ -23,12 +23,13 @@ symbolicRegressionGui <- function() {
   lambda <- NULL; crossoverProbability <- NULL; maxTimeMinutes <- NULL
   newIndividualsPerGeneration <- NULL; populationSize <- NULL
   subSamplingShare <- NULL; randomSeed <- NULL
-  plotFront <- NULL; plotProgress <- NULL; targetFunctionName <- NULL
+  plotFront <- NULL; plotProgress <- NULL; ndsSelectionFunctionName <- NULL; targetFunctionName <- NULL
   csvFileName <- NULL
   twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion,
                                     functionSetString, lambda, crossoverProbability, maxTimeMinutes,
                                     newIndividualsPerGeneration, populationSize, subSamplingShare,
-                                    randomSeed, plotFront, plotProgress, targetFunctionName, csvFileName),
+                                    randomSeed, plotFront, plotProgress, ndsSelectionFunctionName,
+                                    targetFunctionName, csvFileName),
           auto = FALSE, eval = FALSE, label = "RGP Symbolic Regression GUI",
           targetFunctionName = combo("Salutowicz 1d", "Unwrapped Ball 1d", "Damped Oscillator 1d", "CSV File"),
           csvFileName = filer(),
@@ -40,6 +41,7 @@ symbolicRegressionGui <- function() {
           newIndividualsPerGeneration = knob(lim = c(1, 100), default = 2, res = 1),
           enableAgeCriterion = toggle(default = TRUE),
           enableComplexityCriterion = toggle(default = FALSE),
+          ndsSelectionFunctionName = combo("Crowding Distance", "Hypervolume"),
           functionSetString = entry(default = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")'),
           subSamplingShare = knob(lim = c(0.01, 1.0), default = 1.0, res = 0.01),
           randomSeed = knob(lim = c(1, 1000), res = 1),
@@ -69,6 +71,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                       randomSeed = 1,
                                       plotFront = TRUE,
                                       plotProgress = TRUE,
+                                      ndsSelectionFunctionName = "Crowding Distance",
                                       targetFunctionName = "Salutowicz 1d",
                                       csvFileName = "") {
   system(sprintf("afplay -t %d ~/repos/rgp/examples/data/gp_music.mp4", as.integer(maxTimeMinutes * 60)), wait = FALSE) # TODO playing music may lead to better GP results
@@ -81,6 +84,10 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                          "Unwrapped Ball 1d" = UnwrappedBall1d,
                          "CSV File" = makeCsvFileTargetFunction(csvFileName),
                          stop("twiddleSymbolicRegression: unkown test function name: ", targetFunctionName))
+  ndsSelectionFunction <- switch(ndsSelectionFunctionName,
+                                 "Crowding Distance" = nds_cd_selection,
+                                 "Hypervolume" = nds_hv_selection,
+                                 stop("twiddleSymbolicRegression: unkown NDS selection function name: ", ndsSelectionFunctionName))
   domainInterval <- targetFunction$domainInterval
   targetFunctionSamplePoints <- seq(from = domainInterval[1], to = domainInterval[2],
                                   length.out = targetFunction$samples)
@@ -111,7 +118,8 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                                                      crossoverProbability = crossoverProbability,
                                                                      newIndividualsPerGeneration = newIndividualsPerGeneration,
                                                                      enableComplexityCriterion = enableComplexityCriterion,
-                                                                     enableAgeCriterion = enableAgeCriterion)
+                                                                     enableAgeCriterion = enableAgeCriterion,
+                                                                     ndsSelectionFunction = ndsSelectionFunction)
   
   mutationFunction <- function(ind) {
     subtreeMutantBody <- mutateSubtreeFast(body(ind), funSet, inVarSet, -1, 1, 0.33, 0.75, 1.0, 0.5, 2) 
