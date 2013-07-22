@@ -10,6 +10,8 @@
 
 
 struct EvalVectorizedContext {
+    int keepIntermediateResults;
+    SEXP outIntermediateResults;
     int arity;
     R_len_t samples;
     SEXP formalParameters;
@@ -19,12 +21,13 @@ struct EvalVectorizedContext {
 /* eval_vectorized
  *
  */
-SEXP eval_vectorized(SEXP rFunction, SEXP actualParameters);
+SEXP eval_vectorized(SEXP rFunction, SEXP actualParameters, int keepIntermediateResults);
+SEXP eval_vectorized_R(SEXP rFunction, SEXP actualParameters, SEXP keepIntermediateResults);
 
 /* eval_vectorized_rmse
  *
  */
-SEXP eval_vectorized_rmse(SEXP, SEXP, SEXP, double *);
+SEXP eval_vectorized_rmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues, double *bestRMSE);
 
 #endif
 

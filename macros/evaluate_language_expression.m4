@@ -41,20 +41,83 @@ dnl double qoute to avoid a problem with "(" as a unary function symbol
             const double value = _DEFINITION(REAL(s_arg)[0]);
             for (int i = 0; i < samples; ++i)
                 out_result[i] = value;
+            if (context->keepIntermediateResults) {
+                SEXP intermediateResult;
+                PROTECT(intermediateResult = allocVector(REALSXP, 1));
+                double *intermediateResultData = REAL(intermediateResult);
+                intermediateResultData[0] = REAL(s_arg)[0];
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("3.1) intermediate result: ");
+                //for (int i = 0; i < samples; i++)
+                //    Rprintf("%f ", REAL(s_arg)[0]);
+                //Rprintf("\n");
+                PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                intermediateResultData = REAL(intermediateResult);
+                memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("3.2) intermediate result: ");
+                //for (int i = 0; i < samples; i++)
+                //    Rprintf("%f ", out_result[i]);
+                //Rprintf("\n");
+            }
         } else if (isSymbol(s_arg)) {
             const R_len_t index = function_argument_index(s_arg, context);
             const double *value = context->actualParameters + (index * samples);
             for (R_len_t i = 0; i < samples; ++i)
                 out_result[i] = _DEFINITION(value[i]);
+            if (context->keepIntermediateResults) {
+                SEXP intermediateResult;
+                PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                double *intermediateResultData = REAL(intermediateResult);
+                memcpy(intermediateResultData, value, samples * sizeof(double));
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("4.1) intermediate result: ");
+                //for (int i = 0; i < samples; i++)
+                //    Rprintf("%f ", value[i]);
+                //Rprintf("\n");
+                PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                intermediateResultData = REAL(intermediateResult);
+                memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("4.2) intermediate result: ");
+                //for (int i = 0; i < samples; i++)
+                //    Rprintf("%f ", out_result[i]);
+                //Rprintf("\n");
+            }
         } else if (isLanguage(s_arg)) {
             int is_scalar_result;
             evaluate_language_expression(s_arg, context, out_result, &is_scalar_result);
             if (is_scalar_result) {
                 out_result[0] = _DEFINITION(out_result[0]);
                 *out_is_scalar_result = 1;
+                if (context->keepIntermediateResults) {
+                    SEXP intermediateResult;
+                    PROTECT(intermediateResult = allocVector(REALSXP, 1));
+                    double *intermediateResultData = REAL(intermediateResult);
+                    intermediateResultData[0] = out_result[0];
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("5) intermediate result: %f\n", out_result[0]);
+                }
             } else {
                 for (R_len_t i = 0; i < samples; ++i)
                     out_result[i] = _DEFINITION(out_result[i]);
+                if (context->keepIntermediateResults) {
+                    SEXP intermediateResult;
+                    PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                    double *intermediateResultData = REAL(intermediateResult);
+                    memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("6) intermediate result: ");
+                    //for (int i = 0; i < samples; i++)
+                    //    Rprintf("%f ", out_result[i]);
+                    //Rprintf("\n");
+                }
             }
         } else {
             error("`unary_function'(\"_SYMBOL\"):  Unhandled argument type combination");
@@ -91,12 +154,60 @@ define(`_DEFINITION', `$2')dnl
             const double value = _DEFINITION(value1, value2);
             out_result[0] = value;
             *out_is_scalar_result = 1;
+            if (context->keepIntermediateResults) {
+                SEXP intermediateResult;
+                PROTECT(intermediateResult = allocVector(REALSXP, 1));
+                double *intermediateResultData = REAL(intermediateResult);
+                intermediateResultData[0] = value1;
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("7.1) intermediate result: %f\n", value1);
+                PROTECT(intermediateResult = allocVector(REALSXP, 1));
+                intermediateResultData = REAL(intermediateResult);
+                intermediateResultData[0] = value2;
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("7.2) intermediate result: %f\n", value2);
+                PROTECT(intermediateResult = allocVector(REALSXP, 1));
+                intermediateResultData = REAL(intermediateResult);
+                intermediateResultData[0] = out_result[0];
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("7.3) intermediate result: %f\n", out_result[0]);
+            }
         } else if (isNumeric(s_arg1) && isSymbol(s_arg2)) {
             const double value1 = REAL(s_arg1)[0];
             const R_len_t index2 = function_argument_index(s_arg2, context);
             const double *value2 = context->actualParameters + (index2 * samples);
             for (R_len_t i = 0; i < samples; ++i)
                 out_result[i] = _DEFINITION(value1, value2[i]);
+            if (context->keepIntermediateResults) {
+                SEXP intermediateResult;
+                PROTECT(intermediateResult = allocVector(REALSXP, 1));
+                double *intermediateResultData = REAL(intermediateResult);
+                intermediateResultData[0] = value1;
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("8.1) intermediate result: %f\n", value1);
+                PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                intermediateResultData = REAL(intermediateResult);
+                memcpy(intermediateResultData, value2, samples * sizeof(double));
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("8.2) intermediate result: ");
+                //for (int i = 0; i < samples; i++)
+                //    Rprintf("%f ", value2[i]);
+                //Rprintf("\n");
+                PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                intermediateResultData = REAL(intermediateResult);
+                memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("8.3) intermediate result: ");
+                //for (int i = 0; i < samples; i++)
+                //    Rprintf("%f ", out_result[i]);
+                //Rprintf("\n");
+            }
         } else if (isNumeric(s_arg1) && isLanguage(s_arg2)) {
             const double value1 = REAL(s_arg1)[0];
             int is_scalar_result;
@@ -104,9 +215,42 @@ define(`_DEFINITION', `$2')dnl
             if (is_scalar_result) {
                 out_result[0] = _DEFINITION(value1, out_result[0]);
                 *out_is_scalar_result = 1;
+                if (context->keepIntermediateResults) {
+                    SEXP intermediateResult;
+                    PROTECT(intermediateResult = allocVector(REALSXP, 1));
+                    double *intermediateResultData = REAL(intermediateResult);
+                    intermediateResultData[0] = value1;
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("9.1) intermediate result: %f\n", value1);
+                    PROTECT(intermediateResult = allocVector(REALSXP, 1));
+                    intermediateResultData = REAL(intermediateResult);
+                    intermediateResultData[0] = out_result[0];
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("9.2) intermediate result: %f\n", out_result[0]);
+                }
             } else {
                 for (R_len_t i = 0; i < samples; ++i)
                     out_result[i] = _DEFINITION(value1, out_result[i]);
+                if (context->keepIntermediateResults) {
+                    SEXP intermediateResult;
+                    PROTECT(intermediateResult = allocVector(REALSXP, 1));
+                    double *intermediateResultData = REAL(intermediateResult);
+                    intermediateResultData[0] = value1;
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("10.1) intermediate result: %f\n", value1);
+                    PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                    intermediateResultData = REAL(intermediateResult);
+                    memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("10.2) intermediate result: ");
+                    //for (int i = 0; i < samples; i++)
+                    //    Rprintf("%f ", out_result[i]);
+                    //Rprintf("\n");
+                }
             }
         } else if (isSymbol(s_arg1) && isNumeric(s_arg2)) {
             const R_len_t index1 = function_argument_index(s_arg1, context);
@@ -114,6 +258,33 @@ define(`_DEFINITION', `$2')dnl
             const double value2 = REAL(s_arg2)[0];
             for (R_len_t i = 0; i < samples; ++i)
                 out_result[i] = _DEFINITION(value1[i], value2);
+            if (context->keepIntermediateResults) {
+                SEXP intermediateResult;
+                PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                double *intermediateResultData = REAL(intermediateResult);
+                memcpy(intermediateResultData, value1, samples * sizeof(double));
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("11.1) intermediate result: ");
+                //for (int i = 0; i < samples; i++)
+                //    Rprintf("%f ", value1[i]);
+                //Rprintf("\n");
+                PROTECT(intermediateResult = allocVector(REALSXP, 1));
+                intermediateResultData = REAL(intermediateResult);
+                intermediateResultData[0] = value2;
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("11.2) intermediate result: %f\n", value2);
+                PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                intermediateResultData = REAL(intermediateResult);
+                memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("11.3) intermediate result: ");
+                //for (int i = 0; i < samples; i++)
+                //    Rprintf("%f ", out_result[i]);
+                //Rprintf("\n");
+            }
         } else if (isSymbol(s_arg1) && isSymbol(s_arg2)) {
             const R_len_t index1 = function_argument_index(s_arg1, context);
             const double *value1 = context->actualParameters + (index1 * samples);
@@ -128,6 +299,36 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
             }
             for (; i < samples; ++i)
                 out_result[i] = _DEFINITION(value1[i], value2[i]);
+            if (context->keepIntermediateResults) {
+                SEXP intermediateResult;
+                PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                double *intermediateResultData = REAL(intermediateResult);
+                memcpy(intermediateResultData, value1, samples * sizeof(double));
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("12.1) intermediate result: ");
+                //for (int i = 0; i < samples; i++)
+                //    Rprintf("%f ", value1[i]);
+                //Rprintf("\n");
+                PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                intermediateResultData = REAL(intermediateResult);
+                memcpy(intermediateResultData, value2, samples * sizeof(double));
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("12.2) intermediate result: ");
+                //for (int i = 0; i < samples; i++)
+                //    Rprintf("%f ", value2[i]);
+                //Rprintf("\n");
+                PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                intermediateResultData = REAL(intermediateResult);
+                memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("12.3) intermediate result: ");
+                //for (int i = 0; i < samples; i++)
+                //    Rprintf("%f ", out_result[i]);
+                //Rprintf("\n");
+            }
         } else if (isSymbol(s_arg1) && isLanguage(s_arg2)) {
             const R_len_t index1 = function_argument_index(s_arg1, context);
             const double *value1 = context->actualParameters + (index1 * samples);
@@ -136,9 +337,51 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
             if (is_scalar_result) {
                 for (R_len_t i = 0; i < samples; ++i)
                     out_result[i] = _DEFINITION(value1[i], out_result[1]);
+                if (context->keepIntermediateResults) {
+                    SEXP intermediateResult;
+                    PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                    double *intermediateResultData = REAL(intermediateResult);
+                    memcpy(intermediateResultData, value1, samples * sizeof(double));
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("13.1) intermediate result: ");
+                    //for (int i = 0; i < samples; i++)
+                    //    Rprintf("%f ", value1[i]);
+                    //Rprintf("\n");
+                    PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                    intermediateResultData = REAL(intermediateResult);
+                    memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("13.2) intermediate result: ");
+                    //for (int i = 0; i < samples; i++)
+                    //    Rprintf("%f ", out_result[i]);
+                    //Rprintf("\n");
+                }
             } else {
                 for (R_len_t i = 0; i < samples; ++i)
                     out_result[i] = _DEFINITION(value1[i], out_result[i]);
+                if (context->keepIntermediateResults) {
+                    SEXP intermediateResult;
+                    PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                    double *intermediateResultData = REAL(intermediateResult);
+                    memcpy(intermediateResultData, value1, samples * sizeof(double));
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("14.1) intermediate result: ");
+                    //for (int i = 0; i < samples; i++)
+                    //    Rprintf("%f ", value1[i]);
+                    //Rprintf("\n");
+                    PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                    intermediateResultData = REAL(intermediateResult);
+                    memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("14.2) intermediate result: ");
+                    //for (int i = 0; i < samples; i++)
+                    //    Rprintf("%f ", out_result[i]);
+                    //Rprintf("\n");
+                }
             }
         } else if (isLanguage(s_arg1) && isNumeric(s_arg2)) {
             int is_scalar_result;
@@ -147,9 +390,42 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
             if (is_scalar_result) {
                 out_result[0] = _DEFINITION(out_result[0], value2);
                 *out_is_scalar_result = 1;
+                if (context->keepIntermediateResults) {
+                    SEXP intermediateResult;
+                    PROTECT(intermediateResult = allocVector(REALSXP, 1));
+                    double *intermediateResultData = REAL(intermediateResult);
+                    intermediateResultData[0] = out_result[0];
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("15.1) intermediate result: %f\n", out_result[0]);
+                    PROTECT(intermediateResult = allocVector(REALSXP, 1));
+                    intermediateResultData = REAL(intermediateResult);
+                    intermediateResultData[0] = value2;
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("15.2) intermediate result: %f\n", value2);
+                }
             } else {
                 for (R_len_t i = 0; i < samples; ++i)
                     out_result[i] = _DEFINITION(out_result[i], value2);
+                if (context->keepIntermediateResults) {
+                    SEXP intermediateResult;
+                    PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                    double *intermediateResultData = REAL(intermediateResult);
+                    memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("16.1) intermediate result: ");
+                    //for (int i = 0; i < samples; i++)
+                    //    Rprintf("%f ", out_result[i]);
+                    //Rprintf("\n");
+                    PROTECT(intermediateResult = allocVector(REALSXP, 1));
+                    intermediateResultData = REAL(intermediateResult);
+                    intermediateResultData[0] = value2;
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("16.2) intermediate result: %f\n", value2);
+                }
             }
         } else if (isLanguage(s_arg1) && isSymbol(s_arg2)) {
             int is_scalar_result;
@@ -159,9 +435,51 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
             if (is_scalar_result) {
                 for (R_len_t i = 0; i < samples; ++i)
                     out_result[i] = _DEFINITION(out_result[0], value2[i]);
+                if (context->keepIntermediateResults) {
+                    SEXP intermediateResult;
+                    PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                    double *intermediateResultData = REAL(intermediateResult);
+                    memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("17.1) intermediate result: ");
+                    //for (int i = 0; i < samples; i++)
+                    //    Rprintf("%f ", out_result[i]);
+                    //Rprintf("\n");
+                    PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                    intermediateResultData = REAL(intermediateResult);
+                    memcpy(intermediateResultData, value2, samples * sizeof(double));
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("17.2) intermediate result: ");
+                    //for (int i = 0; i < samples; i++)
+                    //    Rprintf("%f ", value2[i]);
+                    //Rprintf("\n");
+                }
             } else {
                 for (R_len_t i = 0; i < samples; ++i)
                     out_result[i] = _DEFINITION(out_result[i], value2[i]);
+                if (context->keepIntermediateResults) {
+                    SEXP intermediateResult;
+                    PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                    double *intermediateResultData = REAL(intermediateResult);
+                    memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("18.1) intermediate result: ");
+                    //for (int i = 0; i < samples; i++)
+                    //    Rprintf("%f ", out_result[i]);
+                    //Rprintf("\n");
+                    PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                    intermediateResultData = REAL(intermediateResult);
+                    memcpy(intermediateResultData, value2, samples * sizeof(double));
+                    context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                    UNPROTECT(1);
+                    //Rprintf("18.2) intermediate result: ");
+                    //for (int i = 0; i < samples; i++)
+                    //    Rprintf("%f ", value2[i]);
+                    //Rprintf("\n");
+                }
             }
         } else if (isLanguage(s_arg1) && isLanguage(s_arg2)) {
             /* NOTE: Do _not_ use stack allocation here because this
@@ -178,11 +496,35 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                     for (int i = 0; i < samples; ++i)
                         out_result[i] = _DEFINITION(out_result[i], tmp[i]);
                     *out_is_scalar_result = 0;
+                    if (context->keepIntermediateResults) {
+                        SEXP intermediateResult;
+                        PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                        double *intermediateResultData = REAL(intermediateResult);
+                        memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                        context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                        UNPROTECT(1);
+                        //Rprintf("19) intermediate result: ");
+                        //for (int i = 0; i < samples; i++)
+                        //    Rprintf("%f ", out_result[i]);
+                        //Rprintf("\n");
+                    }
                 } else {
                     const double value2 = tmp[0];
                     for (int i = 0; i < samples; ++i)
                         out_result[i] = _DEFINITION(out_result[i], value2);
                     *out_is_scalar_result = 0;
+                    if (context->keepIntermediateResults) {
+                        SEXP intermediateResult;
+                        PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                        double *intermediateResultData = REAL(intermediateResult);
+                        memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                        context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                        UNPROTECT(1);
+                        //Rprintf("20) intermediate result: ");
+                        //for (int i = 0; i < samples; i++)
+                        //    Rprintf("%f ", out_result[i]);
+                        //Rprintf("\n");
+                    }
                 }
                 free(tmp);
             } else {
@@ -192,9 +534,30 @@ dnl Explicit unrolling here to facilitate automatic vectorization by modern C co
                     for (int i = 0; i < samples; ++i)
                         out_result[i] = _DEFINITION(value1, out_result[i]);
                     *out_is_scalar_result = 0;
+                    if (context->keepIntermediateResults) {
+                        SEXP intermediateResult;
+                        PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                        double *intermediateResultData = REAL(intermediateResult);
+                        memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                        context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                        UNPROTECT(1);
+                        //Rprintf("21) intermediate result: ");
+                        //for (int i = 0; i < samples; i++)
+                        //    Rprintf("%f ", out_result[i]);
+                        //Rprintf("\n");
+                    }
                 } else {
                     out_result[0] = _DEFINITION(value1, out_result[0]);
                     *out_is_scalar_result = 1;
+                    if (context->keepIntermediateResults) {
+                        SEXP intermediateResult;
+                        PROTECT(intermediateResult = allocVector(REALSXP, 1));
+                        double *intermediateResultData = REAL(intermediateResult);
+                        intermediateResultData[0] = out_result[0];
+                        context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                        UNPROTECT(1);
+                        //Rprintf("22) intermediate result: %f\n", out_result[0]);
+                    }
                 }
             }
         } else {

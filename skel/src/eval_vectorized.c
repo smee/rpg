@@ -99,6 +99,18 @@ void eval_vectorized_recursive(SEXP rExpr,
             const double value = REAL(rExpr)[0];
             for (int i = 0; i < samples; i++) 
                 out_result[i] = value;
+            if (context->keepIntermediateResults) {
+                SEXP intermediateResult;
+                PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                double *intermediateResultData = REAL(intermediateResult);
+                memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                UNPROTECT(1);
+                //Rprintf("1) intermediate result: ");
+                //for (int i = 0; i < samples; i++)
+                //    Rprintf("%f ", out_result[i]);
+                //Rprintf("\n");
+            }
             return;
         } else if (isSymbol(rExpr)) {
             const char *rSymbol = CHAR(PRINTNAME(rExpr));
@@ -109,6 +121,18 @@ void eval_vectorized_recursive(SEXP rExpr,
                     for (int j = 0; j < samples; j++) {
                         out_result[j] = context->actualParameters[offset + j];
                     }
+                    if (context->keepIntermediateResults) {
+                        SEXP intermediateResult;
+                        PROTECT(intermediateResult = allocVector(REALSXP, samples));
+                        double *intermediateResultData = REAL(intermediateResult);
+                        memcpy(intermediateResultData, out_result, samples * sizeof(double));
+                        context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                        UNPROTECT(1);
+                        //Rprintf("2) intermediate result: ");
+                        //for (int i = 0; i < samples; i++)
+                        //    Rprintf("%f ", out_result[i]);
+                        //Rprintf("\n");
+                    }
                     return;
                 }
             }
@@ -118,10 +142,15 @@ void eval_vectorized_recursive(SEXP rExpr,
     }
 }
 
-void initialize_eval_vectorized_context(SEXP rFunction, 
-                                        SEXP actualParameters, 
+void initialize_eval_vectorized_context(SEXP rFunction,
+                                        SEXP actualParameters,
+                                        int keepIntermediateResults,
                                         struct EvalVectorizedContext *contextOut) {
     SEXP rFormals, rFormalNames;
+
+    contextOut->outIntermediateResults = R_NilValue; 
+    
+    contextOut->keepIntermediateResults = keepIntermediateResults;
     
     PROTECT(rFormals = FORMALS(rFunction));
     PROTECT(rFormals= coerceVector(rFormals, VECSXP));
@@ -140,21 +169,34 @@ void initialize_eval_vectorized_context(SEXP rFunction,
     contextOut->actualParameters = REAL(actualParameters);
 }
 
-SEXP eval_vectorized(SEXP rFunction, SEXP actualParameters) {
+SEXP eval_vectorized(SEXP rFunction, SEXP actualParameters, int keepIntermediateResults) {
   struct EvalVectorizedContext context;
-  initialize_eval_vectorized_context(rFunction, actualParameters, &context);
+  initialize_eval_vectorized_context(rFunction, actualParameters, keepIntermediateResults, &context);
   
   SEXP rResult;
   PROTECT(rResult = allocVector(REALSXP, context.samples));  
   double *result = REAL(rResult);
   eval_vectorized_recursive(BODY(rFunction), &context, result);
   UNPROTECT(1 + 4); // 4 are PROTECTed in "initialize_eval_vectorized_context"
-  return rResult;
+  
+  if (keepIntermediateResults) {
+      return context.outIntermediateResults;
+  } else
+      return rResult;
 }
 
-SEXP eval_vectorized_rmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues, double * bestRMSE) {
+SEXP eval_vectorized_R(SEXP rFunction, SEXP actualParameters, SEXP keepIntermediateResults) {
+  SEXP result;
+  PROTECT(result = eval_vectorized(rFunction,
+                                   actualParameters,
+                                   asLogical(keepIntermediateResults)));
+  UNPROTECT(1);
+  return result;
+}
+
+SEXP eval_vectorized_rmse(SEXP rFunction, SEXP actualParameters, SEXP targetValues, double *bestRMSE) {
   struct EvalVectorizedContext context;
-  initialize_eval_vectorized_context(rFunction, actualParameters, &context);
+  initialize_eval_vectorized_context(rFunction, actualParameters, 0, &context);
   double result[context.samples];
   
   eval_vectorized_recursive(BODY(rFunction), &context, result);
@@ -180,8 +222,6 @@ SEXP eval_vectorized_rmse(SEXP rFunction, SEXP actualParameters, SEXP targetValu
     REAL(rResult)[0] = 10000000000000; //large number TODO: set to inf
     UNPROTECT(6);
     return rResult;
-    
   }
 }
-
 
