@@ -10,8 +10,8 @@ popSize <- 1000
 maxDepth <- 12
 xs <- 1:1000
 
-funSet <- functionSet("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")
-#funSet <- functionSet("+", "-", "*", "/", "sin", "cos", "exp", "sqrt") # log is handled by the fallback evaluator as .Primitive("log") has arity 2
+#funSet <- functionSet("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")
+funSet <- functionSet("+", "-", "*", "/", "sin", "cos", "exp", "sqrt") # log is handled by the fallback evaluator as .Primitive("log") has arity 2
 inVarSet <- inputVariableSet("x1")
 constSet <- numericConstantSet
 

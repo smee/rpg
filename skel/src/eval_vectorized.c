@@ -37,6 +37,7 @@ static R_INLINE void eval_vectorized_fallback(SEXP rExpr,
                                               struct EvalVectorizedContext *context, 
                                               double *out_result) {
   const int samples = context->samples;
+  // TODO this fallback evaluator is buggy...
   Rprintf("eval_vectorized_fallback for function %s\n", CHAR(PRINTNAME(CAR(rExpr))));
   int argIndex; // argument index
   SEXP argItor; // argument iterator
