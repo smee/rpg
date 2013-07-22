@@ -39,16 +39,16 @@ check: clean roxygen
 
 macros:
 	echo "Generating code from m4 macros..."
-	m4 codegen/evaluate_language_expression.m4 > playground/evaluate_language_expression.h
+	m4 codegen/evaluate_language_expression.m4 > skel/src/evaluate_language_expression.h
 	echo "DONE."
 
 # TODO production C-code now lives in skel/src
 shlibs: macros
 	echo "Buiding shared libraries of C-based components..."
-	"$(R_HOME)/bin/R" CMD SHLIB playground/evolution.c playground/selection.c playground/mutate_function.c playground/create_expr_tree.c playground/eval_vectorized.c playground/population.c
+	"$(R_HOME)/bin/R" CMD SHLIB playground/evolution.c playground/selection.c playground/mutate_function.c playground/create_expr_tree.c playground/population.c
 	echo "DONE."
 
-roxygen:
+roxygen: macros
 	echo "Roxygenizing package..."
 	./roxygenize > roxygen.log 2>&1 || cat roxygen.log
 	echo "DONE."
@@ -65,7 +65,7 @@ clean:
 distclean: clean
 	echo "Removing all generated artifacts..."
 	rm -f rgp_*.tar.gz 
-	rm -f playground/evaluate_language_expression.h
+	rm -f skel/src/evaluate_language_expression.h
 	echo "DONE."
 
 package: clean roxygen
