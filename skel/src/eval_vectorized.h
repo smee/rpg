@@ -1,3 +1,7 @@
+/* eval_vectorized.h 
+ *
+ */
+
 #ifndef EVAL_VECTORIZED_H
 #define EVAL_VECTORIZED_H
 
@@ -12,7 +16,15 @@ struct EvalVectorizedContext {
     double *actualParameters;
 };
 
-SEXP evalVectorizedRmse(SEXP, SEXP, SEXP, double *);
+/* eval_vectorized
+ *
+ */
+SEXP eval_vectorized(SEXP rFunction, SEXP actualParameters);
+
+/* eval_vectorized_rmse
+ *
+ */
+SEXP eval_vectorized_rmse(SEXP, SEXP, SEXP, double *);
 
 #endif
 

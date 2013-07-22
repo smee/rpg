@@ -220,7 +220,7 @@ static R_INLINE R_len_t function_argument_index(SEXP s_arg,
             return i;
         }
     }
-    error("evalVectorizedRecursive: undefined symbol");
+    error("eval_vectorized_recursive: undefined symbol");
     return -1; /* Make compiler happy. */
 }
 
@@ -236,7 +236,7 @@ static R_INLINE void evaluate_language_expression(SEXP s_expr,
     *out_is_scalar_result = 0; // out_result is a vector by default
     
 include(`codegen/function_definitions.m4')dnl
-    evalVectorizedFallback(s_expr, context, out_result);
+    eval_vectorized_fallback(s_expr, context, out_result);
     return;
 }
 /* !!! END OF GENERATED CODE */
