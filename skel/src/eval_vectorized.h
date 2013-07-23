@@ -12,6 +12,7 @@
 struct EvalVectorizedContext {
     int keepIntermediateResults;
     SEXP outIntermediateResults;
+    long fallbackProtectCount;
     int arity;
     R_len_t samples;
     SEXP formalParameters;

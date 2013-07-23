@@ -10,23 +10,23 @@
 
 // TODO move this function to environment_tools.c
 static R_INLINE SEXP make_environment(SEXP enclosingEnvironment) { 
-  SEXP env;
-  PROTECT(env = allocSExp(ENVSXP));
-  SET_FRAME(env, R_NilValue);
-  SET_ENCLOS(env, (enclosingEnvironment)? enclosingEnvironment : R_GlobalEnv);
-  SET_HASHTAB(env, R_NilValue);
-  SET_ATTRIB(env, R_NilValue);
-  UNPROTECT(1);
-  return env; 
+    SEXP env;
+    PROTECT(env = allocSExp(ENVSXP));
+    SET_FRAME(env, R_NilValue);
+    SET_ENCLOS(env, (enclosingEnvironment)? enclosingEnvironment : R_GlobalEnv);
+    SET_HASHTAB(env, R_NilValue);
+    SET_ATTRIB(env, R_NilValue);
+    UNPROTECT(1);
+    return env; 
 }
 
 // TODO move this function to symbol_tools.c
 static R_INLINE SEXP make_fresh_symbol(int idx, SEXP env) {
-  // TODO this function must create a symbol that is fresh (unbound) in env
-  const int freshStringSize = 8 + (int) log10(idx + 1) + 1;
-  char freshString[freshStringSize];
-  sprintf(freshString, "__arg%d__", idx);
-  return install(freshString);
+    // TODO this function must create a symbol that is fresh (unbound) in env
+    const int freshStringSize = 8 + (int) log10(idx + 1) + 1;
+    char freshString[freshStringSize];
+    sprintf(freshString, "__arg%d__", idx);
+    return install(freshString);
 }
 
 void eval_vectorized_recursive(SEXP rExpr, 
@@ -36,51 +36,53 @@ void eval_vectorized_recursive(SEXP rExpr,
 static R_INLINE void eval_vectorized_fallback(SEXP rExpr, 
                                               struct EvalVectorizedContext *context, 
                                               double *out_result) {
-  const int samples = context->samples;
-  // TODO this fallback evaluator is buggy...
-  Rprintf("eval_vectorized_fallback for function %s\n", CHAR(PRINTNAME(CAR(rExpr))));
-  int argIndex; // argument index
-  SEXP argItor; // argument iterator
-  SEXP call; // call object, initialized with function name
-  SEXP callRev, env;
-  PROTECT(callRev = lang1(CAR(rExpr))); // call is build in reverse
-  PROTECT(env = make_environment(R_GlobalEnv)); // fresh R environment for holding argument values
+    // TODO this function is buggy
+    const int samples = context->samples;
+    warning("using eval_vectorized_fallback for function '%s'\n", CHAR(PRINTNAME(CAR(rExpr))));
+    SEXP argItor; // argument iterator
+    SEXP call; // call object, initialized with function name
+    SEXP callRev;
+    SEXP result;
+    PROTECT(callRev = lang1(CAR(rExpr))); // call is build in reverse
+    context->fallbackProtectCount++;
+
+    // evaluate the arguments with eval_vectorized_recursive...
+    for (argItor = CDR(rExpr); !isNull(argItor); argItor = CDR(argItor)) {
+        SEXP argVal;
+        PROTECT(argVal = allocVector(REALSXP, samples));
+        context->fallbackProtectCount++;
+        eval_vectorized_recursive(CAR(argItor), context, REAL(argVal));
+        PROTECT(callRev = LCONS(argVal, callRev)); // add argument to function call object
+        context->fallbackProtectCount++;
+    }
+
+    // build call...
+    PROTECT(call = lang1(CAR(callRev)));
+    context->fallbackProtectCount++;
+    for (argItor = CDR(callRev); !isNull(argItor); argItor = CDR(argItor)) { // reverse callRev into call
+        PROTECT(call = LCONS(CAR(argItor), call));
+        context->fallbackProtectCount++;
+    }
   
-  // evaluate the arguments with eval_vectorized_recursive...
-  for (argItor = CDR(rExpr), argIndex = 0; !isNull(argItor); argItor = CDR(argItor), argIndex++) {
-      SEXP argName;
-      PROTECT(argName = make_fresh_symbol(argIndex, env));
-      SEXP argVal;
-      PROTECT(argVal = allocVector(REALSXP, samples));
-      eval_vectorized_recursive(CAR(argItor), context, REAL(argVal));
-      defineVar(argName, argVal, env);
-      callRev = LCONS(argName, callRev); // add argument name to function call object
-  }
-  for (call = R_NilValue; !isNull(callRev); callRev = CDR(callRev)) { // reverse callRev into call
-      call = LCONS(CAR(callRev), call);
-  }
-  
-  // evaluate rExpr via R's evaluator...
-  SEXP result = PROTECT(eval(call, env));
-  double *resultData = REAL(result);
-  for (int i = 0; i < samples; i++) {
-      /* this will of course fail miserably for results of other
-       * type than real */
-      out_result[i] = resultData[i]; 
-  }
-  if (context->keepIntermediateResults) {
-      SEXP intermediateResult;
-      PROTECT(intermediateResult = allocVector(REALSXP, samples));
-      double *intermediateResultData = REAL(intermediateResult);
-      memcpy(intermediateResultData, out_result, samples * sizeof(double));
-      context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
-      //Rprintf("0) intermediate result: ");
-      //for (int i = 0; i < samples; i++)
-      //    Rprintf("%f ", out_result[i]);
-      //Rprintf("\n");
-  }
-  UNPROTECT(3 + argIndex * 2);
-  return;
+    // evaluate call via R's evaluator...
+    PROTECT(result = eval(call, R_GlobalEnv));
+    context->fallbackProtectCount++;
+
+    double *resultData = REAL(result);
+    memcpy(out_result, resultData, samples * sizeof(double));
+
+    if (context->keepIntermediateResults) {
+        SEXP intermediateResult;
+        PROTECT(intermediateResult = allocVector(REALSXP, samples));
+        double *intermediateResultData = REAL(intermediateResult);
+        memcpy(intermediateResultData, out_result, samples * sizeof(double));
+        PROTECT(context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults));
+        //Rprintf("0) intermediate result: ");
+        //for (int i = 0; i < samples; i++)
+        //    Rprintf("%f ", out_result[i]);
+        //Rprintf("\n");
+    }
+    return;
 }
 
 #include "evaluate_language_expression.h"
@@ -115,7 +117,7 @@ void eval_vectorized_recursive(SEXP rExpr,
                 PROTECT(intermediateResult = allocVector(REALSXP, samples));
                 double *intermediateResultData = REAL(intermediateResult);
                 memcpy(intermediateResultData, out_result, samples * sizeof(double));
-                context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                PROTECT(context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults));
                 //Rprintf("1) intermediate result: ");
                 //for (int i = 0; i < samples; i++)
                 //    Rprintf("%f ", out_result[i]);
@@ -136,7 +138,7 @@ void eval_vectorized_recursive(SEXP rExpr,
                         PROTECT(intermediateResult = allocVector(REALSXP, samples));
                         double *intermediateResultData = REAL(intermediateResult);
                         memcpy(intermediateResultData, out_result, samples * sizeof(double));
-                        context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults);
+                        PROTECT(context->outIntermediateResults = CONS(intermediateResult, context->outIntermediateResults));
                         //Rprintf("2) intermediate result: ");
                         //for (int i = 0; i < samples; i++)
                         //    Rprintf("%f ", out_result[i]);
@@ -158,6 +160,8 @@ void initialize_eval_vectorized_context(SEXP rFunction,
     SEXP rFormals, rFormalNames;
 
     contextOut->outIntermediateResults = R_NilValue; 
+
+    contextOut->fallbackProtectCount = 0;
     
     contextOut->keepIntermediateResults = keepIntermediateResults;
     
@@ -187,10 +191,10 @@ SEXP eval_vectorized(SEXP rFunction, SEXP actualParameters, int keepIntermediate
   double *result = REAL(rResult);
   eval_vectorized_recursive(BODY(rFunction), &context, result);
   UNPROTECT(1 + 4); // 4 are PROTECTed in "initialize_eval_vectorized_context"
-  
+  UNPROTECT(context.fallbackProtectCount); // UNPROTECT values PROTECTed in eval_vectorized_fallback
   if (keepIntermediateResults) {
       const R_len_t numberOfIntermediateResults = length(context.outIntermediateResults);
-      UNPROTECT(numberOfIntermediateResults); // intermediate result vectors are protected on creation
+      UNPROTECT(numberOfIntermediateResults * 2); // intermediate result vectors and cons cells are protected on creation
       return context.outIntermediateResults;
   } else
       return rResult;
