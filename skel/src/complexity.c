@@ -16,30 +16,6 @@ struct SexpVisitationLengthResult {
   int visitationLength;
 };
 
-//exprVisitationLength <- function(expr, intermediateResults = FALSE) {
-//  results <- c()
-//  exprVisitationLengthRecursive <- function(expr) {
-//    ## The visitation length of a tree T is the sum of the number of nodes of all subtrees of T...
-//    if (is.call(expr)) {
-//      childrenResults <- lapply(rest(expr), exprVisitationLengthRecursive)
-//      childrenSums <- Reduce(function(a,b) c(a[1] + b[1], a[2] + b[2]), childrenResults, c(0,0))
-//      childrenSizesSum <- childrenSums[1]
-//      childrenVisitationLengthsSum <- childrenSums[2]
-//      thisTreeSize <- 1 + childrenSizesSum
-//      thisTreeVisitationLength <- thisTreeSize + childrenVisitationLengthsSum
-//      if (intermediateResults) results <<- c(thisTreeVisitationLength, results)
-//      c(thisTreeSize, thisTreeVisitationLength)
-//    } else {
-//      if (intermediateResults) results <<- c(1, results)
-//      c(1, 1)
-//    }
-//  }
-//  if (intermediateResults) {
-//    exprVisitationLengthRecursive(expr)
-//    results
-//  } else exprVisitationLengthRecursive(expr)[[2]]
-//}
-
 static R_INLINE struct SexpVisitationLengthResult sexp_visitation_length_recursive(SEXP sexp, struct SexpVisitationLengthContext *context) {
   // The visitation length of a tree T is the sum of the number of nodes of all subtrees of T...
   switch (TYPEOF(sexp)) {
