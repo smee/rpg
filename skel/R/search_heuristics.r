@@ -303,7 +303,6 @@ function(logFunction, stopCondition, pop, fitnessFunction,
                     motherIndices, fatherIndices)
 
     # Evaluate children individuals...
-    browser() # TODO
     childrenFitnessValues <- as.numeric(sapply(children, fitnessFunction))
     childrenComplexityValues <- as.numeric(Map(complexityMeasure, children, childrenFitnessValues))
     childrenAgeValues <- 1 + as.integer(Map(ageMergeFunction, ageValues[motherIndices], ageValues[fatherIndices]))
