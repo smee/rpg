@@ -16,7 +16,7 @@ DampedOscillator1d <- defineTargetFunction(function(x) 1.5 * exp(-0.5 * x) * sin
 # Test code...
 #
 set.seed(3)
-maxDepth <- 12 
+maxDepth <- 8 
 xs1 <- 1:100
 xs2 <- 1:100
 
@@ -32,7 +32,7 @@ populationFactory <- function(populationSize, funSet, inVarSet, maxfuncdepth, co
                                     as.integer(funSet$arities),
                                     as.list(inVarSet$nameStrings),
                                     constMin, constMax,
-                                    0.8, 0.2,
+                                    1.0, 0.2, # 1.0 subtree probability => initialize_expression_full_R
                                     as.integer(maxfuncdepth)),
                               as.list(inVarSet$nameStrings)), 1:populationSize)
 }
