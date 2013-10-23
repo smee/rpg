@@ -80,10 +80,23 @@ evalPopulation <- function(population, fitnessFunction = makeSmseFitnessFunction
                         fitnesses, complexities, seq_along(fitnesses)))
 }
 
+extractIndexedSubtreesFromPopulation <- function(population, evalResults) {
+  populationIndices <- evalResults[1,]
+  subtreeIndices <- evalResults[2,]
+  mapply(function(i, j) {
+    subtree <- population[[i]]
+    body(subtree) <- .Call("get_sexp_subtree_R", body(subtree), as.integer(j - 1))
+    subtree
+  },
+  evalResults[1,], evalResults[2,])
+}
+
 #do.call(cbind, mapply(function(subtreeResults, subtreeComplexity, i) mapply(function(subtreeResult, subtreeComplexity, j) list(i, j, mean(subtreeResult), subtreeComplexity), subtreeResults, subtreeComplexity, seq_along(subtreeResults)), results, complexities, seq_along(results)))
 #print(results)
 #unlist(Map(function(result, i) Map(function(subtree, j) list(subtree, i, j), result, seq_along(result)), results, seq_along(results)), recursive=FALSE)
 #t(sapply(unlist(Map(function(result, i) Map(function(subtree, j) list(median(subtree), i, j), result, seq_along(result)), results, seq_along(results)), recursive=FALSE), rbind))
 #do.call(cbind, mapply(function(subtreeResults, subtreeComplexity, i) mapply(function(subtreeResult, subtreeComplexity, j) list(i, j, mean(subtreeResult), subtreeComplexity), subtreeResults, subtreeComplexity, seq_along(subtreeResults)), results, complexities, seq_along(results)))
 #.Call("get_sexp_subtree_R", body(p1[[30]]), 86L)
+#r1 <- evalPopulation(p1)
+#plot(x=log(r1[3,], base=10), y=log(r1[4,], base=10), col="#00000044", xlab="fitness (log10 SMSE)", ylab="complexity (log10 visitation length)", main=sprintf("Objective Space Plot for %d Subtrees", ncol(r1)))
 
