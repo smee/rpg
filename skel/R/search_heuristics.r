@@ -198,6 +198,182 @@ function(logFunction, stopCondition, pop, fitnessFunction,
        searchHeuristicResults = list())
 }
 
+##' Subtree Age Fitness Complexity Pareto GP Search Heuristic for RGP
+##'
+##' The search-heuristic, i.e. the concrete GP search algorithm, is a modular component of RGP.
+##' \code{makeSubtreeAgeFitnessComplexityParetoGpSearchHeuristic} creates a RGP search-heuristic that implements
+##' a generational evolutionary multi objective optimization algorithm (EMOA) that selects on three criteria:
+##' Individual age, individual fitness, and individual complexity. Each subtree in a GP population is
+##' is considered as an independent individual in selection.
+##'
+##' @param lambda The number of children to create in each generation.
+##' @param crossoverProbability The crossover probability for search-heuristics that support
+##'   this setting (i.e. TinyGP). Defaults to \code{0.9}.
+##' @param enableComplexityCriterion Whether to enable the complexity criterion in multi-criterial
+##'   search heuristics.
+##' @param enableAgeCriterion Whether to enable the age criterion in multi-criterial search heuristics.
+##' @param ndsParentSelectionProbability The probability to use non-dominated sorting to select parents
+##'   for each generation. When set to \code{0.0} (the default), parents are selected by uniform random
+##'   sampling without replacement every time.
+##' @param ndsSelectionFunction The function to use for non-dominated sorting in Pareto GP selection.
+##'   Defaults to \code{nds_cd_selection}.
+##' @param complexityMeasure The complexity measure, a function of signature \code{function(ind, fitness)}
+##'   returning a single numeric value.
+##' @param ageMergeFunction The function used for merging ages of crossover children, defaults
+##'   to \code{max}.
+##' @param newIndividualsPerGeneration The number of new individuals per generation to
+##'   insert into the population. Defaults to \code{2} if \code{enableAgeCriterion == TRUE}
+##'   else to \code{0}.
+##' @param newIndividualsMaxDepth The maximum depth of new individuals inserted into the
+##'   population.
+##' @param newIndividualFactory The factory function for creating new individuals. Defaults
+##'   to \code{makePopulation}.
+##' @return An RGP search heuristic.
+##'
+##' @export
+makeSubtreeAgeFitnessComplexityParetoGpSearchHeuristic <- function(lambda = 20,
+                                                                   crossoverProbability = 0.9,
+                                                                   enableComplexityCriterion = FALSE,
+                                                                   enableAgeCriterion = FALSE,
+                                                                   ndsParentSelectionProbability = 0.0,
+                                                                   ndsSelectionFunction = nds_cd_selection,
+                                                                   complexityMeasure = function(ind, fitness) funcVisitationLength(ind),
+                                                                   ageMergeFunction = max,
+                                                                   newIndividualsPerGeneration = if (enableAgeCriterion) 2 else 0,
+                                                                   newIndividualsMaxDepth = 8,
+                                                                   newIndividualFactory = makePopulation)
+function(logFunction, stopCondition, pop, fitnessFunction,
+         mutationFunction, crossoverFunction,
+         functionSet, inputVariables, constantSet,
+         archive, extinctionPrevention,
+         elite, eliteSize,
+         restartCondition, restartStrategy,
+         breedingFitness, breedingTries,
+         progressMonitor) {
+  logFunction("STARTING genetic programming evolution run (Subtree Age/Fitness/Complexity Pareto GP search-heuristic) ...")
+
+  ## Initialize run-global variables...
+  mu <- length(pop)
+  if (mu < 2 * lambda) stop("makeSubtreeAgeFitnessComplexityParetoGpSearchHeuristic: condition mu >= 2 * lambda must be fulfilled")
+  fitnessValues <- as.numeric(sapply(pop, fitnessFunction))
+  complexityValues <- as.numeric(Map(complexityMeasure, pop, fitnessValues))
+  ageValues <- integer(mu) # initialize ages with zeros
+
+  ## Initialize statistic counters...
+  stepNumber <- 1
+  evaluationNumber <- 0
+  timeElapsed <- 0
+  archiveList <- list() # the archive of all individuals selected in this run, only used if archive == TRUE
+  archiveIndexOf <- function(archive, individual)
+    Position(function(a) identical(body(a$individual), body(individual)), archive)
+  bestFitness <- min(fitnessValues) # best fitness value seen in this run, if multi-criterial, only the first component counts
+  startTime <- proc.time()["elapsed"]
+
+  ## Execute GP run...
+  while (!stopCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+                        evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
+
+    # Select 2 * lambda parent individuals...
+    parentIndices <- if (runif(1) < ndsParentSelectionProbability) {
+      # Select 2 * lambda parent individuals by non-dominated sorting...
+      indicesToRemove <- selectIndividualsForReplacement(fitnessValues, complexityValues, ageValues,
+                                                         enableComplexityCriterion, enableAgeCriterion,
+                                                         ndsSelectionFunction,
+                                                         mu - (2 * lambda))
+      indicesToKeep <- setdiff(1:mu, indicesToRemove)
+      indicesToKeep
+    } else {
+      # Sample (without replacement) 2 * lambda parent inviduals...
+      sample(1:mu, 2 * lambda, replace = FALSE)
+    }
+    allParentIndices <- 1:(2* lambda)
+    motherIndices <- parentIndices[allParentIndices %% 2 == 1] # mothers are odd parent indicies
+    fatherIndices <- parentIndices[allParentIndices %% 2 == 0] # fathers are even parent indices
+
+    # Create individuals...
+    children <- Map(function(motherIndex, fatherIndex) {
+                      if (runif(1) < crossoverProbability) {
+                        # create child via crossover
+                        crossoverFunction(pop[[motherIndex]], pop[[fatherIndex]],
+                                          breedingFitness = breedingFitness,
+                                          breedingTries = breedingTries)
+                      } else {
+                        # create child via mutation
+                        mutationFunction(pop[[motherIndex]])
+                      }
+                    },
+                    motherIndices, fatherIndices)
+
+    # Evaluate children individuals...
+    childrenFitnessValues <- as.numeric(sapply(children, fitnessFunction))
+    childrenComplexityValues <- as.numeric(Map(complexityMeasure, children, childrenFitnessValues))
+    childrenAgeValues <- 1 + as.integer(Map(ageMergeFunction, ageValues[motherIndices], ageValues[fatherIndices]))
+
+    # Create and evaluate new individuals...
+    newIndividuals <- newIndividualFactory(newIndividualsPerGeneration, functionSet, inputVariables, constantSet,
+                                           maxfuncdepth = newIndividualsMaxDepth,
+                                           extinctionPrevention = extinctionPrevention,
+                                           breedingFitness = breedingFitness, breedingTries = breedingTries)
+    newIndividualsFitnessValues <- as.numeric(sapply(newIndividuals, fitnessFunction))
+    newIndividualsComplexityValues <- as.numeric(Map(complexityMeasure, newIndividuals, newIndividualsFitnessValues))
+    newIndividualsAgeValues <- integer(newIndividualsPerGeneration) # initialize ages with zeros
+
+    # Create the pool of individuals to select the next generation from...
+    pool <- c(pop, children, newIndividuals)
+    poolFitnessValues <- c(fitnessValues, childrenFitnessValues, newIndividualsFitnessValues)
+    poolComplexityValues <- c(complexityValues, childrenComplexityValues, newIndividualsComplexityValues) 
+    poolAgeValues <- c(ageValues, childrenAgeValues, newIndividualsAgeValues)
+
+    # Sort the pool via the non-domination relation and select individuals for removal...
+    poolIndicesToRemove <- selectIndividualsForReplacement(poolFitnessValues, poolComplexityValues, poolAgeValues,
+                                                           enableComplexityCriterion, enableAgeCriterion,
+                                                           ndsSelectionFunction,
+                                                           lambda + newIndividualsPerGeneration)
+
+    # Replace current population with next generation...
+    pop <- pool[-poolIndicesToRemove]
+    fitnessValues <- poolFitnessValues[-poolIndicesToRemove]
+    complexityValues <- poolComplexityValues[-poolIndicesToRemove]
+    ageValues <- poolAgeValues[-poolIndicesToRemove]
+    if (min(fitnessValues) < bestFitness) bestFitness <- min(fitnessValues) # update best fitness
+
+    # Apply restart strategy...
+    if (restartCondition(pop = pop, fitnessFunction = fitnessFunction, stepNumber = stepNumber,
+                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
+      restartResult <- restartStrategy(fitnessFunction, pop, mu, functionSet, inputVariables, constantSet)
+      pop <- restartResult[[1]]
+      fitnessValues <- as.numeric(sapply(pop, fitnessFunction))
+      complexityValues <- as.numeric(Map(complexityMeasure, pop, fitnessValues))
+      ageValues <- integer(mu) # initialize ages with zeros
+      logFunction("restart")
+    }
+
+    timeElapsed <- proc.time()["elapsed"] - startTime
+    stepNumber <- 1 + stepNumber
+    evaluationNumber <- lambda + newIndividualsPerGeneration + evaluationNumber
+    progressMonitor(pop, list(fitnessValues = fitnessValues, complexityValues = complexityValues, ageValues = ageValues, poolFitnessValues = poolFitnessValues, poolComplexityValues = poolComplexityValues, poolAgeValues = poolAgeValues), fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed, poolIndicesToRemove)
+  }
+ 
+  elite <- joinElites(pop, elite, eliteSize, fitnessFunction) # insert pop into elite at end of run
+  bestFitness <- min(fitnessValues)
+  logFunction("Genetic programming evolution run FINISHED after %i evolution steps, %i fitness evaluations and %s.",
+              stepNumber, evaluationNumber, formatSeconds(timeElapsed))
+
+  ## Return result list...
+  list(timeElapsed = timeElapsed,
+       stepNumber = stepNumber,
+       evaluationNumber = evaluationNumber,
+       bestFitness = bestFitness,
+       population = pop,
+       fitnessValues = fitnessValues,
+       elite = elite,
+       archiveList = archiveList,
+       searchHeuristicResults = list(fitnessValues = fitnessValues,
+                                     complexityValues = complexityValues,
+                                     ageValues = ageValues))
+}
+
+
 ##' Age Fitness Complexity Pareto GP Search Heuristic for RGP
 ##'
 ##' The search-heuristic, i.e. the concrete GP search algorithm, is a modular component of RGP.
@@ -211,8 +387,9 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##' @param enableComplexityCriterion Whether to enable the complexity criterion in multi-criterial
 ##'   search heuristics.
 ##' @param enableAgeCriterion Whether to enable the age criterion in multi-criterial search heuristics.
-##' @param ndsParentSelection Whether to use non-dominated sorting to select parents. When set to
-##'   \code{FALSE}, parents are selected by uniform random sampling without replacement.
+##' @param ndsParentSelectionProbability The probability to use non-dominated sorting to select parents
+##'   for each generation. When set to \code{0.0} (the default), parents are selected by uniform random
+##'   sampling without replacement every time.
 ##' @param ndsSelectionFunction The function to use for non-dominated sorting in Pareto GP selection.
 ##'   Defaults to \code{nds_cd_selection}.
 ##' @param complexityMeasure The complexity measure, a function of signature \code{function(ind, fitness)}
@@ -233,7 +410,7 @@ makeAgeFitnessComplexityParetoGpSearchHeuristic <- function(lambda = 20,
                                                             crossoverProbability = 0.9,
                                                             enableComplexityCriterion = FALSE,
                                                             enableAgeCriterion = FALSE,
-                                                            ndsParentSelection = FALSE,
+                                                            ndsParentSelectionProbability = 0.0,
                                                             ndsSelectionFunction = nds_cd_selection,
                                                             complexityMeasure = function(ind, fitness) funcVisitationLength(ind),
                                                             ageMergeFunction = max,
@@ -272,7 +449,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
                         evaluationNumber = evaluationNumber, bestFitness = bestFitness, timeElapsed = timeElapsed)) {
 
     # Select 2 * lambda parent individuals...
-    parentIndices <- if (ndsParentSelection) {
+    parentIndices <- if (runif(1) < ndsParentSelectionProbability) {
       # Select 2 * lambda parent individuals by non-dominated sorting...
       indicesToRemove <- selectIndividualsForReplacement(fitnessValues, complexityValues, ageValues,
                                                          enableComplexityCriterion, enableAgeCriterion,
