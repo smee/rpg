@@ -216,7 +216,7 @@ exprToGraph <- function(expr) {
 ##' @seealso \code{\link{funcToIgraph}}
 ##' @export
 plotParetoFront <- function(x, y, z, indicesToMark = integer(), maxZ = 50,
-                            main = "Population Pareto Front Plot", ...) {
+                            main = sprintf("Population Pareto Front Plot (% Individuals)", length(x)), ...) {
   ranks <- nds_rank(rbind(x, y, z))
   zColorScale <- colorRamp(c("#00FF00", "#006600","#0000FF", "#000000"))
   rankOneXs <- x[ranks == 1]; rankOneYs <- y[ranks == 1]; rankOneAges <- z[ranks == 1]

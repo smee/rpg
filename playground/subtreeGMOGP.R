@@ -42,6 +42,7 @@ p1 <- populationFactory(50, funSet, inVarSet, maxDepth, -1, 1)
 f1 <- populationFactory(1, funSet, inVarSet, maxDepth, -1, 1)[[1]]
 #f1 <- function(x, y) x * 3.14 + log(x + y)
 arg1 <- (1:100) + 0.25
+arg1Long <- (1:10000) + 0.25
 #arg2 <- (1:100) - 0.5
 
 message("---- f1")
@@ -50,7 +51,13 @@ print(f1)
 message("\n---- eval_vectorized_R with intermediate results")
 #.Call("eval_vectorized_R", f1, c(arg1, arg2), TRUE)
 #microbenchmark(.Call("eval_vectorized_R", f1, c(arg1, arg2), TRUE))
-microbenchmark(.Call("eval_vectorized_R", f1, arg1, TRUE))
+timeSamples <- 20 
+timesTaken1 <- mapply(function(i) {
+  subArg1 <- arg1Long[1:(length(arg1Long) / timeSamples * i)]
+  timeTaken <- microbenchmark(.Call("eval_vectorized_R", f1, subArg1, TRUE), times = 1000L, warmup = 10L)
+  timeTaken$time / 1000
+}, 1:timeSamples)
+boxplot(timesTaken1, main = "eval_vectorized_R Performance (1000 Samples)", xlab = "Input Vector Length * 500", ylab = "Compute Time (ms)")
 
 message("\n---- func_visitation_length_R with intermediate results")
 #gctorture(on = TRUE)
@@ -99,4 +106,9 @@ extractIndexedSubtreesFromPopulation <- function(population, evalResults) {
 #.Call("get_sexp_subtree_R", body(p1[[30]]), 86L)
 #r1 <- evalPopulation(p1)
 #plot(x=log(r1[3,], base=10), y=log(r1[4,], base=10), col="#00000044", xlab="fitness (log10 SMSE)", ylab="complexity (log10 visitation length)", main=sprintf("Objective Space Plot for %d Subtrees", ncol(r1)))
+#plot(x=log(r1[3,], base=10), y=log(r1[4,], base=10), col="#00000044", xlab="fitness (log10 SMSE)", ylab="complexity (log10 visitation length)", main=sprintf("Objective Space Plot for %d Subtrees", ncol(r1))); r2 <- r1[3:4, -nds_cd_selection(r1[3:4,], ncol(r1)-7000)];  points(x=log(r2[1,],base=10),y=log(r2[2,],base=10), pch=0, col="green")
+#r3 <- unique(r1[3:4,], MARGIN=2); plot(x=log(r3[1,], base=10), y=log(r3[2,], base=10), col=1, xlab="fitness (log10 SMSE)", ylab="complexity (log10 visitation length)", main=sprintf("Objective Space Plot for %d Subtrees", ncol(r3))); r4 <- r3[, -nds_cd_selection(r3, ncol(r3)-10)];  points(x=log(r4[1,],base=10),y=log(r4[2,],base=10), pch=0, col="green")
+#r3 <- unique(r1[3:4,], MARGIN=2); plot(x=log(r3[1,], base=10), y=log(r3[2,], base=10), col=1, xlab="fitness (log10 SMSE)", ylab="complexity (log10 visitation length)", main=sprintf("Objective Space Plot for %d Subtrees", ncol(r3))); r4 <- r3[, nds_rank(r3) <= 6];  points(x=log(r4[1,],base=10),y=log(r4[2,],base=10), pch=0, col="green")
+#r3 <- unique(r1[3:4,], MARGIN=2); r3 <- r3[,!is.na(r3[1,])]; pal1 <- colorRampPalette(c("green", "cyan", "yellow", "orange", "red", "blue", "black"), bias=4)(length(unique(nds_rank(r3)))); plot(x=log(r3[1,], base=10), y=log(r3[2,], base=10), col=pal1[nds_rank(r3)], xlab="fitness (log10 SMSE)", ylab="complexity (log10 visitation length)", main=sprintf("Objective Space Plot for %d Subtrees", ncol(r3)))
+#r3 <- unique(r1[3:4,], MARGIN=2); r3[,is.na(r3[1,])] <- Inf; pal1 <- colorRampPalette(c("green", "cyan", "yellow", "orange", "red", "blue", "black"), bias=4)(length(unique(nds_rank(r3)))); plot(x=log(r3[1,], base=10), y=log(r3[2,], base=10), col=pal1[nds_rank(r3)], xlab="fitness (log10 SMSE)", ylab="complexity (log10 visitation length)", main=sprintf("Objective Space Plot for %d Subtrees", ncol(r3)))
 

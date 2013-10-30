@@ -19,16 +19,19 @@
 ##' @export
 symbolicRegressionGui <- function() {
   # init variables to make CRAN happy
-  enableAgeCriterion <- NULL; enableComplexityCriterion <- NULL; functionSetString <- NULL
+  enableAgeCriterion <- NULL; enableComplexityCriterion <- NULL; enableSubtreeSelection <- NULL
+  functionSetString <- NULL
   lambda <- NULL; crossoverProbability <- NULL; maxTimeMinutes <- NULL
   newIndividualsPerGeneration <- NULL; populationSize <- NULL
   subSamplingShare <- NULL; randomSeed <- NULL
-  plotFront <- NULL; plotProgress <- NULL; ndsSelectionFunctionName <- NULL; targetFunctionName <- NULL
-  csvFileName <- NULL
-  twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion,
+  plotFront <- NULL; plotProgress <- NULL
+  ndsParentSelectionProbability <- NULL; ndsSelectionFunctionName <- NULL
+  targetFunctionName <- NULL; csvFileName <- NULL
+  twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion, enableSubtreeSelection,
                                     functionSetString, lambda, crossoverProbability, maxTimeMinutes,
                                     newIndividualsPerGeneration, populationSize, subSamplingShare,
-                                    randomSeed, plotFront, plotProgress, ndsSelectionFunctionName,
+                                    randomSeed, plotFront, plotProgress,
+                                    ndsParentSelectionProbability, ndsSelectionFunctionName,
                                     targetFunctionName, csvFileName),
           auto = FALSE, eval = FALSE, label = "RGP Symbolic Regression GUI",
           targetFunctionName = combo("Salutowicz 1d", "Unwrapped Ball 1d", "Damped Oscillator 1d", "CSV File"),
@@ -41,6 +44,8 @@ symbolicRegressionGui <- function() {
           newIndividualsPerGeneration = knob(lim = c(1, 100), default = 2, res = 1),
           enableAgeCriterion = toggle(default = TRUE),
           enableComplexityCriterion = toggle(default = FALSE),
+          enableSubtreeSelection = toggle(default = TRUE),
+          ndsParentSelectionProbability = knob(lim = c(0.0, 1.0), default = 0.0, res = .01),
           ndsSelectionFunctionName = combo("Crowding Distance", "Hypervolume"),
           functionSetString = entry(default = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")'),
           subSamplingShare = knob(lim = c(0.01, 1.0), default = 1.0, res = 0.01),
@@ -61,6 +66,7 @@ DampedOscillator1d <- defineTargetFunction(function(x) 1.5 * exp(-0.5 * x) * sin
 #
 twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                       enableComplexityCriterion = FALSE,
+                                      enableSubtreeSelection = FALSE,
                                       functionSetString = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")',
                                       lambda = 20,
                                       crossoverProbability = 0.9,
@@ -71,6 +77,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                       randomSeed = 1,
                                       plotFront = TRUE,
                                       plotProgress = TRUE,
+                                      ndsParentSelectionProbability = 0.0,
                                       ndsSelectionFunctionName = "Crowding Distance",
                                       targetFunctionName = "Salutowicz 1d",
                                       csvFileName = "") {
@@ -108,27 +115,27 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                 as.list(inVarSet$nameStrings)), 1:populationSize)
   }
 
-  #newIndividualFactory <- function(n, functionSet, inputVariables, constantSet,
-  #                                 maxfuncdepth, extinctionPrevention,
-  #                                 breedingFitness, breedingTries) {
-  #  makePopulation(n, functionSet, inputVariables, maxfuncdepth, -1.0, 1.0)
-  #}
- 
   searchHeuristic <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = lambda,
                                                                      crossoverProbability = crossoverProbability,
                                                                      newIndividualsPerGeneration = newIndividualsPerGeneration,
                                                                      enableComplexityCriterion = enableComplexityCriterion,
                                                                      enableAgeCriterion = enableAgeCriterion,
+                                                                     ndsParentSelectionProbability = ndsParentSelectionProbability,
                                                                      ndsSelectionFunction = ndsSelectionFunction)
   
   mutationFunction <- function(ind) {
-    subtreeMutantBody <- mutateSubtreeFast(body(ind), funSet, inVarSet, -1, 1, 0.33, 0.75, 1.0, 0.5, 2) 
+    #subtreeMutantBody <- mutateSubtreeFast(body(ind), funSet, inVarSet, -1, 1, 0.33, 0.75, 1.0, 0.5, 2) 
     #print("--1"); print(subtreeMutantBody)
-    functionMutantBody <- mutateFuncFast(subtreeMutantBody, funSet, mutatefuncprob = 0.33)
+    #functionMutantBody <- mutateFuncFast(subtreeMutantBody, funSet, mutatefuncprob = 0.33)
     #print("--2"); print(functionMutantBody)
-    constantMutantBody <- mutateNumericConstFast(functionMutantBody, mutateconstprob = 0.33, mu = 0, sigma = 1)
+    #constantMutantBody <- mutateNumericConstFast(functionMutantBody, mutateconstprob = 0.33, mu = 0, sigma = 1)
     #print("--3"); print(constantMutantBody)
-    mutant <- makeClosure(constantMutantBody, inVarSet$all, envir = funSet$envir)
+    #mutant <- makeClosure(constantMutantBody, inVarSet$all, envir = funSet$envir)
+    #mutant
+   
+    # subtree Mutation alone seems to give good results...
+    subtreeMutantBody <- mutateSubtreeFast(body(ind), funSet, inVarSet, -10.0, 10.0, insertprob = 0.5, deleteprob = 0.5, subtreeprob = 1.0, constprob = 0.5, maxsubtreedepth = 8)
+    mutant <- makeClosure(subtreeMutantBody, inVarSet$all, envir = funSet$envir)
     mutant
   }
 
@@ -160,6 +167,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
   complexityHistory <- c()
   ageHistory <- c()
   dominatedHypervolumeHistory <- c()
+  lastBestFitness <- Inf
 
   progressMonitor <- function(pop, objectiveVectors, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed, indicesToRemove) {
     fitnessValues <- objectiveVectors$fitnessValues
@@ -167,9 +175,24 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
       oldDev <- dev.cur()
       dev.set(3)
       plotParetoFront(objectiveVectors$poolFitnessValues, objectiveVectors$poolComplexityValues, objectiveVectors$poolAgeValues,
-                      indicesToRemove, main = "Selection Pool Pareto Plot",
+                      indicesToRemove, main = sprintf("Selection Pool Pareto Plot (%d Individuals)", length(objectiveVectors$poolFitnessValues)),
                       xlab = "Fitness (SRMSE)", ylab = "Complexity (Visitation Length)")
       dev.set(oldDev)
+    }
+    if (bestFitness < lastBestFitness) {
+      alarm()
+      lastBestFitness <<- bestFitness
+      bestIndividual <- pop[order(fitnessValues)][[1]] 
+      rescaledBestIndividual <- rescaleIndividual(bestIndividual, fitnessCases$y, domainInterval, targetFunction$samples)
+      message("NEW best individual (not rescaled):")
+      message(sprintf(" %s", deparse(bestIndividual)))
+      dev.set(2)
+      plotFunctions(list(targetFunction$f, rescaledBestIndividual, bestIndividual),
+                    from = domainInterval[1], to = domainInterval[2], steps = targetFunction$samples,
+                    ylim = targetFunctionRange,
+                    main = "Current Best Solution vs. True Function",
+                    sub = sprintf("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %f",
+                                  stepNumber, evaluationNumber, bestFitness, timeElapsed))
     }
     if (stepNumber %% 10 == 0) {
       message(sprintf("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %f",
@@ -199,19 +222,6 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
         dev.set(oldDev)
       }
     }
-    if (stepNumber %% 50 == 0) {
-      bestIndividual <- pop[order(fitnessValues)][[1]] 
-      rescaledBestIndividual <- rescaleIndividual(bestIndividual, fitnessCases$y, domainInterval, targetFunction$samples)
-      message("current best individual (not rescaled):")
-      message(sprintf(" %s", deparse(bestIndividual)))
-      dev.set(2)
-      plotFunctions(list(targetFunction$f, rescaledBestIndividual, bestIndividual),
-                    from = domainInterval[1], to = domainInterval[2], steps = targetFunction$samples,
-                    ylim = targetFunctionRange,
-                    main = "Current Best Solution vs. True Function",
-                    sub = sprintf("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %f",
-                                  stepNumber, evaluationNumber, bestFitness, timeElapsed))
-    }
     if (stepNumber %% 100 == 0) {
       timeTaken <- as.numeric(Sys.time() - startTime1, units = "secs")
       startTime1 <<- Sys.time()
@@ -226,24 +236,38 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
     }
   }
 
-  population <- populationFactory(populationSize, funSet, inVarSet, 8, -10.0, 10.0)
-
-  sr <- symbolicRegression(y ~ x1, data = fitnessCases,
+  sr <- if (enableSubtreeSelection) {
+    fastSymbolicRegression(y ~ x1,
+                           data = fitnessCases,
                            functionSet = funSet,
-                           #errorMeasure = mae,
                            errorMeasure = smse,
-                           #stopCondition = makeStepsStopCondition(250),
                            stopCondition = makeTimeStopCondition(maxTimeMinutes * 60),
-                           population = population,
                            populationSize = populationSize,
                            individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
-                           subSamplingShare = subSamplingShare,
                            mutationFunction = mutationFunction,
                            crossoverFunction = crossoverFunction,
-                           searchHeuristic = searchHeuristic,
-                           envir = environment(), # TODO
+                           ndsParentSelectionProbability = ndsParentSelectionProbability,
                            verbose = TRUE,
                            progressMonitor = progressMonitor)
+  } else {
+    population <- populationFactory(populationSize, funSet, inVarSet, 8, -10.0, 10.0)
+    symbolicRegression(y ~ x1, data = fitnessCases,
+                       functionSet = funSet,
+                       #errorMeasure = mae,
+                       errorMeasure = smse,
+                       #stopCondition = makeStepsStopCondition(250),
+                       stopCondition = makeTimeStopCondition(maxTimeMinutes * 60),
+                       population = population,
+                       populationSize = populationSize,
+                       individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
+                       subSamplingShare = subSamplingShare,
+                       mutationFunction = mutationFunction,
+                       crossoverFunction = crossoverFunction,
+                       searchHeuristic = searchHeuristic,
+                       envir = environment(), # TODO
+                       verbose = TRUE,
+                       progressMonitor = progressMonitor)
+  }
 
   return(sr)
 }
