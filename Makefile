@@ -2,6 +2,8 @@
 # make build script for RGP
 #
 
+R_HOME ?= $(shell R RHOME)
+
 .SILENT:
 .PHONEY: usage help install test check clean distclean package
 
@@ -56,7 +58,9 @@ roxygen: m4macros
 clean:
 	echo "Cleaning up..."
 	rm -fR pkg
+	rm -fR pkg.Rcheck
 	rm -fR skel.Rcheck rgp.Rcheck
+	rm -f skel/src/evaluate_language_expression.h
 	rm -fR skel/src/*.o skel/src/*.so skel/R/*~
 	rm -fR playground/*.o playground/*.so playground/*~
 	rm -fR .RData .Rhistory build.log install.log roxygen.log

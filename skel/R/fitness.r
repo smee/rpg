@@ -13,7 +13,11 @@
 ##' @param y A numeric vector or list.
 ##' @return The MAE between \code{x} and \code{y}.
 ##' @export
-mae <- function(x, y) mean(abs(x - y))
+##' @useDynLib rgp do_mae
+mae <- function(x, y) .Call(do_mae, x, y)
+
+##' @export
+r_mae <- function(x, y) mean(abs(x - y))
 
 ##' Sum squared error (SSE)
 ##'
@@ -21,20 +25,11 @@ mae <- function(x, y) mean(abs(x - y))
 ##' @param y A numeric vector or list.
 ##' @return The SSE between \code{x} and \code{y}.
 ##' @export
-sse <- function(x ,y) sum((x -y) ^ 2)
+##' @useDynLib rgp do_sse
+sse <- function(x ,y) .Call(do_sse, x, y)
 
-##' Scaled sum squared error (sSSE)
-##'
-##' @param x A numeric vector or list.
-##' @param y A numeric vector or list.
-##' @return The sSSE between \code{x} and \code{y}.
 ##' @export
-ssse <- function(x, y) {
-	if (length(y) == 1) y <- rep(y, length(x))
-	b = cov(x, y) / var(y)
-	a = mean(x) - b * mean(y)
-	sum((x - (a + b * y)) ^ 2)
-}
+r_sse <- function(x ,y) sum((x -y) ^ 2)
 
 ##' Mean squared error (MSE)
 ##'
@@ -42,7 +37,7 @@ ssse <- function(x, y) {
 ##' @param y A numeric vector or list.
 ##' @return The MSE between \code{x} and \code{y}.
 ##' @export
-mse <- function(x, y) mean((x - y)^2)
+mse <- function(x, y) .Call(sse, x, y) / length(x)
 
 ##' Root mean squared error (RMSE)
 ##'
@@ -51,6 +46,23 @@ mse <- function(x, y) mean((x - y)^2)
 ##' @return The RMSE between \code{x} and \code{y}.
 ##' @export
 rmse <- function(x, y) sqrt(mse(x, y))
+
+##' Scaled sum squared error (sSSE)
+##'
+##' @param x A numeric vector or list.
+##' @param y A numeric vector or list.
+##' @return The sSSE between \code{x} and \code{y}.
+##' @export
+##' @useDynLib rgp do_ssse
+ssse <- function(x, y) .Call(do_ssse, x, y)
+
+##' @export
+r_ssse <- function(x, y) {
+	if (length(y) == 1) y <- rep(y, length(x))
+	b = cov(x, y) / var(y)
+	a = mean(x) - b * mean(y)
+	sum((x - (a + b * y)) ^ 2)
+}
 
 ##' Normalize a vector into the interval [0, 1]
 ##'
@@ -87,7 +99,7 @@ smse <- function(x, y) (1 / length(x)) * ssse(x, y)
 
 ##' Symbolic squared error function (SE)
 ##'
-##' Given to functions \code{f} and \code{g}, returns a function whose body
+##' Given two functions \code{f} and \code{g}, returns a function whose body
 ##' is the symbolic representation of the squared error between \code{f} and
 ##' \code{g}, i.e. \code{function(x) (f(x) - g(x))^2}.
 ##'
