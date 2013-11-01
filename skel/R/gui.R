@@ -233,20 +233,19 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
   }
 
   population <- populationFactory(populationSize, funSet, inVarSet, 8, -10.0, 10.0)
-  symbolicRegression(y ~ x1, data = fitnessCases,
-                     functionSet = funSet,
-                     errorMeasure = errorMeasure,
-                     #stopCondition = makeStepsStopCondition(250),
-                     stopCondition = makeTimeStopCondition(maxTimeMinutes * 60),
-                     population = population,
-                     populationSize = populationSize,
-                     individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
-                     subSamplingShare = subSamplingShare,
-                     searchHeuristic = searchHeuristic,
-                     envir = environment(), # TODO
-                     verbose = TRUE,
-                     progressMonitor = progressMonitor)
-
+  sr <- symbolicRegression(y ~ x1, data = fitnessCases,
+                           functionSet = funSet,
+                           errorMeasure = errorMeasure,
+                           #stopCondition = makeStepsStopCondition(250),
+                           stopCondition = makeTimeStopCondition(maxTimeMinutes * 60),
+                           population = population,
+                           populationSize = populationSize,
+                           individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
+                           subSamplingShare = subSamplingShare,
+                           searchHeuristic = searchHeuristic,
+                           envir = environment(), # TODO
+                           verbose = TRUE,
+                           progressMonitor = progressMonitor)
   return(sr)
 }
 
