@@ -35,7 +35,7 @@ symbolicRegressionGui <- function() {
                                     ndsParentSelectionProbability, ndsSelectionFunctionName,
                                     targetFunctionName, csvFileName, resultRdsFileName),
           auto = FALSE, eval = FALSE, label = "RGP Symbolic Regression GUI",
-          targetFunctionName = combo("Salutowicz 1d", "Unwrapped Ball 1d", "Damped Oscillator 1d", "CSV File"),
+          targetFunctionName = combo("Salutowicz 1d", "Unwrapped Ball 1d", "Damped Oscillator 1d", "Air Passengers 1d", "CSV File"),
           csvFileName = filer(),
           resultRdsFileName = filer(default = "rgpResultPopulation.rds"),
           plotFront = toggle(default = TRUE),
@@ -63,6 +63,7 @@ defineTargetFunction <- function(f, domainInterval = c(0, 1), dim = 1, samples =
 Salutowicz1d <- defineTargetFunction(function(x) exp(-1*x)*x*x*x*sin(x)*cos(x)*(sin(x)*sin(x)*cos(x)-1), c(0, 10))
 UnwrappedBall1d <- defineTargetFunction(function(x) 10/((x - 3)*(x - 3) + 5), c(-10, 10))
 DampedOscillator1d <- defineTargetFunction(function(x) 1.5 * exp(-0.5 * x) * sin(pi * x + pi), c(0, 10))
+AirPassengers1d <- defineTargetFunction(function(x) as.data.frame(AirPassengers)[floor(x),], c(1, 144))
 
 # Symbolic regression driver function for twiddler...
 #
@@ -89,6 +90,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
   set.seed(randomSeed)
 
   targetFunction <- switch(targetFunctionName,
+                         "Air Passengers 1d" = AirPassengers1d,
                          "Damped Oscillator 1d" = DampedOscillator1d,
                          "Salutowicz 1d" = Salutowicz1d,
                          "Unwrapped Ball 1d" = UnwrappedBall1d,
