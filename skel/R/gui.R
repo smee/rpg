@@ -51,7 +51,7 @@ symbolicRegressionGui <- function() {
           errorMeasureName = combo("SMSE", "SSSE", "RMSE", "SSE", "MAE"),
           subSamplingShare = knob(lim = c(0.01, 1.0), default = 1.0, res = 0.01),
           randomSeed = knob(lim = c(1, 1000), res = 1),
-          maxTimeMinutes = knob(lim = c(0.1, 480), res = 0.5, default = 15.0))
+          maxTimeMinutes = knob(lim = c(0.1, 480), res = 0.5, default = 60.0))
 }
 
 # Test target functions...
@@ -71,7 +71,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                       errorMeasureName = "SMSE",
                                       lambda = 20,
                                       crossoverProbability = 0.5,
-                                      maxTimeMinutes = 15,
+                                      maxTimeMinutes = 60,
                                       newIndividualsPerGeneration = 20,
                                       populationSize = 100,
                                       subSamplingShare = 1.0,
