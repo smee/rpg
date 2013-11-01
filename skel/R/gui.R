@@ -159,8 +159,8 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
       oldDev <- dev.cur()
       dev.set(3)
       plotParetoFront(objectiveVectors$poolFitnessValues, objectiveVectors$poolComplexityValues, objectiveVectors$poolAgeValues,
-                      indicesToRemove, main = sprintf("Selection Pool Pareto Plot (%d Individuals)", length(objectiveVectors$poolFitnessValues)),
-                      xlab = "Fitness", ylab = "Complexity (Visitation Length)")
+                      indicesToRemove, main = sprintf("Selection Pool Fitness Pareto Plot (%d Individuals)", length(objectiveVectors$poolFitnessValues)),
+                      xlab = "Error", ylab = "Complexity (Visitation Length)")
       dev.set(oldDev)
     }
     if (bestFitness < lastBestFitness) {
