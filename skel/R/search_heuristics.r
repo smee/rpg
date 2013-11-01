@@ -259,6 +259,16 @@ function(logFunction, stopCondition, pop, fitnessFunction,
   #complexityValues[is.infinite(fitnessValues)] <- Inf # TODO test 
   ageValues <- integer(mu) # initialize ages with zeros
   #ageValues[is.infinite(fitnessValues)] <- Inf # TODO test 
+  fastIndividualFactory <- function() {
+    makeClosure(.Call("initialize_expression_grow_R",
+                      as.list(functionSet$nameStrings),
+                      as.integer(functionSet$arities),
+                      as.list(inputVariables$nameStrings),
+                      -10.0, 10.0,
+                      0.8, 0.2,
+                      as.integer(newIndividualsMaxDepth)),
+                as.list(inputVariables$nameStrings))
+  }
 
   ## Initialize statistic counters...
   stepNumber <- 1
@@ -314,7 +324,8 @@ function(logFunction, stopCondition, pop, fitnessFunction,
     newIndividuals <- newIndividualFactory(newIndividualsPerGeneration, functionSet, inputVariables, constantSet,
                                            maxfuncdepth = newIndividualsMaxDepth,
                                            extinctionPrevention = extinctionPrevention,
-                                           breedingFitness = breedingFitness, breedingTries = breedingTries)
+                                           breedingFitness = breedingFitness, breedingTries = breedingTries,
+                                           funcfactory = fastIndividualFactory)
     newIndividualsFitnessValues <- as.numeric(sapply(newIndividuals, fitnessFunction))
     newIndividualsComplexityValues <- as.numeric(Map(complexityMeasure, newIndividuals, newIndividualsFitnessValues))
     newIndividualsAgeValues <- integer(newIndividualsPerGeneration) # initialize ages with zeros
