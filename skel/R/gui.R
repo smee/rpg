@@ -26,17 +26,18 @@ symbolicRegressionGui <- function() {
   subSamplingShare <- NULL; randomSeed <- NULL
   plotFront <- NULL; plotProgress <- NULL
   ndsParentSelectionProbability <- NULL; ndsSelectionFunctionName <- NULL
-  targetFunctionName <- NULL; csvFileName <- NULL
+  targetFunctionName <- NULL; csvFileName <- NULL; resultRdsFileName <- NULL
   twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion,
                                     functionSetString, errorMeasureName,
                                     lambda, crossoverProbability, maxTimeMinutes,
                                     newIndividualsPerGeneration, populationSize, subSamplingShare,
                                     randomSeed, plotFront, plotProgress,
                                     ndsParentSelectionProbability, ndsSelectionFunctionName,
-                                    targetFunctionName, csvFileName),
+                                    targetFunctionName, csvFileName, resultRdsFileName),
           auto = FALSE, eval = FALSE, label = "RGP Symbolic Regression GUI",
           targetFunctionName = combo("Salutowicz 1d", "Unwrapped Ball 1d", "Damped Oscillator 1d", "CSV File"),
           csvFileName = filer(),
+          resultRdsFileName = filer(default = "rgpResultPopulation.rds"),
           plotFront = toggle(default = TRUE),
           plotProgress = toggle(default = TRUE),
           populationSize = knob(lim = c(1, 1000), default = 100, res = 1),
@@ -81,7 +82,8 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                       ndsParentSelectionProbability = 1.0,
                                       ndsSelectionFunctionName = "Crowding Distance",
                                       targetFunctionName = "Salutowicz 1d",
-                                      csvFileName = "") {
+                                      csvFileName = "",
+                                      resultRdsFileName = "rgpResultPopulation.rds") {
   system(sprintf("afplay -t %d ~/repos/rgp/examples/data/gp_music.mp4", as.integer(maxTimeMinutes * 60)), wait = FALSE) # TODO playing music may lead to better GP results
 
   set.seed(randomSeed)
@@ -160,7 +162,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
       dev.set(3)
       plotParetoFront(objectiveVectors$poolFitnessValues, objectiveVectors$poolComplexityValues, objectiveVectors$poolAgeValues,
                       indicesToRemove, main = sprintf("Selection Pool Fitness Pareto Plot (%d Individuals)", length(objectiveVectors$poolFitnessValues)),
-                      xlab = "Error", ylab = "Complexity (Visitation Length)")
+                      xlab = "Fitness (Prediction Error)", ylab = "Complexity (Visitation Length)")
       dev.set(oldDev)
     }
     if (bestFitness < lastBestFitness) {
@@ -246,6 +248,8 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                            envir = environment(), # TODO
                            verbose = TRUE,
                            progressMonitor = progressMonitor)
+  saveRDS(sr, resultRdsFileName)
+
   return(sr)
 }
 
