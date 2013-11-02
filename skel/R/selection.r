@@ -117,7 +117,7 @@ makeComplexityTournamentSelection <- function(tournamentSize = 30,
                                               tournamentDeterminism = 1.0,
                                               vectorizedFitness = FALSE,
                                               rankingStrategy = orderByParetoCrowdingDistance,
-                                              complexityMeasure = funcVisitationLength) {
+                                              complexityMeasure = fastFuncVisitationLength) {
   selectionFunction <- makeMultiObjectiveTournamentSelection(tournamentSize, selectionSize,
                                                              tournamentDeterminism, rankingStrategy)
   # TODO add support for vectorizedFitness

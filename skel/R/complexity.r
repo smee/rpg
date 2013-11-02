@@ -20,6 +20,8 @@
 ##' \code{exprVisitationLength} returns the visitation length of the tree of an R expression.
 ##' The visitation length is the total number of nodes in all possible subtrees of a tree.
 ##' \code{funcVisitationLength} returns the visitation length of the body expression tree of an R function.
+##' \code{fastExprVisitationLength} and \code{fastFuncVisitationLength} are variants written in optimized
+##' C code.
 ##' The visitation length can be interpreted as the size of the expression obtained by substituting all
 ##' inner functions by their function bodies (see "Crossover Bias in Genetic Programming", Maarten Keijzer
 ##' and James Foster).
@@ -106,8 +108,18 @@ exprVisitationLength <- function(expr, intermediateResults = FALSE) {
 
 ##' @rdname expressionComplexityMeasures
 ##' @export
+fastExprVisitationLength <- function(expr, intermediateResults = FALSE)
+  .Call("sexp_visitation_length_R", expr, intermediateResults) 
+
+##' @rdname expressionComplexityMeasures
+##' @export
 funcVisitationLength <- function(func, intermediateResults = FALSE)
   exprVisitationLength(body(func), intermediateResults = intermediateResults)
+
+##' @rdname expressionComplexityMeasures
+##' @export
+fastFuncVisitationLength <- function(func, intermediateResults = FALSE)
+  .Call("func_visitation_length_R", func, intermediateResults) 
 
 ##' Upper bounds for expression tree search space sizes
 ##'

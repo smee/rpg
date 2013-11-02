@@ -205,15 +205,15 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##' a generational evolutionary multi objective optimization algorithm (EMOA) that selects on three criteria:
 ##' Individual age, individual fitness, and individual complexity.
 ##'
-##' @param lambda The number of children to create in each generation.
+##' @param lambda The number of children to create in each generation (\code{50} by default).
 ##' @param crossoverProbability The crossover probability for search-heuristics that support
-##'   this setting (i.e. TinyGP). Defaults to \code{0.9}.
+##'   this setting (i.e. TinyGP). Defaults to \code{0.5}.
 ##' @param enableComplexityCriterion Whether to enable the complexity criterion in multi-criterial
 ##'   search heuristics.
 ##' @param enableAgeCriterion Whether to enable the age criterion in multi-criterial search heuristics.
 ##' @param ndsParentSelectionProbability The probability to use non-dominated sorting to select parents
-##'   for each generation. When set to \code{0.0} (the default), parents are selected by uniform random
-##'   sampling without replacement every time.
+##'   for each generation. When set to \code{0.0}, parents are selected by uniform random
+##'   sampling without replacement every time. Defaults to \code{1.0}.
 ##' @param ndsSelectionFunction The function to use for non-dominated sorting in Pareto GP selection.
 ##'   Defaults to \code{nds_cd_selection}.
 ##' @param complexityMeasure The complexity measure, a function of signature \code{function(ind, fitness)}
@@ -221,7 +221,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##' @param ageMergeFunction The function used for merging ages of crossover children, defaults
 ##'   to \code{max}.
 ##' @param newIndividualsPerGeneration The number of new individuals per generation to
-##'   insert into the population. Defaults to \code{2} if \code{enableAgeCriterion == TRUE}
+##'   insert into the population. Defaults to \code{50} if \code{enableAgeCriterion == TRUE}
 ##'   else to \code{0}.
 ##' @param newIndividualsMaxDepth The maximum depth of new individuals inserted into the
 ##'   population.
@@ -230,15 +230,15 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##' @return An RGP search heuristic.
 ##'
 ##' @export
-makeAgeFitnessComplexityParetoGpSearchHeuristic <- function(lambda = 20,
-                                                            crossoverProbability = 0.9,
-                                                            enableComplexityCriterion = FALSE,
+makeAgeFitnessComplexityParetoGpSearchHeuristic <- function(lambda = 50,
+                                                            crossoverProbability = 0.5,
+                                                            enableComplexityCriterion = TRUE,
                                                             enableAgeCriterion = FALSE,
                                                             ndsParentSelectionProbability = 0.0,
                                                             ndsSelectionFunction = nds_cd_selection,
-                                                            complexityMeasure = function(ind, fitness) funcVisitationLength(ind),
+                                                            complexityMeasure = function(ind, fitness) fastFuncVisitationLength(ind),
                                                             ageMergeFunction = max,
-                                                            newIndividualsPerGeneration = if (enableAgeCriterion) 2 else 0,
+                                                            newIndividualsPerGeneration = if (enableAgeCriterion) 50 else 0,
                                                             newIndividualsMaxDepth = 8,
                                                             newIndividualFactory = makePopulation)
 function(logFunction, stopCondition, pop, fitnessFunction,
@@ -415,7 +415,7 @@ makeArchiveBasedParetoTournamentSearchHeuristic <- function(archiveSize = 50,
                                                             archiveTournamentSize = 3,
                                                             crossoverRate = 0.95,
                                                             enableComplexityCriterion = TRUE,
-                                                            complexityMeasure = function(ind, fitness) funcVisitationLength(ind),
+                                                            complexityMeasure = function(ind, fitness) fastFuncVisitationLength(ind),
                                                             ndsSelectionFunction = nds_cd_selection)
 function(logFunction, stopCondition, pop, fitnessFunction,
          mutationFunction, crossoverFunction,

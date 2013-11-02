@@ -129,7 +129,7 @@ summary.population <- function(object, ...) {
 ##'
 ##' @export
 plotPopulationFitnessComplexity <- function(pop, fitnessFunction,
-                                            complexityFunction = funcVisitationLength,
+                                            complexityFunction = fastFuncVisitationLength,
                                             showIndices = TRUE,
                                             showParetoFront = TRUE,
                                             hideOutliers = 0, ...) {
