@@ -23,14 +23,15 @@ symbolicRegressionGui <- function() {
   functionSetString <- NULL
   lambda <- NULL; crossoverProbability <- NULL; maxTimeMinutes <- NULL
   newIndividualsPerGeneration <- NULL; populationSize <- NULL
-  subSamplingShare <- NULL; randomSeed <- NULL
+  #subSamplingShare <- NULL;
+  randomSeed <- NULL
   plotFront <- NULL; plotProgress <- NULL
   ndsParentSelectionProbability <- NULL; ndsSelectionFunctionName <- NULL
   targetFunctionName <- NULL; csvFileName <- NULL; resultRdsFileName <- NULL
   twiddle(twiddleSymbolicRegression(enableAgeCriterion, enableComplexityCriterion,
                                     functionSetString, errorMeasureName,
                                     lambda, crossoverProbability, maxTimeMinutes,
-                                    newIndividualsPerGeneration, populationSize, subSamplingShare,
+                                    newIndividualsPerGeneration, populationSize, #subSamplingShare,
                                     randomSeed, plotFront, plotProgress,
                                     ndsParentSelectionProbability, ndsSelectionFunctionName,
                                     targetFunctionName, csvFileName, resultRdsFileName),
@@ -50,7 +51,7 @@ symbolicRegressionGui <- function() {
           ndsSelectionFunctionName = combo("Crowding Distance", "Hypervolume"),
           functionSetString = entry(default = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")'),
           errorMeasureName = combo("SMSE", "SSSE", "RMSE", "SSE", "MAE"),
-          subSamplingShare = knob(lim = c(0.01, 1.0), default = 1.0, res = 0.01),
+          #subSamplingShare = knob(lim = c(0.01, 1.0), default = 1.0, res = 0.01),
           randomSeed = knob(lim = c(1, 1000), res = 1),
           maxTimeMinutes = knob(lim = c(0.1, 480), res = 0.5, default = 60.0))
 }
@@ -76,7 +77,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                                       maxTimeMinutes = 60,
                                       newIndividualsPerGeneration = 50,
                                       populationSize = 100,
-                                      subSamplingShare = 1.0,
+                                      #subSamplingShare = 1.0,
                                       randomSeed = 1,
                                       plotFront = TRUE,
                                       plotProgress = TRUE,
@@ -245,7 +246,7 @@ twiddleSymbolicRegression <- function(enableAgeCriterion = TRUE,
                            population = population,
                            populationSize = populationSize,
                            individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
-                           subSamplingShare = subSamplingShare,
+                           #subSamplingShare = subSamplingShare,
                            searchHeuristic = searchHeuristic,
                            envir = environment(), # TODO
                            verbose = TRUE,
