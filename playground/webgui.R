@@ -92,8 +92,40 @@ ui <- bootstrapPage(
         resultsPanel,
         id = "rgpPanels")),
   tags$footer(HTML("&copy; 2010-13"), a("rsymbolic.org", href = "http://rsymbolic.org"))))
+  
+# TODO
+backgroundJobMain <- function() {
+  stopJob <- FALSE
+  serverConnection <- socketConnection(port = RGP_PORT, server = TRUE, open = "rwb", blocking = TRUE)
+  command <- list(op = RGP_RUN_STATES$PAUSED)
+  while (!stopJob) {
+    Sys.sleep(0.5) # TODO
+    if (socketSelect(list(serverConnection), timeout = 0)) {
+      command <- unserialize(serverConnection)
+      print(paste("job received command: ", command)) # TODO
+    }
+    if (RGP_RUN_STATES$PAUSED == command$op) {
+      serialize(rep(0, 1e5), serverConnection)
+    } else if (RGP_RUN_STATES$RUNNING == command$op) {
+      serialize(cumsum(rnorm(1e5)), serverConnection)
+    } else if (RGP_RUN_STATES$RESET == command$op) {
+      serialize(1:1e5, serverConnection)
+    } else if (RGP_RUN_STATES$STOP == command$op) {
+      stopJob <- TRUE
+    } else {
+      warn("RGP background job: unknown command: ", command)
+      stopJob <- TRUE
+    }
+  }
+  close(serverConnection)
+}
 
 server <- function(input, output, session) {
+  # TODO
+  backgroundJob <- mcparallel(backgroundJobMain())
+  Sys.sleep(1) # wait for background job to initialize 
+  backgroundJobConnection <- socketConnection(port = RGP_PORT, open = "rwb", blocking = TRUE) 
+
   dataFrame <- reactive({
     dataFile <- input$csvFile
 
@@ -142,55 +174,28 @@ server <- function(input, output, session) {
   })
 
   # TODO
-  backgroundJobMain <- function() {
-    stopJob <- FALSE
-    serverConnection <- socketConnection(port = RGP_PORT, server = TRUE, open = "rwb", blocking = TRUE)
-    while (!stopJob) {
-      Sys.sleep(0.5) # TODO
-      command <- unserialize(serverConnection)
-      print(paste("job received command: ", command)) # TODO
-      if (RGP_RUN_STATES$PAUSED == command$op) {
-        serialize(rep(0, 1e5), serverConnection)
-      } else if (RGP_RUN_STATES$RUNNING == command$op) {
-        serialize(cumsum(rnorm(1e5)), serverConnection)
-      } else if (RGP_RUN_STATES$RESET == command$op) {
-        serialize(1:1e5, serverConnection)
-      } else if (RGP_RUN_STATES$STOP == command$op) {
-        stopJob <- TRUE
-      } else {
-        warn("RGP background job: unknown command: ", command)
-        stopJob <- TRUE
-      }
-    }
-    close(serverConnection)
-  }
-
-  # TODO
   runState <- RGP_RUN_STATES$PAUSED
   observe({ if (input$startRunButton > 0) {
     runState <<- RGP_RUN_STATES$RUNNING 
+    serialize(list(op = runState), backgroundJobConnection) 
   }})
   observe({ if (input$pauseRunButton > 0) {
     runState <<- RGP_RUN_STATES$PAUSED
+    serialize(list(op = runState), backgroundJobConnection) 
   }})
   observe({ if (input$resetRunButton > 0) {
     runState <<- RGP_RUN_STATES$RESET
+    serialize(list(op = runState), backgroundJobConnection) 
   }})
 
-  # TODO
-  backgroundJob <- mcparallel({
-    backgroundJobMain()
-  })
-  Sys.sleep(1) # wait for background job to initialize 
-
-  # TODO
-  backgroundJobConnection <- socketConnection(port = RGP_PORT, open = "rwb", blocking = TRUE) 
   backgroundJobOutput <- reactive({
     invalidateLater(100, session)
-    if (is.null(backgroundJobConnection)) return (NULL)
-    serialize(list(op = runState), backgroundJobConnection) 
-    jobStatus <- unserialize(backgroundJobConnection)
-    jobStatus
+    jobStatus <- if (socketSelect(list(backgroundJobConnection), timeout = 1)) {
+      unserialize(backgroundJobConnection)
+    } else {
+      0
+    }
+    return (jobStatus)
   })
 
   # TODO
