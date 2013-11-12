@@ -55,7 +55,9 @@ objectivePanel <- tabPanel("Objective", value = "objectivePanel",
       textInput("buildingBlocks", "Building Blocks",
                 value = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")'),
       selectInput("errorMeasure", "Error Measure", 
-                  choices = c("SMSE", "SSSE", "RMSE", "SSE", "MAE"))),
+                  choices = c("SMSE", "SSSE", "RMSE", "SSE", "MAE")),
+      checkboxInput("enableComplexityCriterion", "Enable Complexity Criterion",
+                    value = TRUE)),
     mainPanel(
       h3("Dependent Variable Plot"),
       plotOutput("dependentVariablePlot"),
@@ -66,7 +68,30 @@ runPanel <- tabPanel("Run", value = "runPanel",
   div(class = "row-fluid",
     sidebarPanel(
       tags$legend("Run Parameters"),
-      "TODO GP run parameters",
+      checkboxInput("enableAgeCriterion", "Enable Age Criterion",
+                    value = TRUE),
+      sliderInput("mu", "Mu (Population Size)", 
+                  min = 2, max = 1000, value = 100, step = 1),
+      sliderInput("lambda", "Lambda (Number of Children / Generation)", 
+                  min = 2, max = 100, value = 50, step = 1),
+      sliderInput("nu", "Nu (Number of New Individuals / Generation)", 
+                  min = 2, max = 100, value = 50, step = 1),
+      sliderInput("crossoverProbability", "Crossover Probability", 
+                  min = 0, max = 1, value = .5, step = .01),
+      sliderInput("subtreeMutationProbability", "Subtree Mutation Probability", 
+                  min = 0, max = 1, value = 1, step = .01),
+      sliderInput("functionMutationProbability", "Function Mutation Probability", 
+                  min = 0, max = 1, value = 0, step = .01),
+      sliderInput("constantMutationProbability", "Constant Mutation Probability", 
+                  min = 0, max = 1, value = 0, step = .01),
+      sliderInput("parentSelectionProbability", "Parent Selection Probability", 
+                  min = 0, max = 1, value = 1, step = .01),
+      selectInput("selectionFunction", "Selection Function", 
+                  choices = c("Crowding Distance", "Hypervolume")),
+      sliderInput("fitnessSubSamplingShare", "Fitness Subsampling Share", 
+                  min = 0, max = 1, value = 1, step = .01),
+      sliderInput("randomSeed", "Random Seed", 
+                  min = 0, max = 1000, value = 1, step = 1),
       tags$legend("Run Control"),
       bootstrapButton("startRunButton", "Start Run", icon = "icon-play icon-white", class = "btn-primary btn-block"),
       bootstrapButton("pauseRunButton", "Pause Run", icon = "icon-pause", class = "btn-block"),
@@ -74,7 +99,7 @@ runPanel <- tabPanel("Run", value = "runPanel",
       bootstrapButton("resetRunButton", "Reset Run", icon = "icon-eject icon-white", class = "btn-danger btn-block")),
     mainPanel(
       "TODO Run Content",
-      plotOutput("backgroundJobOutputPlot"))))
+      plotOutput("workerProcessOutputPlot"))))
 
 resultsPanel <- tabPanel("Results", value = "resultsPanel",
   "TODO Results Content")
@@ -94,7 +119,7 @@ ui <- bootstrapPage(
   tags$footer(HTML("&copy; 2010-13"), a("rsymbolic.org", href = "http://rsymbolic.org"))))
   
 # TODO
-backgroundJobMain <- function() {
+workerProcessMain <- function() {
   stopJob <- FALSE
   serverConnection <- socketConnection(port = RGP_PORT, server = TRUE, open = "rwb", blocking = TRUE)
   command <- list(op = RGP_RUN_STATES$PAUSED)
@@ -122,9 +147,11 @@ backgroundJobMain <- function() {
 
 server <- function(input, output, session) {
   # TODO
-  backgroundJob <- mcparallel(backgroundJobMain())
+  workerProcess <- mcparallel(workerProcessMain())
   Sys.sleep(1) # wait for background job to initialize 
-  backgroundJobConnection <- socketConnection(port = RGP_PORT, open = "rwb", blocking = TRUE) 
+  workerProcessConnection <- socketConnection(port = RGP_PORT, open = "rwb", blocking = TRUE) 
+
+  independentVariables <- c()
 
   dataFrame <- reactive({
     dataFile <- input$csvFile
@@ -134,13 +161,20 @@ server <- function(input, output, session) {
     
     dataFrame <- read.csv(dataFile$datapath, header = input$header, sep = input$sep, quote = input$quote)
 
-    updateTextInput(session, "formula", value = paste("TODO", nrow(dataFrame))) # TODO
     updateSelectInput(session, "dependentVariable",
                       choices = colnames(dataFrame), selected = tail(colnames(dataFrame), 1))
     updateSelectInput(session, "dependentVariablePlotAbscissa",
                       choices = c("(Row Number)", colnames(dataFrame)), selected = "(Row Number)") 
 
     return (dataFrame)
+  })
+
+  observe({
+    allVariables <- colnames(dataFrame())
+    dependentVariable <- input$dependentVariable 
+    independentVariables <- allVariables[allVariables != dependentVariable]
+    formulaText <- paste(dependentVariable, "~", paste(independentVariables, collapse = " + "))
+    updateTextInput(session, "formula", value = formulaText)
   })
 
   output$dataPlot <- renderPlot({
@@ -177,21 +211,21 @@ server <- function(input, output, session) {
   runState <- RGP_RUN_STATES$PAUSED
   observe({ if (input$startRunButton > 0) {
     runState <<- RGP_RUN_STATES$RUNNING 
-    serialize(list(op = runState), backgroundJobConnection) 
+    serialize(list(op = runState), workerProcessConnection) 
   }})
   observe({ if (input$pauseRunButton > 0) {
     runState <<- RGP_RUN_STATES$PAUSED
-    serialize(list(op = runState), backgroundJobConnection) 
+    serialize(list(op = runState), workerProcessConnection) 
   }})
   observe({ if (input$resetRunButton > 0) {
     runState <<- RGP_RUN_STATES$RESET
-    serialize(list(op = runState), backgroundJobConnection) 
+    serialize(list(op = runState), workerProcessConnection) 
   }})
 
-  backgroundJobOutput <- reactive({
+  workerProcessOutput <- reactive({
     invalidateLater(100, session)
-    jobStatus <- if (socketSelect(list(backgroundJobConnection), timeout = 1)) {
-      unserialize(backgroundJobConnection)
+    jobStatus <- if (socketSelect(list(workerProcessConnection), timeout = 1)) {
+      unserialize(workerProcessConnection)
     } else {
       0
     }
@@ -199,7 +233,7 @@ server <- function(input, output, session) {
   })
 
   # TODO
-  output$backgroundJobOutputPlot <- renderPlot({ plot(backgroundJobOutput(), type = "l") })
+  output$workerProcessOutputPlot <- renderPlot({ plot(workerProcessOutput(), type = "l") })
 }
 
 rgpWebGui <- function(port = 1447) {
