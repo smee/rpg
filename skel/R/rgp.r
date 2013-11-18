@@ -51,7 +51,8 @@ NA
   packageStartupMessage("*** RGP version ", (sessionInfo())$otherPkg$rgp$Version, " initialized successfully.\n",
                         "    Type 'help(package=\"rgp\")' to bring up the RGP help pages,\n",
                         "    or type 'vignette(\"rgp_introduction\")' to show RGP's package vignette.\n",
-                        "    Type 'symbolicRegressionGui()' to bring up the symbolic regression GUI.")
+                        "    Type 'symbolicRegressionUi()' to bring up the symbolic regression UI if\n",
+                        "    the optional package 'rgp-ui' is installed.")
 }
 
 ## ... .

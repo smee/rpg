@@ -1,4 +1,4 @@
 #!/bin/sh
 
-R -e 'source("webgui.R"); rgpWebGui()'
+R -e 'source("webgui.R"); webUi()'
 
