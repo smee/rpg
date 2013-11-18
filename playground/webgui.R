@@ -417,14 +417,15 @@ server <- function(input, output, session) {
     serialize(list(op = runState), workerProcessConnection) 
   }})
 
+  lastMsg <- NULL
   workerProcessMessage <- reactive({
-    invalidateLater(250, session) # each quarter of a second
-    msg <- if (socketSelect(list(workerProcessConnection), timeout = 1)) {
+    invalidateLater(100, session) # each 100 milliseconds
+    lastMsg <<- if (socketSelect(list(workerProcessConnection), timeout = 0)) {
       unserialize(workerProcessConnection)
     } else {
-      NULL
+      lastMsg
     }
-    return (msg)
+    return (lastMsg)
   })
   observe({
     workerProcessMessage() # make sure that unserialize(workerProcessConnection) keeps called regularly
