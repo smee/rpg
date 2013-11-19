@@ -106,7 +106,7 @@ runPanel <- tabPanel("Run", value = "runPanel",
     mainPanel(
       tabsetPanel(
         tabPanel("Progress", plotOutput("progressPlot", height = 1000)), 
-        tabPanel("Parento Front", plotOutput("paretoPlot", height = 768)), 
+        tabPanel("Pareto Front", plotOutput("paretoPlot", height = 768)), 
         tabPanel("Best Solution", plotOutput("bestSolutionPlot"),
                                   tableOutput("bestSolutionTable")))))) #,
         #tabPanel("Statistics", "TODO")))))
