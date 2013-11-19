@@ -15,12 +15,16 @@ RGP_PORT <- 6011
 
 RGP_COLORS <- list(
   RED = "#D70026FF",
-  GRAY = "#AAAAAAFF"
+  YELLOW = "#E57600FF",
+  BLUE = "#056D8FFF",
+  GREEN = "#3BC500FF",
+  GRAY = "#A0A0A0FF",
+  DARK_GRAY = "#404040FF"
 )
 
 RGP_RUN_STATES <- list(PAUSED = 1, RUNNING = 2, RESET = 3, STOP = 4)
 RGP_WORKER_MESSAGES <- list(PROGRESS = 1, NEWBEST = 2, STATISTICS = 3)
-RGP_HISTORY_LENGTH <- 100
+RGP_HISTORY_LENGTH <- 1000
 
 bootstrapButton <- function (inputId, label, class = "", icon = "") {
   tags$button(id = inputId, type = "button", class = paste("btn action-button", class), tags$i(class = icon), label)
@@ -103,8 +107,9 @@ runPanel <- tabPanel("Run", value = "runPanel",
       tabsetPanel(
         tabPanel("Progress", plotOutput("progressPlot", height = 1000)), 
         tabPanel("Parento Front", plotOutput("paretoPlot", height = 768)), 
-        tabPanel("Best Solution", "TODO"),
-        tabPanel("Statistics", "TODO")))))
+        tabPanel("Best Solution", plotOutput("bestSolutionPlot"),
+                                  tableOutput("bestSolutionTable")))))) #,
+        #tabPanel("Statistics", "TODO")))))
 
 resultsPanel <- tabPanel("Results", value = "resultsPanel",
   "TODO Results Content")
@@ -123,23 +128,22 @@ ui <- bootstrapPage(
         id = "rgpPanels")),
   tags$footer(HTML("&copy; 2010-13"), a("rsymbolic.org", href = "http://rsymbolic.org"))))
   
-# TODO
 workerProcessMain <- function() {
   stopProcess <- FALSE
   serverConnection <- socketConnection(port = RGP_PORT, server = TRUE, open = "rwb", blocking = TRUE)
   command <- list(op = RGP_RUN_STATES$PAUSED)
   while (!stopProcess) {
-    Sys.sleep(0.5) # TODO
+    Sys.sleep(0.5)
     if (socketSelect(list(serverConnection), timeout = 0)) {
       command <- unserialize(serverConnection)
       print(paste("job received command: ", command)) # TODO
     }
     if (RGP_RUN_STATES$PAUSED == command$op) {
-      #serialize(rep(0, 1e5), serverConnection) # TODO
+      # do nothing
     } else if (RGP_RUN_STATES$RUNNING == command$op) {
       command <- workerProcessRun(serverConnection, command$params)
     } else if (RGP_RUN_STATES$RESET == command$op) {
-      #serialize(1:1e5, serverConnection) # TODO
+      # TODO implement reset
     } else if (RGP_RUN_STATES$STOP == command$op) {
       stopProcess <- TRUE
     } else {
@@ -150,12 +154,14 @@ workerProcessMain <- function() {
   close(serverConnection)
 }
 
-rescaleIndividual <- function(ind, trueY, domainInterval, samples = 100) {
-  indX <- seq(from = domainInterval[1], to = domainInterval[2], length.out = samples)
-  indY <- ind(indX)
+rescaleIndividual <- function(ind, srDataFrame, dependentVariable) {
+  indX <- srDataFrame[, colnames(srDataFrame) != dependentVariable]
+  indY <- if (is.data.frame(indX)) apply(indX, 1, function(x) do.call(ind, as.list(x))) else ind(indX)
+  trueY <- srDataFrame[, dependentVariable]
   b = cov(trueY, indY) / var(indY)
   a = mean(trueY) - b * mean(indY)
-  function(x1) a + b * ind(x1)
+  rescaledInd <- function(...) a + b * ind(...)
+  return (rescaledInd)
 }
 
 workerProcessRun <- function(serverConnection, params) {
@@ -250,30 +256,21 @@ workerProcessRun <- function(serverConnection, params) {
       alarm() # beep when a new best individual is found TODO transmit alarm to web client
       lastBestFitness <<- bestFitness
       bestIndividual <- pop[order(objectiveVectors$fitnessValues)][[1]] 
-      #rescaledBestIndividual <- if (params$errorMeasure == "SMSE" || params$errorMeasure == "SSSE") {
-      #  rescaleIndividual(bestIndividual, srDataFrame[, params$dependentVariable], domainInterval, nrow(srDataFrame))
-      #} else {
-      #  bestIndividual
-      #}
-      #  message("NEW best individual (not rescaled):")
-      #  message(sprintf(" %s", deparse(bestIndividual)))
-      #  plotFunctions(list(targetFunction$f, rescaledBestIndividual, bestIndividual),
-      #                from = domainInterval[1], to = domainInterval[2], steps = nrow(srDataFrame),
-      #                ylim = targetFunctionRange,
-      #                main = "Current Best Solution vs. True Function",
-      #                sub = sprintf("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %f",
-      #                              stepNumber, evaluationNumber, bestFitness, timeElapsed))
-      #} else {
-      #  message("NEW best individual:")
-      #  message(sprintf(" %s", deparse(bestIndividual)))
-      #  dev.set(2)
-      #  plotFunctions(list(targetFunction$f, bestIndividual),
-      #                from = domainInterval[1], to = domainInterval[2], steps = targetFunction$samples,
-      #                ylim = targetFunctionRange,
-      #                main = "Current Best Solution vs. True Function",
-      #                sub = sprintf("evolution step %i, fitness evaluations: %i, best fitness: %f, time elapsed: %f",
-      #                              stepNumber, evaluationNumber, bestFitness, timeElapsed))
-      #}
+      rescaledBestIndividual <- if (params$errorMeasure == "SMSE" || params$errorMeasure == "SSSE") {
+        rescaleIndividual(bestIndividual, srDataFrame, params$dependentVariable)
+      } else {
+        bestIndividual
+      }
+      message("NEW best solution (not rescaled):")
+      message(sprintf(" %s", deparse(bestIndividual)))
+      serialize(list(msg = RGP_WORKER_MESSAGES$NEWBEST,
+                     params = list(bestIndividual = bestIndividual,
+                                   rescaledBestIndividual = rescaledBestIndividual,
+                                   stepNumber = stepNumber,
+                                   evaluationNumber = evaluationNumber,
+                                   bestFitness = bestFitness,
+                                   timeElapsed = timeElapsed)),
+                serverConnection)
     }
 
     if (stepNumber %% 10 == 0) { # every 10th generation...
@@ -282,12 +279,13 @@ workerProcessRun <- function(serverConnection, params) {
       points <- rbind(objectiveVectors$fitnessValues, objectiveVectors$complexityValues, objectiveVectors$ageValues)
       finitePoints <- points[, !apply(is.infinite(points), 2, any)]
       bestFitnessIndex <- which.min(objectiveVectors$fitnessValues)
-      fitnessHistory <<- c(if (length(fitnessHistory) <= RGP_HISTORY_LENGTH) fitnessHistory else fitnessHistory[-1], log(objectiveVectors$fitnessValues[bestFitnessIndex])) # cut-off at RGP_HISTORY_LENGTH number of entries
-      complexityHistory <<- c(if (length(complexityHistory) <= RGP_HISTORY_LENGTH) complexityHistory else complexityHistory[-1], objectiveVectors$complexityValues[bestFitnessIndex])
-      ageHistory <<- c(if (length(ageHistory) <= RGP_HISTORY_LENGTH) ageHistory else ageHistory[-1], objectiveVectors$ageValues[bestFitnessIndex])
-      dominatedHypervolumeHistory <<- c(if (length(dominatedHypervolumeHistory) <= RGP_HISTORY_LENGTH) dominatedHypervolumeHistory else dominatedHypervolumeHistory[-1], dominated_hypervolume(finitePoints))
+      historyIndexToReplace <- floor(runif(1, min = 1, max = RGP_HISTORY_LENGTH))
+      fitnessHistory <<- c(if (length(fitnessHistory) <= RGP_HISTORY_LENGTH) fitnessHistory else fitnessHistory[-historyIndexToReplace], log(objectiveVectors$fitnessValues[bestFitnessIndex])) # cut-off at RGP_HISTORY_LENGTH number of entries
+      complexityHistory <<- c(if (length(complexityHistory) <= RGP_HISTORY_LENGTH) complexityHistory else complexityHistory[-historyIndexToReplace], objectiveVectors$complexityValues[bestFitnessIndex])
+      ageHistory <<- c(if (length(ageHistory) <= RGP_HISTORY_LENGTH) ageHistory else ageHistory[-historyIndexToReplace], objectiveVectors$ageValues[bestFitnessIndex])
+      dominatedHypervolumeHistory <<- c(if (length(dominatedHypervolumeHistory) <= RGP_HISTORY_LENGTH) dominatedHypervolumeHistory else dominatedHypervolumeHistory[-historyIndexToReplace], dominated_hypervolume(finitePoints))
       generations <- 1:min(length(fitnessHistory), RGP_HISTORY_LENGTH) * 10
-      generationsHistory <<- c(if (length(generationsHistory) <= RGP_HISTORY_LENGTH) generationsHistory else generationsHistory[-1], stepNumber)
+      generationsHistory <<- c(if (length(generationsHistory) <= RGP_HISTORY_LENGTH) generationsHistory else generationsHistory[-historyIndexToReplace], stepNumber)
       serialize(list(msg = RGP_WORKER_MESSAGES$PROGRESS,
                      params = list(generations = generationsHistory,
                                    fitnessHistory = fitnessHistory,
@@ -417,54 +415,98 @@ server <- function(input, output, session) {
     serialize(list(op = runState), workerProcessConnection) 
   }})
 
-  lastMsg <- NULL
+  lastWorkerProcessMessages <- reactiveValues(progress = NULL, newBest = NULL, statistics = NULL)
   workerProcessMessage <- reactive({
     invalidateLater(100, session) # each 100 milliseconds
-    lastMsg <<- if (socketSelect(list(workerProcessConnection), timeout = 0)) {
+    return (if (socketSelect(list(workerProcessConnection), timeout = 0)) {
       unserialize(workerProcessConnection)
     } else {
-      lastMsg
-    }
-    return (lastMsg)
+      NULL
+    })
   })
   observe({
-    workerProcessMessage() # make sure that unserialize(workerProcessConnection) keeps called regularly
+    msg <- workerProcessMessage() # make sure that unserialize(workerProcessConnection) keeps called regularly
+    if (!is.null(msg) && msg$msg == RGP_WORKER_MESSAGES$PROGRESS) {
+      lastWorkerProcessMessages$progress <- msg
+    } else if (!is.null(msg) && msg$msg == RGP_WORKER_MESSAGES$NEWBEST) {
+      lastWorkerProcessMessages$newBest <- msg
+    } else if (!is.null(msg) && msg$msg == RGP_WORKER_MESSAGES$STATISTICS) {
+      lastWorkerProcessMessages$statistics <- msg
+    } else if (!is.null(msg)) {
+      stop("webUi: unknown worker process message:", msg)
+    } else {
+      # ignore NULL messages
+    }
   })
 
   output$progressPlot <- renderPlot({
-    msg <- workerProcessMessage()
-    if (!is.null(msg) && msg$msg == RGP_WORKER_MESSAGES$PROGRESS) {
+    if (!is.null(lastWorkerProcessMessages$progress)) {
+      params <- lastWorkerProcessMessages$progress$params 
       oldPar <- par(no.readonly = TRUE)
       layout(matrix(1:4, 4, 1, byrow = TRUE))
-      plot(msg$params$generations, msg$params$fitnessHistory, type = "l",
+      plot(params$generations, params$fitnessHistory, type = "l",
            main = "Fittest Individual Fitness", xlab = "Generation", ylab = "log Fitness")
-      plot(msg$params$generations, msg$params$complexityHistory, type = "l", col = "red",
+      plot(params$generations, params$complexityHistory, type = "l", col = "red",
            main = "Fittest Individual Complexity", xlab = "Generation", ylab = "Complexity (Visitation Length)")
-      plot(msg$params$generations, msg$params$ageHistory, type = "l", col = "green",
+      plot(params$generations, params$ageHistory, type = "l", col = "green",
            main = "Fittest Individual Age", xlab = "Generation", ylab = "Age (Generations)")
-      plot(msg$params$generations, msg$params$dominatedHypervolumeHistory, type = "l", col = "gray",
+      plot(params$generations, params$dominatedHypervolumeHistory, type = "l", col = "gray",
            main = "Dominated Hypervolume", xlab = "Generation", ylab = "Hypervolume")
       par(oldPar)
     }
   })
 
   output$paretoPlot <- renderPlot({
-    msg <- workerProcessMessage()
-    if (!is.null(msg) && msg$msg == RGP_WORKER_MESSAGES$PROGRESS) {
-
-      plotParetoFront(msg$params$poolFitnessValues, msg$params$poolComplexityValues, msg$params$poolAgeValues,
-                      msg$params$poolIndicesToRemove,
-                      main = sprintf("Selection Pool Fitness Pareto Plot (%d Individuals)", length(msg$params$poolFitnessValues)),
+    if (!is.null(lastWorkerProcessMessages$progress)) {
+      params <- lastWorkerProcessMessages$progress$params 
+      plotParetoFront(params$poolFitnessValues, params$poolComplexityValues, params$poolAgeValues,
+                      params$poolIndicesToRemove,
+                      main = sprintf("Selection Pool Fitness Pareto Plot (%d Individuals)", length(params$poolFitnessValues)),
                       xlab = "Fitness (Prediction Error)", ylab = "Complexity (Visitation Length)")
     }
   })
 
   output$bestSolutionPlot <- renderPlot({
-    msg <- workerProcessMessage()
-    if (!is.null(msg) && msg$msg == RGP_WORKER_MESSAGES$NEWBEST) {
-# TODO
+    if (!is.null(lastWorkerProcessMessages$newBest)) {
+      params <- lastWorkerProcessMessages$newBest$params 
+      ind <- params$rescaledBestIndividual
+      indX <- dataFrame()[, colnames(dataFrame()) != input$dependentVariable]
+      indY <- if (is.data.frame(indX)) apply(indX, 1, function(x) do.call(ind, as.list(x))) else ind(indX)
+      plot(dataFrame()[, input$dependentVariable], col = RGP_COLORS$RED, pch = 16,
+           xlab = "Row Number", ylab = input$dependentVariable,
+           main = "Best Solution Plot")
+      lines(dataFrame()[, input$dependentVariable], col = RGP_COLORS$GRAY)
+      points(indY, col = RGP_COLORS$BLUE, pch = 1)
+      lines(indY, col = RGP_COLORS$DARK_GRAY)
+      legend("bottomright", c("Data", "Best Solution"),
+             bty = "n",
+             pch = c(16, 1),
+             col = c(RGP_COLORS$RED, RGP_COLORS$BLUE))
     }
   })
+
+  output$bestSolutionTable <- renderTable({
+    if (!is.null(lastWorkerProcessMessages$newBest)) {
+      params <- lastWorkerProcessMessages$newBest$params 
+      data.frame(list(Attribute = c("Formula", "Error", "Generation", "Evaluation Number", "Time Elapsed"),
+                      Value = c(do.call(paste, c(as.list(deparse(params$bestIndividual)), sep = "")),
+                                params$bestFitness,
+                                params$stepNumber,
+                                params$evaluationNumber,
+                                formatSeconds(params$timeElapsed))))
+    }
+  }, include.rownames = FALSE)
+
+  #output$bestSolutionMathPlot <- renderPlot({
+  #  if (!is.null(lastWorkerProcessMessages$newBest)) {
+  #    params <- lastWorkerProcessMessages$newBest$params 
+  #    f <- params$bestIndividual
+  #    fformals <- names(formals(f))
+  #    fbody <- exprToPlotmathExpr(body(f))
+  #    fpme <- as.expression(bquote(f(.(fformals[[1]])) == .(fbody)))
+# TODO
+  #  }
+  #})
 }
 
 webUi <- function(port = 1447) {
