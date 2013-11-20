@@ -23,7 +23,7 @@ RGP_COLORS <- list(
 )
 
 RGP_RUN_STATES <- list(PAUSED = 1, RUNNING = 2, RESET = 3, STOP = 4)
-RGP_WORKER_MESSAGES <- list(PROGRESS = 1, NEWBEST = 2, STATISTICS = 3)
+RGP_WORKER_MESSAGES <- list(PROGRESS = 1, NEWBEST = 2, STATISTICS = 3, RESULT = 4)
 RGP_HISTORY_LENGTH <- 1000
 
 bootstrapButton <- function (inputId, label, class = "", icon = "") {
@@ -112,7 +112,9 @@ runPanel <- tabPanel("Run", value = "runPanel",
         #tabPanel("Statistics", "TODO")))))
 
 resultsPanel <- tabPanel("Results", value = "resultsPanel",
-  "TODO Results Content")
+  div(class = "row-fluid",
+    tabsetPanel(
+      tabPanel("Pareto Front", dataTableOutput("resultParetoFrontTable")))))
 
 ui <- bootstrapPage(
   div(class = "container-fluid",
@@ -132,6 +134,9 @@ workerProcessMain <- function() {
   stopProcess <- FALSE
   serverConnection <- socketConnection(port = RGP_PORT, server = TRUE, open = "rwb", blocking = TRUE)
   command <- list(op = RGP_RUN_STATES$PAUSED)
+  population <- NULL
+  runStatistics <- NULL
+
   while (!stopProcess) {
     Sys.sleep(0.5)
     if (socketSelect(list(serverConnection), timeout = 0)) {
@@ -141,7 +146,10 @@ workerProcessMain <- function() {
     if (RGP_RUN_STATES$PAUSED == command$op) {
       # do nothing
     } else if (RGP_RUN_STATES$RUNNING == command$op) {
-      command <- workerProcessRun(serverConnection, command$params)
+      runResult <- workerProcessRun(serverConnection, population, runStatistics, command$params)
+      command <- runResult$command
+      population <- runResult$population
+      runStatistics <- runResult$runStatistics
     } else if (RGP_RUN_STATES$RESET == command$op) {
       # TODO implement reset
     } else if (RGP_RUN_STATES$STOP == command$op) {
@@ -164,16 +172,18 @@ rescaleIndividual <- function(ind, srDataFrame, dependentVariable) {
   return (rescaledInd)
 }
 
-workerProcessRun <- function(serverConnection, params) {
+workerProcessRun <- function(serverConnection, population, runStatistics, params) {
   command <- list(op = RGP_RUN_STATES$RUNNING)
   
-  set.seed(params$randomSeed)
- 
+  set.seed(params$randomSeed) # TODO do not set seed when continuing a paused run
+
   srFormula <- as.formula(params$formulaText)
   srDataFrame <- params$dataFrame
+
   funSet <- do.call(functionSet, as.list(eval(parse(text = params$buildingBlocks))))
   inVarSet <- do.call(inputVariableSet, as.list(params$independentVariables))
   constSet <- numericConstantSet
+
   mutationFunction <- if (params$subtreeMutationProbability == 1 && params$functionMutationProbability == 0 && params$constantMutationProbability == 0) {
     function(ind) {
       subtreeMutantBody <- mutateSubtreeFast(body(ind), funSet, inVarSet, -10.0, 10.0, insertprob = 0.5, deleteprob = 0.5, subtreeprob = 1.0, constprob = 0.5, maxsubtreedepth = 8)
@@ -205,6 +215,7 @@ workerProcessRun <- function(serverConnection, params) {
       makeClosure(mutantBody, inVarSet$all, envir = funSet$envir)
     }
   }
+
   populationFactory <- function(mu, funSet, inVarSet, maxfuncdepth, constMin, constMax) { 
     Map(function(i) makeClosure(.Call("initialize_expression_grow_R",
                                       as.list(funSet$nameStrings),
@@ -215,6 +226,7 @@ workerProcessRun <- function(serverConnection, params) {
                                       as.integer(maxfuncdepth)),
                                 as.list(inVarSet$nameStrings)), 1:mu)
   }
+
   errorMeasure  <- switch(params$errorMeasure,
                           "SMSE" = smse,
                           "SSSE" = ssse,
@@ -222,10 +234,12 @@ workerProcessRun <- function(serverConnection, params) {
                           "SSE" = sse,
                           "MAE" = mae,
                           stop("webUi: unkown error measure name: ", params$errorMeasure))
+
   ndsSelectionFunction <- switch(params$selectionFunction,
                                  "Crowding Distance" = nds_cd_selection,
                                  "Hypervolume" = nds_hv_selection,
                                  stop("webUi: unkown NDS selection function name: ", params$selectionFunction))
+
   searchHeuristic <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = params$lambda,
                                                                      crossoverProbability = params$crossoverProbability,
                                                                      newIndividualsPerGeneration = params$nu,
@@ -233,17 +247,23 @@ workerProcessRun <- function(serverConnection, params) {
                                                                      enableAgeCriterion = params$enableAgeCriterion,
                                                                      ndsParentSelectionProbability = params$parentSelectionProbability,
                                                                      ndsSelectionFunction = ndsSelectionFunction)
+
   commandStopCondition <- function(pop, fitnessFunction, stepNumber, evaluationNumber, bestFitness, timeElapsed) {
     command$op == RGP_RUN_STATES$PAUSED
   }
-  statistics <- NULL 
-  startTime <- Sys.time()
-  fitnessHistory <- c()
-  complexityHistory <- c()
-  ageHistory <- c()
-  dominatedHypervolumeHistory <- c()
-  generationsHistory <- c()
-  lastBestFitness <- Inf
+
+  runStatistics <- if (is.null(runStatistics)) {
+    list(startTime = Sys.time(),
+         fitnessHistory = c(),
+         complexityHistory = c(),
+         ageHistory = c(),
+         dominatedHypervolumeHistory = c(),
+         generationsHistory = c(),
+         lastBestFitness = Inf)
+  } else {
+    runStatistics
+  }
+
   progressMonitor <- function(pop, objectiveVectors, fitnessFunction,
                               stepNumber, evaluationNumber, bestFitness, timeElapsed, indicesToRemove) {
     # TODO do not do this in every step
@@ -252,9 +272,9 @@ workerProcessRun <- function(serverConnection, params) {
       print(paste("job received command: ", command)) # TODO
     }
 
-    if (bestFitness < lastBestFitness) {
+    if (bestFitness < runStatistics$lastBestFitness) {
       alarm() # beep when a new best individual is found TODO transmit alarm to web client
-      lastBestFitness <<- bestFitness
+      runStatistics$lastBestFitness <<- bestFitness
       bestIndividual <- pop[order(objectiveVectors$fitnessValues)][[1]] 
       rescaledBestIndividual <- if (params$errorMeasure == "SMSE" || params$errorMeasure == "SSSE") {
         rescaleIndividual(bestIndividual, srDataFrame, params$dependentVariable)
@@ -280,18 +300,17 @@ workerProcessRun <- function(serverConnection, params) {
       finitePoints <- points[, !apply(is.infinite(points), 2, any)]
       bestFitnessIndex <- which.min(objectiveVectors$fitnessValues)
       historyIndexToReplace <- floor(runif(1, min = 1, max = RGP_HISTORY_LENGTH))
-      fitnessHistory <<- c(if (length(fitnessHistory) <= RGP_HISTORY_LENGTH) fitnessHistory else fitnessHistory[-historyIndexToReplace], log(objectiveVectors$fitnessValues[bestFitnessIndex])) # cut-off at RGP_HISTORY_LENGTH number of entries
-      complexityHistory <<- c(if (length(complexityHistory) <= RGP_HISTORY_LENGTH) complexityHistory else complexityHistory[-historyIndexToReplace], objectiveVectors$complexityValues[bestFitnessIndex])
-      ageHistory <<- c(if (length(ageHistory) <= RGP_HISTORY_LENGTH) ageHistory else ageHistory[-historyIndexToReplace], objectiveVectors$ageValues[bestFitnessIndex])
-      dominatedHypervolumeHistory <<- c(if (length(dominatedHypervolumeHistory) <= RGP_HISTORY_LENGTH) dominatedHypervolumeHistory else dominatedHypervolumeHistory[-historyIndexToReplace], dominated_hypervolume(finitePoints))
-      generations <- 1:min(length(fitnessHistory), RGP_HISTORY_LENGTH) * 10
-      generationsHistory <<- c(if (length(generationsHistory) <= RGP_HISTORY_LENGTH) generationsHistory else generationsHistory[-historyIndexToReplace], stepNumber)
+      runStatistics$fitnessHistory <<- c(if (length(runStatistics$fitnessHistory) <= RGP_HISTORY_LENGTH) runStatistics$fitnessHistory else runStatistics$fitnessHistory[-historyIndexToReplace], log(objectiveVectors$fitnessValues[bestFitnessIndex])) # cut-off at RGP_HISTORY_LENGTH number of entries
+      runStatistics$complexityHistory <<- c(if (length(runStatistics$complexityHistory) <= RGP_HISTORY_LENGTH) runStatistics$complexityHistory else runStatistics$complexityHistory[-historyIndexToReplace], objectiveVectors$complexityValues[bestFitnessIndex])
+      runStatistics$ageHistory <<- c(if (length(runStatistics$ageHistory) <= RGP_HISTORY_LENGTH) runStatistics$ageHistory else runStatistics$ageHistory[-historyIndexToReplace], objectiveVectors$ageValues[bestFitnessIndex])
+      runStatistics$dominatedHypervolumeHistory <<- c(if (length(runStatistics$dominatedHypervolumeHistory) <= RGP_HISTORY_LENGTH) runStatistics$dominatedHypervolumeHistory else runStatistics$dominatedHypervolumeHistory[-historyIndexToReplace], dominated_hypervolume(finitePoints))
+      runStatistics$generationsHistory <<- c(if (length(runStatistics$generationsHistory) <= RGP_HISTORY_LENGTH) runStatistics$generationsHistory else runStatistics$generationsHistory[-historyIndexToReplace], stepNumber)
       serialize(list(msg = RGP_WORKER_MESSAGES$PROGRESS,
-                     params = list(generations = generationsHistory,
-                                   fitnessHistory = fitnessHistory,
-                                   complexityHistory = complexityHistory,
-                                   ageHistory = ageHistory,
-                                   dominatedHypervolumeHistory = dominatedHypervolumeHistory,
+                     params = list(generations = runStatistics$generationsHistory,
+                                   fitnessHistory = runStatistics$fitnessHistory,
+                                   complexityHistory = runStatistics$complexityHistory,
+                                   ageHistory = runStatistics$ageHistory,
+                                   dominatedHypervolumeHistory = runStatistics$dominatedHypervolumeHistory,
                                    poolFitnessValues = objectiveVectors$poolFitnessValues,
                                    poolComplexityValues = objectiveVectors$poolComplexityValues,
                                    poolAgeValues = objectiveVectors$poolAgeValues,
@@ -300,7 +319,13 @@ workerProcessRun <- function(serverConnection, params) {
     }
   }
   
-  population <- populationFactory(params$mu, funSet, inVarSet, 8, -10.0, 10.0)
+  population <- if (is.null(population)) {
+    message("INITIALIZING population")
+    populationFactory(params$mu, funSet, inVarSet, 8, -10.0, 10.0)
+  } else {
+    population
+  }
+
   sr <- suppressWarnings(symbolicRegression(srFormula,
                                             data = srDataFrame,
                                             functionSet = funSet,
@@ -316,8 +341,11 @@ workerProcessRun <- function(serverConnection, params) {
                                             envir = environment(),
                                             verbose = FALSE,
                                             progressMonitor = progressMonitor))
+      
+  # send results to server
+  serialize(list(msg = RGP_WORKER_MESSAGES$RESULT, params = list(result = sr)), serverConnection)
 
-  return (command)
+  return (list(command = command, result = sr, population = population, runStatistics = runStatistics))
 }
 
 server <- function(input, output, session) {
@@ -415,7 +443,7 @@ server <- function(input, output, session) {
     serialize(list(op = runState), workerProcessConnection) 
   }})
 
-  lastWorkerProcessMessages <- reactiveValues(progress = NULL, newBest = NULL, statistics = NULL)
+  lastWorkerProcessMessages <- reactiveValues(progress = NULL, newBest = NULL, statistics = NULL, result = NULL)
   workerProcessMessage <- reactive({
     invalidateLater(100, session) # each 100 milliseconds
     return (if (socketSelect(list(workerProcessConnection), timeout = 0)) {
@@ -432,6 +460,8 @@ server <- function(input, output, session) {
       lastWorkerProcessMessages$newBest <- msg
     } else if (!is.null(msg) && msg$msg == RGP_WORKER_MESSAGES$STATISTICS) {
       lastWorkerProcessMessages$statistics <- msg
+    } else if (!is.null(msg) && msg$msg == RGP_WORKER_MESSAGES$RESULT) {
+      lastWorkerProcessMessages$result <- msg
     } else if (!is.null(msg)) {
       stop("webUi: unknown worker process message:", msg)
     } else {
@@ -496,6 +526,29 @@ server <- function(input, output, session) {
                                 formatSeconds(params$timeElapsed))))
     }
   }, include.rownames = FALSE)
+
+  output$resultParetoFrontTable <- renderDataTable({
+    if (!is.null(lastWorkerProcessMessages$result)) {
+      srResult <- lastWorkerProcessMessages$result$params$result
+      population <- srResult$population
+      fitnessValues <- srResult$searchHeuristicResults$fitnessValues
+      complexityValues <- srResult$searchHeuristicResults$complexityValues
+      objectiveValues <- rbind(fitnessValues, complexityValues)
+      ndsRanks <- nds_rank(objectiveValues)
+      paretoFrontMask <- ndsRanks == 1
+      deparseInd <- function(ind) do.call(paste, c(as.list(deparse(ind)), sep = ""))
+      paretoFrontFormulas <- as.character(Map(deparseInd, population[paretoFrontMask]))
+      paretoFrontFitnessValues <- fitnessValues[paretoFrontMask]
+      paretoFrontComplexityValues <- complexityValues[paretoFrontMask]
+
+      print(paretoFrontFormulas)
+      print(paretoFrontFitnessValues)
+      print(paretoFrontComplexityValues) # TODO
+      data.frame(list(Formula = paretoFrontFormulas,
+                      Error = paretoFrontFitnessValues,
+                      Complexity = paretoFrontComplexityValues))
+    }
+  })
 
   #output$bestSolutionMathPlot <- renderPlot({
   #  if (!is.null(lastWorkerProcessMessages$newBest)) {
