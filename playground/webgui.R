@@ -108,13 +108,15 @@ runPanel <- tabPanel("Run", value = "runPanel",
         tabPanel("Progress", plotOutput("progressPlot", height = 1000)), 
         tabPanel("Pareto Front", plotOutput("paretoPlot", height = 768)), 
         tabPanel("Best Solution", plotOutput("bestSolutionPlot"),
-                                  tableOutput("bestSolutionTable")))))) #,
-        #tabPanel("Statistics", "TODO")))))
+                                  tableOutput("bestSolutionTable"))))))
 
 resultsPanel <- tabPanel("Results", value = "resultsPanel",
+  tags$head(tags$script(src = "scripts/jquery.sparkline.min.js")),
+  tags$head(tags$script(type = "text/javascript", HTML("$(function() { $.extend($.fn.dataTable.defaults, { 'fnDrawCallback': function(oSettings) { $('.inlinesparkline').sparkline('html', { type: 'line', disableHiddenCheck: true, height: '40px', width: '200px' }); } }); });"))),
   div(class = "row-fluid",
     tabsetPanel(
-      tabPanel("Pareto Front", dataTableOutput("resultParetoFrontTable")))))
+      tabPanel("Pareto Front", 
+               dataTableOutput("resultParetoFrontTable")))))
 
 ui <- bootstrapPage(
   div(class = "container-fluid",
@@ -541,29 +543,17 @@ server <- function(input, output, session) {
       paretoFrontFitnessValues <- fitnessValues[paretoFrontMask]
       paretoFrontComplexityValues <- complexityValues[paretoFrontMask]
 
-      print(paretoFrontFormulas)
-      print(paretoFrontFitnessValues)
-      print(paretoFrontComplexityValues) # TODO
       data.frame(list(Formula = paretoFrontFormulas,
                       Error = paretoFrontFitnessValues,
-                      Complexity = paretoFrontComplexityValues))
+                      Complexity = paretoFrontComplexityValues,
+                      Todo = as.character(Map(function(i) HTML(paste("<span class = 'inlinesparkline'>1,4,4,7,5,9,10,7,10,23,", i, "</span>", sep = "")), 1:length(paretoFrontFormulas)))))
     }
-  })
-
-  #output$bestSolutionMathPlot <- renderPlot({
-  #  if (!is.null(lastWorkerProcessMessages$newBest)) {
-  #    params <- lastWorkerProcessMessages$newBest$params 
-  #    f <- params$bestIndividual
-  #    fformals <- names(formals(f))
-  #    fbody <- exprToPlotmathExpr(body(f))
-  #    fpme <- as.expression(bquote(f(.(fformals[[1]])) == .(fbody)))
-# TODO
-  #  }
-  #})
+  }, options = list(iDisplayLength = 25)) # TODO
 }
 
 webUi <- function(port = 1447) {
   addResourcePath("images", "./images") # TODO use system.file() to refer to folder in package
+  addResourcePath("scripts", "./scripts") # TODO use system.file() to refer to folder in package
   runApp(list(ui = ui, server = server), port = port)
 }
 
