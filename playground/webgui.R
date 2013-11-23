@@ -143,7 +143,7 @@ workerProcessMain <- function() {
     Sys.sleep(0.5)
     if (socketSelect(list(serverConnection), timeout = 0)) {
       command <- unserialize(serverConnection)
-      print(paste("job received command: ", command)) # TODO
+      message(paste("job received command: ", command)) # TODO
     }
     if (RGP_RUN_STATES$PAUSED == command$op) {
       # do nothing
@@ -168,6 +168,7 @@ rescaleIndividual <- function(ind, srDataFrame, dependentVariable) {
   indX <- srDataFrame[, colnames(srDataFrame) != dependentVariable]
   indY <- if (is.data.frame(indX)) apply(indX, 1, function(x) do.call(ind, as.list(x))) else ind(indX)
   trueY <- srDataFrame[, dependentVariable]
+  indY <- if (length(indY) == 1) rep(indY, length(trueY)) else indY
   b = cov(trueY, indY) / var(indY)
   a = mean(trueY) - b * mean(indY)
   rescaledInd <- function(...) a + b * ind(...)
@@ -271,7 +272,7 @@ workerProcessRun <- function(serverConnection, population, runStatistics, params
     # TODO do not do this in every step
     if (socketSelect(list(serverConnection), timeout = 0)) {
       command <<- unserialize(serverConnection)
-      print(paste("job received command: ", command)) # TODO
+      message(paste("job received command: ", command)) # TODO
     }
 
     if (bestFitness < runStatistics$lastBestFitness) {
@@ -345,7 +346,12 @@ workerProcessRun <- function(serverConnection, population, runStatistics, params
                                             progressMonitor = progressMonitor))
       
   # send results to server
-  serialize(list(msg = RGP_WORKER_MESSAGES$RESULT, params = list(result = sr)), serverConnection)
+  serialize(list(msg = RGP_WORKER_MESSAGES$RESULT,
+                 params = list(result = sr,
+                               data = srDataFrame,
+                               dependentVariable = params$dependentVariable,
+                               errorMeasure = params$errorMeasure)),
+            serverConnection)
 
   return (list(command = command, result = sr, population = population, runStatistics = runStatistics))
 }
@@ -531,22 +537,35 @@ server <- function(input, output, session) {
 
   output$resultParetoFrontTable <- renderDataTable({
     if (!is.null(lastWorkerProcessMessages$result)) {
-      srResult <- lastWorkerProcessMessages$result$params$result
-      population <- srResult$population
+      params <- lastWorkerProcessMessages$result$params
+      srResult <- params$result
+      population <- srResult$population # TODO remove duplicates
       fitnessValues <- srResult$searchHeuristicResults$fitnessValues
       complexityValues <- srResult$searchHeuristicResults$complexityValues
       objectiveValues <- rbind(fitnessValues, complexityValues)
       ndsRanks <- nds_rank(objectiveValues)
       paretoFrontMask <- ndsRanks == 1
       deparseInd <- function(ind) do.call(paste, c(as.list(deparse(ind)), sep = ""))
+      indToYstring <- function(ind) {
+        rescaledInd <- if (params$errorMeasure == "SMSE" || params$errorMeasure == "SSSE") {
+          rescaleIndividual(ind, params$data, params$dependentVariable)
+        } else {
+          ind 
+        }
+        indX <- params$data[, colnames(params$data) != params$dependentVariable]
+        indY <- if (is.data.frame(indX)) apply(indX, 1, function(x) do.call(rescaledInd, as.list(x))) else rescaledInd(indX)
+        indYString <- do.call(paste, c(as.list(indY), sep = ","))
+        HTML(paste("<span class='inlinesparkline'>", indYString, "</span>", sep = ""))
+      }
       paretoFrontFormulas <- as.character(Map(deparseInd, population[paretoFrontMask]))
       paretoFrontFitnessValues <- fitnessValues[paretoFrontMask]
       paretoFrontComplexityValues <- complexityValues[paretoFrontMask]
+      paretoFrontPlots <- as.character(Map(indToYstring, population[paretoFrontMask]))
 
       data.frame(list(Formula = paretoFrontFormulas,
                       Error = paretoFrontFitnessValues,
                       Complexity = paretoFrontComplexityValues,
-                      Todo = as.character(Map(function(i) HTML(paste("<span class = 'inlinesparkline'>1,4,4,7,5,9,10,7,10,23,", i, "</span>", sep = "")), 1:length(paretoFrontFormulas)))))
+                      Plot = paretoFrontPlots)) 
     }
   }, options = list(iDisplayLength = 25)) # TODO
 }
