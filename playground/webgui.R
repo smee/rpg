@@ -322,28 +322,32 @@ workerProcessRun <- function(serverConnection, population, runStatistics, params
     }
   }
   
-  population <- if (is.null(population)) {
-    message("INITIALIZING population")
-    populationFactory(params$mu, funSet, inVarSet, 8, -10.0, 10.0)
-  } else {
-    population
-  }
+  tryCatch({
+    population <- if (is.null(population)) {
+      message("workerProcessRun: INITIALIZING population")
+      populationFactory(params$mu, funSet, inVarSet, 8, -10.0, 10.0)
+    } else {
+      population
+    }
 
-  sr <- suppressWarnings(symbolicRegression(srFormula,
-                                            data = srDataFrame,
-                                            functionSet = funSet,
-                                            errorMeasure = errorMeasure,
-                                            stopCondition = commandStopCondition,
-                                            #stopCondition = makeStepsStopCondition(250),
-                                            #stopCondition = makeTimeStopCondition(10),
-                                            population = population,
-                                            populationSize = params$mu,
-                                            individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
-                                            #subSamplingShare = subSamplingShare,
-                                            searchHeuristic = searchHeuristic,
-                                            envir = environment(),
-                                            verbose = FALSE,
-                                            progressMonitor = progressMonitor))
+    message("workerProcessRun: STARTING GP run")
+    sr <- suppressWarnings(symbolicRegression(srFormula,
+                                              data = srDataFrame,
+                                              functionSet = funSet,
+                                              errorMeasure = errorMeasure,
+                                              stopCondition = commandStopCondition,
+                                              #stopCondition = makeStepsStopCondition(250),
+                                              #stopCondition = makeTimeStopCondition(10),
+                                              population = population,
+                                              populationSize = params$mu,
+                                              individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
+                                              #subSamplingShare = subSamplingShare,
+                                              searchHeuristic = searchHeuristic,
+                                              envir = environment(),
+                                              verbose = FALSE,
+                                              progressMonitor = progressMonitor))
+    message("workerProcessRun: GP run done")
+  }, error = function(e) { message("workerProcessRun: Catched error '", e, "'") }) # TODO
       
   # send results to server
   serialize(list(msg = RGP_WORKER_MESSAGES$RESULT,
@@ -370,7 +374,7 @@ server <- function(input, output, session) {
     if (is.null(dataFile))
       return (NULL)
     
-    dataFrame <- read.csv(dataFile$datapath, header = input$header, sep = input$sep, quote = input$quote)
+    dataFrame <- read.csv(dataFile$datapath, header = input$header, sep = input$sep, quote = input$quote, colClasses = "numeric")
 
     updateSelectInput(session, "dependentVariable",
                       choices = colnames(dataFrame), selected = tail(colnames(dataFrame), 1))
