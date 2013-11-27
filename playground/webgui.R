@@ -549,6 +549,8 @@ server <- function(input, output, session) {
       objectiveValues <- rbind(fitnessValues, complexityValues)
       ndsRanks <- nds_rank(objectiveValues)
       paretoFrontMask <- ndsRanks == 1
+      uniqueMask <- !duplicated(population)
+      mask <- paretoFrontMask & uniqueMask 
       deparseInd <- function(ind) do.call(paste, c(as.list(deparse(ind)), sep = ""))
       indToYstring <- function(ind) {
         rescaledInd <- if (params$errorMeasure == "SMSE" || params$errorMeasure == "SSSE") {
@@ -561,10 +563,10 @@ server <- function(input, output, session) {
         indYString <- do.call(paste, c(as.list(indY), sep = ","))
         HTML(paste("<span class='inlinesparkline'>", indYString, "</span>", sep = ""))
       }
-      paretoFrontFormulas <- as.character(Map(deparseInd, population[paretoFrontMask]))
-      paretoFrontFitnessValues <- fitnessValues[paretoFrontMask]
-      paretoFrontComplexityValues <- complexityValues[paretoFrontMask]
-      paretoFrontPlots <- as.character(Map(indToYstring, population[paretoFrontMask]))
+      paretoFrontFormulas <- as.character(Map(deparseInd, population[mask]))
+      paretoFrontFitnessValues <- fitnessValues[mask]
+      paretoFrontComplexityValues <- complexityValues[mask]
+      paretoFrontPlots <- as.character(Map(indToYstring, population[mask]))
 
       data.frame(list(Formula = paretoFrontFormulas,
                       Error = paretoFrontFitnessValues,
