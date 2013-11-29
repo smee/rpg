@@ -23,7 +23,7 @@ RGP_COLORS <- list(
 )
 
 RGP_RUN_STATES <- list(PAUSED = 1, RUNNING = 2, RESET = 3, STOP = 4)
-RGP_WORKER_MESSAGES <- list(PROGRESS = 1, NEWBEST = 2, STATISTICS = 3, RESULT = 4)
+RGP_WORKER_MESSAGES <- list(PROGRESS = 1, NEWBEST = 2, STATISTICS = 3, RESULT = 4, RESET = 5, ERROR = 6)
 RGP_HISTORY_LENGTH <- 1000
 
 bootstrapButton <- function (inputId, label, class = "", icon = "") {
@@ -124,43 +124,60 @@ ui <- bootstrapPage(
       headerPanel(list(img(src = "images/logo_rgp.png"), "RGP Symbolic Regression"),
                   windowTitle = "RGP")),
     div(class = "row-fluid",
+      uiOutput("alertUi")),
+    div(class = "row-fluid",
       tabsetPanel(
         dataPanel,
         objectivePanel,
         runPanel,
         resultsPanel,
         id = "rgpPanels")),
-  tags$footer(HTML("&copy; 2010-13"), a("rsymbolic.org", href = "http://rsymbolic.org"))))
+    tags$footer(HTML("&copy; 2010-13"), a("rsymbolic.org", href = "http://rsymbolic.org"))))
   
 workerProcessMain <- function() {
-  stopProcess <- FALSE
   serverConnection <- socketConnection(port = RGP_PORT, server = TRUE, open = "rwb", blocking = TRUE)
+  stopProcess <- FALSE
   command <- list(op = RGP_RUN_STATES$PAUSED)
   population <- NULL
   runStatistics <- NULL
 
   while (!stopProcess) {
-    Sys.sleep(0.5)
-    if (socketSelect(list(serverConnection), timeout = 0)) {
-      command <- unserialize(serverConnection)
-      message(paste("job received command: ", command)) # TODO
-    }
-    if (RGP_RUN_STATES$PAUSED == command$op) {
-      # do nothing
-    } else if (RGP_RUN_STATES$RUNNING == command$op) {
-      runResult <- workerProcessRun(serverConnection, population, runStatistics, command$params)
-      command <- runResult$command
-      population <- runResult$population
-      runStatistics <- runResult$runStatistics
-    } else if (RGP_RUN_STATES$RESET == command$op) {
-      # TODO implement reset
-    } else if (RGP_RUN_STATES$STOP == command$op) {
-      stopProcess <- TRUE
-    } else {
-      warn("RGP background job: unknown command: ", command)
-      stopProcess <- TRUE
-    }
+    tryCatch({
+      Sys.sleep(0.5)
+      if (socketSelect(list(serverConnection), timeout = 0)) {
+        command <- unserialize(serverConnection)
+        message(paste("job received command: ", command)) # TODO
+      }
+      if (RGP_RUN_STATES$PAUSED == command$op) {
+        # do nothing
+      } else if (RGP_RUN_STATES$RUNNING == command$op) {
+        runResult <- workerProcessRun(serverConnection, population, runStatistics, command$params)
+        command <- runResult$command
+        population <- runResult$population
+        runStatistics <- runResult$runStatistics
+      } else if (RGP_RUN_STATES$RESET == command$op) {
+        # reset worker process state...
+        population <- NULL
+        runStatistics <- NULL
+        serialize(list(msg = RGP_WORKER_MESSAGES$RESET,
+                       params = list()),
+                  serverConnection)
+          command <- list(op = RGP_RUN_STATES$PAUSED) # change to PAUSED state
+        } else if (RGP_RUN_STATES$STOP == command$op) {
+        stopProcess <- TRUE
+      } else {
+        warn("RGP background job: unknown command: ", command)
+        stopProcess <- TRUE
+      }
+    }, error = function(e) {
+      message("workerProcessMain: Catched error '", e, "'")
+      serialize(list(msg = RGP_WORKER_MESSAGES$ERROR,
+                     params = list(error = e)),
+                serverConnection)
+      command <<- list(op = RGP_RUN_STATES$PAUSED) # change to PAUSED state
+    })
   }
+
   close(serverConnection)
 }
 
@@ -177,8 +194,10 @@ rescaleIndividual <- function(ind, srDataFrame, dependentVariable) {
 
 workerProcessRun <- function(serverConnection, population, runStatistics, params) {
   command <- list(op = RGP_RUN_STATES$RUNNING)
+
+  serverState <- params$serverState # TODO extract run state
   
-  set.seed(params$randomSeed) # TODO do not set seed when continuing a paused run
+  set.seed(params$randomSeed) # TODO do not set seed when continuing a paused run, instead load it from the run state
 
   srFormula <- as.formula(params$formulaText)
   srDataFrame <- params$dataFrame
@@ -260,6 +279,10 @@ workerProcessRun <- function(serverConnection, population, runStatistics, params
          fitnessHistory = c(),
          complexityHistory = c(),
          ageHistory = c(),
+         stepNumber = 0,
+         evaluationNumber = 0,
+         timeElapsed = 0,
+         bestFitness = Inf,
          dominatedHypervolumeHistory = c(),
          generationsHistory = c(),
          lastBestFitness = Inf)
@@ -267,9 +290,25 @@ workerProcessRun <- function(serverConnection, population, runStatistics, params
     runStatistics
   }
 
+  currentRunStepNumber <- 0
+  currentRunEvaluationNumber <-0
+  currentRunTimeElapsed <- 0
+  currentBestFitness <- Inf
+
   progressMonitor <- function(pop, objectiveVectors, fitnessFunction,
                               stepNumber, evaluationNumber, bestFitness, timeElapsed, indicesToRemove) {
-    # TODO do not do this in every step
+    currentRunStepNumber <<- stepNumber
+    currentRunEvaluationNumber <<- evaluationNumber
+    currentRunTimeElapsed <<- timeElapsed
+    currentBestFitness <<- currentBestFitness
+
+    # offset step, time and evaluation counters with counters of previous run...
+    stepNumber <- stepNumber + runStatistics$stepNumber
+    evaluationNumber <- evaluationNumber + runStatistics$evaluationNumber
+    timeElapsed <- timeElapsed + runStatistics$timeElapsed
+    bestFitness <- min(bestFitness, runStatistics$bestFitness)
+
+    # TODO maybe do not do this in every step
     if (socketSelect(list(serverConnection), timeout = 0)) {
       command <<- unserialize(serverConnection)
       message(paste("job received command: ", command)) # TODO
@@ -322,36 +361,41 @@ workerProcessRun <- function(serverConnection, population, runStatistics, params
     }
   }
   
-  tryCatch({
-    population <- if (is.null(population)) {
-      message("workerProcessRun: INITIALIZING population")
-      populationFactory(params$mu, funSet, inVarSet, 8, -10.0, 10.0)
-    } else {
-      population
-    }
+  # initialize population if NULL, otherwise reuse existing population...
+  population <- if (is.null(population)) {
+    message("workerProcessRun: INITIALIZING population")
+    populationFactory(params$mu, funSet, inVarSet, 8, -10.0, 10.0)
+  } else {
+    message("workerProcessRun: CONTINUING with existing population")
+    population
+  }
 
-    message("workerProcessRun: STARTING GP run")
-    sr <- suppressWarnings(symbolicRegression(srFormula,
-                                              data = srDataFrame,
-                                              functionSet = funSet,
-                                              errorMeasure = errorMeasure,
-                                              stopCondition = commandStopCondition,
-                                              #stopCondition = makeStepsStopCondition(250),
-                                              #stopCondition = makeTimeStopCondition(10),
-                                              population = population,
-                                              populationSize = params$mu,
-                                              individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
-                                              #subSamplingShare = subSamplingShare,
-                                              searchHeuristic = searchHeuristic,
-                                              envir = environment(),
-                                              verbose = FALSE,
-                                              progressMonitor = progressMonitor))
-    message("workerProcessRun: GP run done")
-  }, error = function(e) { message("workerProcessRun: Catched error '", e, "'") }) # TODO
-      
+  message("workerProcessRun: STARTING GP run")
+  sr <- suppressWarnings(symbolicRegression(srFormula,
+                                            data = srDataFrame,
+                                            functionSet = funSet,
+                                            errorMeasure = errorMeasure,
+                                            stopCondition = commandStopCondition,
+                                            population = population,
+                                            populationSize = params$mu,
+                                            individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
+                                            #subSamplingShare = subSamplingShare,
+                                            searchHeuristic = searchHeuristic,
+                                            envir = environment(),
+                                            verbose = FALSE,
+                                            progressMonitor = progressMonitor))
+  message("workerProcessRun: GP run done")
+
+  # update runStatistics counters...
+  runStatistics$stepNumber <- runStatistics$stepNumber + currentRunStepNumber 
+  runStatistics$evaluationNumber <- runStatistics$evaluationNumber + currentRunEvaluationNumber
+  runStatistics$timeElapsed <- runStatistics$timeElapsed + currentRunTimeElapsed 
+  runStatistics$bestFitness <- currentBestFitness
+ 
   # send results to server
   serialize(list(msg = RGP_WORKER_MESSAGES$RESULT,
                  params = list(result = sr,
+                               serverState = serverState,
                                data = srDataFrame,
                                dependentVariable = params$dependentVariable,
                                errorMeasure = params$errorMeasure)),
@@ -361,7 +405,7 @@ workerProcessRun <- function(serverConnection, population, runStatistics, params
 }
 
 server <- function(input, output, session) {
-  runState <- RGP_RUN_STATES$PAUSED
+  serverState <- list(command = RGP_RUN_STATES$PAUSED, seed = NULL) 
   workerProcess <- mcparallel(workerProcessMain())
   Sys.sleep(1) # wait for background job to initialize 
   workerProcessConnection <- socketConnection(port = RGP_PORT, open = "rwb", blocking = TRUE) 
@@ -391,7 +435,7 @@ server <- function(input, output, session) {
     formulaText <- paste(dependentVariable, "~", paste(independentVariables, collapse = " + "))
     updateTextInput(session, "formula", value = formulaText)
   })
-
+  
   output$dataPlot <- renderPlot({
     if (is.null(dataFrame())) {
       NULL
@@ -423,39 +467,46 @@ server <- function(input, output, session) {
       }
     }
   })
-
+  
   observe({ if (input$startRunButton > 0) {
-    runState <<- RGP_RUN_STATES$RUNNING 
-    serialize(list(op = runState, params = list(buildingBlocks = isolate(input$buildingBlocks),
-                                                independentVariables = independentVariables,
-                                                dependentVariable = isolate(input$dependentVariable),
-                                                mu = isolate(input$mu),
-                                                lambda = isolate(input$lambda),
-                                                nu = isolate(input$nu),
-                                                crossoverProbability = isolate(input$crossoverProbability),
-                                                subtreeMutationProbability = isolate(input$subtreeMutationProbability),
-                                                functionMutationProbability = isolate(input$functionMutationProbability),
-                                                constantMutationProbability = isolate(input$functionMutationProbability),
-                                                enableAgeCriterion = isolate(input$enableAgeCriterion),
-                                                enableComplexityCriterion = isolate(input$enableComplexityCriterion),
-                                                parentSelectionProbability = isolate(input$parentSelectionProbability),
-                                                selectionFunction = isolate(input$selectionFunction),
-                                                fitnessSubSamplingShare = isolate(input$fitnessSubSamplingShare),
-                                                errorMeasure = isolate(input$errorMeasure),
-                                                randomSeed = isolate(input$randomSeed),
-                                                formulaText = isolate(input$formula),
-                                                dataFrame = dataFrame())), workerProcessConnection)
-  }})
-  observe({ if (input$pauseRunButton > 0) {
-    runState <<- RGP_RUN_STATES$PAUSED
-    serialize(list(op = runState), workerProcessConnection) 
-  }})
-  observe({ if (input$resetRunButton > 0) {
-    runState <<- RGP_RUN_STATES$RESET
-    serialize(list(op = runState), workerProcessConnection) 
+    serverState$command <<- RGP_RUN_STATES$RUNNING 
+    serialize(list(op = serverState$command, params = list(serverState = serverState,
+                                                     buildingBlocks = isolate(input$buildingBlocks),
+                                                     independentVariables = independentVariables,
+                                                     dependentVariable = isolate(input$dependentVariable),
+                                                     mu = isolate(input$mu),
+                                                     lambda = isolate(input$lambda),
+                                                     nu = isolate(input$nu),
+                                                     crossoverProbability = isolate(input$crossoverProbability),
+                                                     subtreeMutationProbability = isolate(input$subtreeMutationProbability),
+                                                     functionMutationProbability = isolate(input$functionMutationProbability),
+                                                     constantMutationProbability = isolate(input$functionMutationProbability),
+                                                     enableAgeCriterion = isolate(input$enableAgeCriterion),
+                                                     enableComplexityCriterion = isolate(input$enableComplexityCriterion),
+                                                     parentSelectionProbability = isolate(input$parentSelectionProbability),
+                                                     selectionFunction = isolate(input$selectionFunction),
+                                                     fitnessSubSamplingShare = isolate(input$fitnessSubSamplingShare),
+                                                     errorMeasure = isolate(input$errorMeasure),
+                                                     randomSeed = isolate(input$randomSeed),
+                                                     formulaText = isolate(input$formula),
+                                                     dataFrame = dataFrame())), workerProcessConnection)
   }})
 
-  lastWorkerProcessMessages <- reactiveValues(progress = NULL, newBest = NULL, statistics = NULL, result = NULL)
+  observe({ if (input$pauseRunButton > 0) {
+    serverState$command <<- RGP_RUN_STATES$PAUSED
+    serialize(list(op = serverState$command), workerProcessConnection) 
+  }})
+
+  observe({ if (input$resetRunButton > 0) {
+    serverState$command <<- RGP_RUN_STATES$RESET
+    # reset local state
+    serverState$seed <- NULL
+    # send reset command to worker process
+    serialize(list(op = serverState$command), workerProcessConnection) 
+    # change state to PAUSED
+    serverState$command <<- RGP_RUN_STATES$PAUSED
+  }})
+
   workerProcessMessage <- reactive({
     invalidateLater(100, session) # each 100 milliseconds
     return (if (socketSelect(list(workerProcessConnection), timeout = 0)) {
@@ -464,6 +515,9 @@ server <- function(input, output, session) {
       NULL
     })
   })
+
+  lastWorkerProcessMessages <- reactiveValues(progress = NULL, newBest = NULL, statistics = NULL, result = NULL, error = NULL)
+
   observe({
     msg <- workerProcessMessage() # make sure that unserialize(workerProcessConnection) keeps called regularly
     if (!is.null(msg) && msg$msg == RGP_WORKER_MESSAGES$PROGRESS) {
@@ -474,10 +528,29 @@ server <- function(input, output, session) {
       lastWorkerProcessMessages$statistics <- msg
     } else if (!is.null(msg) && msg$msg == RGP_WORKER_MESSAGES$RESULT) {
       lastWorkerProcessMessages$result <- msg
+    } else if (!is.null(msg) && msg$msg == RGP_WORKER_MESSAGES$RESET) {
+      lastWorkerProcessMessages$progress <- NULL
+      lastWorkerProcessMessages$newBest <- NULL
+      lastWorkerProcessMessages$statistics <- NULL
+      lastWorkerProcessMessages$result <- NULL
+    } else if (!is.null(msg) && msg$msg == RGP_WORKER_MESSAGES$ERROR) {
+      message("--------------------------- recv error message") # TODO
+      lastWorkerProcessMessages$error <- NULL 
+      lastWorkerProcessMessages$error <- msg
     } else if (!is.null(msg)) {
       stop("webUi: unknown worker process message:", msg)
     } else {
       # ignore NULL messages
+    }
+  })
+  
+  output$alertUi <- renderUI({
+    if (!is.null(lastWorkerProcessMessages$error)) {
+      message("***************************** render error message") # TODO
+      error <- lastWorkerProcessMessages$error$params$error
+      div(class = "alert alert-error",
+        tags$button(class = "close", "data-dismiss" = "alert", HTML("&times;")),
+        tags$strong("Error:"), HTML(error))
     }
   })
 
