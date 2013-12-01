@@ -23,11 +23,18 @@ RGP_COLORS <- list(
 )
 
 RGP_RUN_STATES <- list(PAUSED = 1, RUNNING = 2, RESET = 3, STOP = 4)
-RGP_WORKER_MESSAGES <- list(PROGRESS = 1, NEWBEST = 2, STATISTICS = 3, RESULT = 4, RESET = 5, ERROR = 6)
+RGP_WORKER_MESSAGES <- list(PROGRESS = 1, NEWBEST = 2, STATISTICS = 3, RESULT = 4, RESET = 5, ALERT = 6)
 RGP_HISTORY_LENGTH <- 1000
 
-bootstrapButton <- function (inputId, label, class = "", icon = "") {
-  tags$button(id = inputId, type = "button", class = paste("btn action-button", class), tags$i(class = icon), label)
+bootstrapButton <- function (inputId, label, class = "", icon = "", style = "") {
+  tags$button(id = inputId, type = "button", style = style, class = paste("btn action-button", class), tags$i(class = icon), label)
+}
+
+infoPanel <- function(content, title = "Info") {
+  div(class = "alert alert-info alert-block",
+    tags$button(class = "close", "data-dismiss" = "alert", HTML("&times;")),
+    tags$h4(tags$i(class = "fa fa-info-circle"), title),
+    p(content))
 }
 
 dataPanel <- tabPanel("Data", value = "dataPanel",
@@ -48,9 +55,11 @@ dataPanel <- tabPanel("Data", value = "dataPanel",
                      "Single Quote" = "'"),
                      "Double Quote")),
     mainPanel(
+      infoPanel("Use the 'Data' panel to import and pre-process your data set. To get started, upload a data file in CSV format by using the controls to the left.", title = "Data Panel"),
       tabsetPanel(
         tabPanel("Table", tableOutput("dataTable")),
-        tabPanel("Plot", plotOutput("dataPlot"))))))
+        tabPanel("Plot", plotOutput("dataPlot"))),
+      uiOutput("dataPanelHelpUi"))))
  
 objectivePanel <- tabPanel("Objective", value = "objectivePanel",
   div(class = "row-fluid",
@@ -66,6 +75,7 @@ objectivePanel <- tabPanel("Objective", value = "objectivePanel",
       checkboxInput("enableComplexityCriterion", "Enable Complexity Criterion",
                     value = TRUE)),
     mainPanel(
+      infoPanel("Use the 'Objective' panel to define the model objective. Choose the dependent variable, i.e. the variable to predict, via the combo-box to the left.", title = "Objective Panel"),
       plotOutput("dependentVariablePlot"),
       selectInput("dependentVariablePlotAbscissa", "Abscissa",
                   choices = c("(Row Number)")))))
@@ -73,7 +83,11 @@ objectivePanel <- tabPanel("Objective", value = "objectivePanel",
 runPanel <- tabPanel("Run", value = "runPanel",
   div(class = "row-fluid",
     sidebarPanel(
-      tags$legend("Run Parameters"),
+      tags$legend("Run Control"),
+      bootstrapButton("startRunButton", "Start Run", icon = "fa fa-play", class = "btn-primary btn-block"),
+      bootstrapButton("pauseRunButton", "Pause Run", icon = "fa fa-pause", class = "btn-block"),
+      bootstrapButton("resetRunButton", "Reset Run", icon = "fa fa-eject", class = "btn-danger btn-block", style = "margin-top: 18px"),
+      tags$legend(style = "padding-top: 24px", "Run Parameters"),
       numericInput("mu", "Mu (Population Size)", 
                    min = 2, max = 1000, value = 100, step = 1),
       numericInput("lambda", "Lambda (Number of Children / Generation)", 
@@ -97,31 +111,31 @@ runPanel <- tabPanel("Run", value = "runPanel",
       sliderInput("fitnessSubSamplingShare", "Fitness Subsampling Share", 
                   min = 0, max = 1, value = 1, step = .01),
       numericInput("randomSeed", "Random Seed", 
-                   min = 0, value = 1, step = 1),
-      tags$legend("Run Control"),
-      bootstrapButton("startRunButton", "Start Run", icon = "icon-play icon-white", class = "btn-primary btn-block"),
-      bootstrapButton("pauseRunButton", "Pause Run", icon = "icon-pause", class = "btn-block"),
-      tags$hr(),
-      bootstrapButton("resetRunButton", "Reset Run", icon = "icon-eject icon-white", class = "btn-danger btn-block")),
+                   min = 0, value = 1, step = 1)),
     mainPanel(
+      infoPanel("Start the model search run by pressing the 'Start Run' button to the left. You can monitor the run's progress visually with the tools below. Once solutions of satisfactory quality start to appear, press pause and change to the 'Results' panel to analyse the results in more detail. You can continue a paused run by pressing 'Start Run' again or start over by pressing 'Reset Run'.", title = "Run Panel"),
       tabsetPanel(
         tabPanel("Progress", plotOutput("progressPlot", height = 1000)), 
         tabPanel("Pareto Front", plotOutput("paretoPlot", height = 768)), 
         tabPanel("Best Solution", plotOutput("bestSolutionPlot"),
-                                  tableOutput("bestSolutionTable"))))))
-
+                                  tableOutput("bestSolutionTable")),
+        tabPanel("Statistics", tableOutput("runStatisticsTable"))))))
+ 
 resultsPanel <- tabPanel("Results", value = "resultsPanel",
+  tags$head(tags$style(type = "text/css", "tfoot { display: none; }")), # hack to disable column filtering in result table
   tags$head(tags$script(src = "scripts/jquery.sparkline.min.js")),
-  tags$head(tags$script(type = "text/javascript", HTML("$(function() { $.extend($.fn.dataTable.defaults, { 'fnDrawCallback': function(oSettings) { $('.inlinesparkline').sparkline('html', { type: 'line', disableHiddenCheck: true, height: '40px', width: '200px' }); } }); });"))),
+  tags$head(tags$script(type = "text/javascript", HTML("$(function() { $.extend($.fn.dataTable.defaults, { 'aoColumns': [{ 'bSortable': false }, null, null, { 'bSortable': false }], 'fnDrawCallback': function(oSettings) { $('.solutionSparkline').sparkline('html', { type: 'line', disableHiddenCheck: true, height: '40px', width: '200px', lineColor: '#056D8F', fillColor: false, disableInteraction: true, spotColor: false, minSpotColor: false, maxSpotColor: false }); } }); });"))),
   div(class = "row-fluid",
+    infoPanel("The 'Results' panel shows a table of the results of a model search run in paused state. To show results, start a run in the 'Run' panel, then press 'Pause Run'.", title = "Results Panel"),
     tabsetPanel(
       tabPanel("Pareto Front", 
                dataTableOutput("resultParetoFrontTable")))))
 
 ui <- bootstrapPage(
+  tags$head(tags$link(rel = "stylesheet", href = "css/font-awesome.min.css")),
   div(class = "container-fluid",
     div(class = "row-fluid",
-      headerPanel(list(img(src = "images/logo_rgp.png"), "RGP Symbolic Regression"),
+      headerPanel(list(img(src = "images/logo_rgp.png"), span("RGP", tags$small("Symbolic Regression UI"))),
                   windowTitle = "RGP")),
     div(class = "row-fluid",
       uiOutput("alertUi")),
@@ -140,6 +154,7 @@ workerProcessMain <- function() {
   command <- list(op = RGP_RUN_STATES$PAUSED)
   population <- NULL
   runStatistics <- NULL
+  alertList <- list()
 
   while (!stopProcess) {
     tryCatch({
@@ -159,6 +174,7 @@ workerProcessMain <- function() {
         # reset worker process state...
         population <- NULL
         runStatistics <- NULL
+        alertList <- list()
         serialize(list(msg = RGP_WORKER_MESSAGES$RESET,
                        params = list()),
                   serverConnection)
@@ -171,8 +187,9 @@ workerProcessMain <- function() {
       }
     }, error = function(e) {
       message("workerProcessMain: Catched error '", e, "'")
-      serialize(list(msg = RGP_WORKER_MESSAGES$ERROR,
-                     params = list(error = e)),
+      alertList <<- c(list(list(time = Sys.time(), type = "Error", content = e)), alertList)
+      serialize(list(msg = RGP_WORKER_MESSAGES$ALERT,
+                     params = list(alertList = alertList)),
                 serverConnection)
       command <<- list(op = RGP_RUN_STATES$PAUSED) # change to PAUSED state
     })
@@ -193,16 +210,20 @@ rescaleIndividual <- function(ind, srDataFrame, dependentVariable) {
 }
 
 workerProcessRun <- function(serverConnection, population, runStatistics, params) {
+  # check params for problems...
+  if (is.null(params$dataFrame)) stop("No valid input data.")
+
   command <- list(op = RGP_RUN_STATES$RUNNING)
 
-  serverState <- params$serverState # TODO extract run state
-  
+  serverState <- params$serverState
   set.seed(params$randomSeed) # TODO do not set seed when continuing a paused run, instead load it from the run state
 
   srFormula <- as.formula(params$formulaText)
   srDataFrame <- params$dataFrame
 
-  funSet <- do.call(functionSet, as.list(eval(parse(text = params$buildingBlocks))))
+  tryCatch({
+    funSet <- do.call(functionSet, as.list(eval(parse(text = params$buildingBlocks))))
+  }, error = function(e) { stop("Invalid building block set: '" , params$buildingBlocks, "'.") })
   inVarSet <- do.call(inputVariableSet, as.list(params$independentVariables))
   constSet <- numericConstantSet
 
@@ -348,7 +369,10 @@ workerProcessRun <- function(serverConnection, population, runStatistics, params
       runStatistics$dominatedHypervolumeHistory <<- c(if (length(runStatistics$dominatedHypervolumeHistory) <= RGP_HISTORY_LENGTH) runStatistics$dominatedHypervolumeHistory else runStatistics$dominatedHypervolumeHistory[-historyIndexToReplace], dominated_hypervolume(finitePoints))
       runStatistics$generationsHistory <<- c(if (length(runStatistics$generationsHistory) <= RGP_HISTORY_LENGTH) runStatistics$generationsHistory else runStatistics$generationsHistory[-historyIndexToReplace], stepNumber)
       serialize(list(msg = RGP_WORKER_MESSAGES$PROGRESS,
-                     params = list(generations = runStatistics$generationsHistory,
+                     params = list(stepNumber = stepNumber,
+                                   evaluationNumber = evaluationNumber,
+                                   timeElapsed = timeElapsed,
+                                   generations = runStatistics$generationsHistory,
                                    fitnessHistory = runStatistics$fitnessHistory,
                                    complexityHistory = runStatistics$complexityHistory,
                                    ageHistory = runStatistics$ageHistory,
@@ -360,7 +384,7 @@ workerProcessRun <- function(serverConnection, population, runStatistics, params
                 serverConnection)
     }
   }
-  
+
   # initialize population if NULL, otherwise reuse existing population...
   population <- if (is.null(population)) {
     message("workerProcessRun: INITIALIZING population")
@@ -435,6 +459,21 @@ server <- function(input, output, session) {
     formulaText <- paste(dependentVariable, "~", paste(independentVariables, collapse = " + "))
     updateTextInput(session, "formula", value = formulaText)
   })
+
+  output$dataPanelHelpUi <- renderUI({
+    if (is.null(dataFrame())) {
+      div(class = "hero-unit",
+          h1("Welcome to RGP"),
+          p("The RGP Symbolic Regression UI makes it easy to discover mathematical models for your data."),
+          p(style = "font-size: 14px; font-weight: normal", "Getting starting with Symbolic Regression in RGP in easy:",
+          tags$ol(tags$li("Upload a comma-separated (CSV) data file via the controls to the left."),
+                  tags$li("Set the model objective in the 'Objective' tab."),
+                  tags$li("Start the Symbolic Regression run in the 'Run' tab."),
+                  tags$li("Monitor the run's progress in the 'Progress' tab."),
+                  tags$li("When solutions of sufficient quality emerge, pause the run in the 'Run' tab."),
+                  tags$li("Inspect the solutions in the 'Results' tab."))))
+    } else { "" }
+  })
   
   output$dataPlot <- renderPlot({
     if (is.null(dataFrame())) {
@@ -445,7 +484,7 @@ server <- function(input, output, session) {
   })
 
   output$dataTable <- renderTable({ dataFrame() })
-
+  
   output$dependentVariablePlot <- renderPlot({
     if (is.null(dataFrame())) {
       NULL
@@ -471,25 +510,25 @@ server <- function(input, output, session) {
   observe({ if (input$startRunButton > 0) {
     serverState$command <<- RGP_RUN_STATES$RUNNING 
     serialize(list(op = serverState$command, params = list(serverState = serverState,
-                                                     buildingBlocks = isolate(input$buildingBlocks),
-                                                     independentVariables = independentVariables,
-                                                     dependentVariable = isolate(input$dependentVariable),
-                                                     mu = isolate(input$mu),
-                                                     lambda = isolate(input$lambda),
-                                                     nu = isolate(input$nu),
-                                                     crossoverProbability = isolate(input$crossoverProbability),
-                                                     subtreeMutationProbability = isolate(input$subtreeMutationProbability),
-                                                     functionMutationProbability = isolate(input$functionMutationProbability),
-                                                     constantMutationProbability = isolate(input$functionMutationProbability),
-                                                     enableAgeCriterion = isolate(input$enableAgeCriterion),
-                                                     enableComplexityCriterion = isolate(input$enableComplexityCriterion),
-                                                     parentSelectionProbability = isolate(input$parentSelectionProbability),
-                                                     selectionFunction = isolate(input$selectionFunction),
-                                                     fitnessSubSamplingShare = isolate(input$fitnessSubSamplingShare),
-                                                     errorMeasure = isolate(input$errorMeasure),
-                                                     randomSeed = isolate(input$randomSeed),
-                                                     formulaText = isolate(input$formula),
-                                                     dataFrame = dataFrame())), workerProcessConnection)
+                                                           buildingBlocks = isolate(input$buildingBlocks),
+                                                           independentVariables = independentVariables,
+                                                           dependentVariable = isolate(input$dependentVariable),
+                                                           mu = isolate(input$mu),
+                                                           lambda = isolate(input$lambda),
+                                                           nu = isolate(input$nu),
+                                                           crossoverProbability = isolate(input$crossoverProbability),
+                                                           subtreeMutationProbability = isolate(input$subtreeMutationProbability),
+                                                           functionMutationProbability = isolate(input$functionMutationProbability),
+                                                           constantMutationProbability = isolate(input$functionMutationProbability),
+                                                           enableAgeCriterion = isolate(input$enableAgeCriterion),
+                                                           enableComplexityCriterion = isolate(input$enableComplexityCriterion),
+                                                           parentSelectionProbability = isolate(input$parentSelectionProbability),
+                                                           selectionFunction = isolate(input$selectionFunction),
+                                                           fitnessSubSamplingShare = isolate(input$fitnessSubSamplingShare),
+                                                           errorMeasure = isolate(input$errorMeasure),
+                                                           randomSeed = isolate(input$randomSeed),
+                                                           formulaText = isolate(input$formula),
+                                                           dataFrame = dataFrame())), workerProcessConnection)
   }})
 
   observe({ if (input$pauseRunButton > 0) {
@@ -516,7 +555,7 @@ server <- function(input, output, session) {
     })
   })
 
-  lastWorkerProcessMessages <- reactiveValues(progress = NULL, newBest = NULL, statistics = NULL, result = NULL, error = NULL)
+  lastWorkerProcessMessages <- reactiveValues(progress = NULL, newBest = NULL, statistics = NULL, result = NULL, alert = NULL)
 
   observe({
     msg <- workerProcessMessage() # make sure that unserialize(workerProcessConnection) keeps called regularly
@@ -533,10 +572,9 @@ server <- function(input, output, session) {
       lastWorkerProcessMessages$newBest <- NULL
       lastWorkerProcessMessages$statistics <- NULL
       lastWorkerProcessMessages$result <- NULL
-    } else if (!is.null(msg) && msg$msg == RGP_WORKER_MESSAGES$ERROR) {
-      message("--------------------------- recv error message") # TODO
-      lastWorkerProcessMessages$error <- NULL 
-      lastWorkerProcessMessages$error <- msg
+      lastWorkerProcessMessages$alert <- NULL
+    } else if (!is.null(msg) && msg$msg == RGP_WORKER_MESSAGES$ALERT) {
+      lastWorkerProcessMessages$alert <- msg
     } else if (!is.null(msg)) {
       stop("webUi: unknown worker process message:", msg)
     } else {
@@ -545,12 +583,15 @@ server <- function(input, output, session) {
   })
   
   output$alertUi <- renderUI({
-    if (!is.null(lastWorkerProcessMessages$error)) {
-      message("***************************** render error message") # TODO
-      error <- lastWorkerProcessMessages$error$params$error
-      div(class = "alert alert-error",
-        tags$button(class = "close", "data-dismiss" = "alert", HTML("&times;")),
-        tags$strong("Error:"), HTML(error))
+    if (!is.null(lastWorkerProcessMessages$alert)) {
+      alertList <- lastWorkerProcessMessages$alert$params$alertList
+      print(alertList) # TODO
+      do.call(tagList, Map(function(alert) {
+        div(class = "alert alert-error alert-block",
+          tags$button(class = "close", "data-dismiss" = "alert", HTML("&times;")),
+          tags$h4(tags$i(class = "fa fa-warning"), alert$type, paste("(", alert$time, ")", sep = "")),
+          HTML(alert$content))
+      }, alertList))
     }
   })
 
@@ -603,12 +644,23 @@ server <- function(input, output, session) {
   output$bestSolutionTable <- renderTable({
     if (!is.null(lastWorkerProcessMessages$newBest)) {
       params <- lastWorkerProcessMessages$newBest$params 
-      data.frame(list(Attribute = c("Formula", "Error", "Generation", "Evaluation Number", "Time Elapsed"),
+      data.frame(list(Attribute = c("Formula", "Error", "Generation", "Fitness Evaluation Number", "Time Elapsed"),
                       Value = c(do.call(paste, c(as.list(deparse(params$bestIndividual)), sep = "")),
                                 params$bestFitness,
                                 params$stepNumber,
                                 params$evaluationNumber,
                                 formatSeconds(params$timeElapsed))))
+    }
+  }, include.rownames = FALSE)
+  
+  output$runStatisticsTable <- renderTable({
+    if (!is.null(lastWorkerProcessMessages$progress)) {
+      params <- lastWorkerProcessMessages$progress$params 
+      data.frame(list(Attribute = c("Generation", "Fitness Evalutation Number", "Time Elapsed", "Fitness Evaluations / Second"),
+                      Value = c(params$stepNumber,
+                                params$evaluationNumber,
+                                formatSeconds(params$timeElapsed),
+                                sprintf("%.2f", params$evaluationNumber / params$timeElapsed))))
     }
   }, include.rownames = FALSE)
 
@@ -634,7 +686,7 @@ server <- function(input, output, session) {
         indX <- params$data[, colnames(params$data) != params$dependentVariable]
         indY <- if (is.data.frame(indX)) apply(indX, 1, function(x) do.call(rescaledInd, as.list(x))) else rescaledInd(indX)
         indYString <- do.call(paste, c(as.list(indY), sep = ","))
-        HTML(paste("<span class='inlinesparkline'>", indYString, "</span>", sep = ""))
+        HTML(paste("<span class='solutionSparkline'>", indYString, "</span>", sep = ""))
       }
       paretoFrontFormulas <- as.character(Map(deparseInd, population[mask]))
       paretoFrontFitnessValues <- fitnessValues[mask]
@@ -646,11 +698,13 @@ server <- function(input, output, session) {
                       Complexity = paretoFrontComplexityValues,
                       Plot = paretoFrontPlots)) 
     }
-  }, options = list(iDisplayLength = 25)) # TODO
+  }, options = list(iDisplayLength = 25, bFilter = 0, bInfo = 0)) # TODO
 }
 
 webUi <- function(port = 1447) {
+  addResourcePath("css", "./css") # TODO use system.file() to refer to folder in package
   addResourcePath("images", "./images") # TODO use system.file() to refer to folder in package
+  addResourcePath("fonts", "./fonts") # TODO use system.file() to refer to folder in package
   addResourcePath("scripts", "./scripts") # TODO use system.file() to refer to folder in package
   runApp(list(ui = ui, server = server), port = port)
 }
