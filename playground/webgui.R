@@ -131,7 +131,8 @@ runPanel <- tabPanel("Run", value = "runPanel",
 resultsPanel <- tabPanel("Results", value = "resultsPanel",
   tags$head(tags$style(type = "text/css", "tfoot { display: none; }")), # hack to disable column filtering in result table
   tags$head(tags$script(src = "scripts/jquery.sparkline.min.js")),
-  tags$head(tags$script(type = "text/javascript", HTML("$(function() { $.extend($.fn.dataTable.defaults, { 'aoColumns': [{ 'bSortable': false }, null, null, null, { 'bSortable': false }], 'fnDrawCallback': function(oSettings) { $('.solutionSparkline').sparkline('html', { type: 'line', disableHiddenCheck: true, height: '40px', width: '200px', lineColor: '#056D8F', fillColor: false, disableInteraction: true, spotColor: false, minSpotColor: false, maxSpotColor: false }); } }); });"))),
+  tags$head(tags$script(type = "text/javascript", HTML("$(function() { $.extend($.fn.dataTable.defaults, { 'aoColumns': [{ 'bSortable': false }, null, null, null, { 'bSortable': false }], 'fnDrawCallback': function(oSettings) { 
+$('.solutionSparkline').sparkline('html', { type: 'line', tagValuesAttribute: 'trueyvalues', disableHiddenCheck: true, height: '40px', width: '200px', lineColor: '#D70026', fillColor: false, disableInteraction: false, spotColor: false, minSpotColor: false, maxSpotColor: false, composite: false }); $('.solutionSparkline').sparkline('html', { type: 'line', tagValuesAttribute: 'indyvalues', disableHiddenCheck: true, lineColor: '#056D8F', fillColor: false, disableInteraction: false, spotColor: false, minSpotColor: false, maxSpotColor: false, composite: true }); } }); });"))),
   div(class = "row-fluid",
     infoPanel("The 'Results' panel shows a table of the results of a model search run in paused state. To show results, start a run in the 'Run' panel, then press 'Pause Run'.", title = "Results Panel"),
     tabsetPanel(
@@ -737,7 +738,9 @@ server <- function(input, output, session) {
         indX <- sort(dataFrame()$data[, colnames(dataFrame()$data) != params$dependentVariable])
         indY <- if (is.data.frame(indX)) apply(indX, 1, function(x) do.call(rescaledInd, as.list(x))) else rescaledInd(indX)
         indYString <- do.call(paste, c(as.list(indY), sep = ","))
-        HTML(paste("<span class='solutionSparkline'>", indYString, "</span>", sep = ""))
+        trueY <- dataFrame()$data[, params$dependentVariable]
+        trueYString <- do.call(paste, c(as.list(trueY), sep = ","))
+        HTML(paste("<span class='solutionSparkline' indyvalues='", indYString, "' trueyvalues='", trueYString, "'></span>", sep = ""))
       }
       paretoFrontFormulas <- as.character(Map(deparseInd, population[mask]))
       paretoFrontFitnessValues <- fitnessValues[mask]
