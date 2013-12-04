@@ -53,9 +53,16 @@ dataPanel <- tabPanel("Data", value = "dataPanel",
                    c(None="",
                      "Double Quote" = "\"",
                      "Single Quote" = "'"),
-                     "Double Quote")),
+                     "Double Quote"),
+      tags$legend(style = "padding-top: 24px", "Data Partitioning"),
+      sliderInput("trainingDataShare", "Training Data Share", 
+                  min = 0.1, max = 1, value = .5, step = .01),
+      selectInput("trainingDataPosition", "Training Data Position",
+                  choices = c("Random", "First Rows", "Last Rows")),
+      numericInput("dataPositionRandomSeed", "Random Seed", 
+                   min = 0, value = 1, step = 1)),
     mainPanel(
-      infoPanel("Use the 'Data' panel to import and pre-process your data set. To get started, upload a data file in CSV format by using the controls to the left.", title = "Data Panel"),
+      infoPanel("Use the 'Data' panel to import and pre-process your data set. To get started, upload a data file in CSV format by using the controls to the left. You can control the paritioning into training and validation sets with the 'Data Partitioning' controls.", title = "Data Panel"),
       tabsetPanel(
         tabPanel("Table", tableOutput("dataTable")),
         tabPanel("Plot", plotOutput("dataPlot"))),
@@ -113,7 +120,7 @@ runPanel <- tabPanel("Run", value = "runPanel",
       numericInput("randomSeed", "Random Seed", 
                    min = 0, value = 1, step = 1)),
     mainPanel(
-      infoPanel("Start the model search run by pressing the 'Start Run' button to the left. You can monitor the run's progress visually with the tools below. Once solutions of satisfactory quality start to appear, press pause and change to the 'Results' panel to analyse the results in more detail. You can continue a paused run by pressing 'Start Run' again or start over by pressing 'Reset Run'.", title = "Run Panel"),
+      infoPanel("Start the model search run by pressing the 'Start Run' button to the left. You can monitor the run's progress visually with the tools below. Once solutions of satisfactory quality start to appear, press 'Pause Run' and change to the 'Results' panel to analyse the results in more detail. You can continue a paused run by pressing 'Start Run' again or start over by pressing 'Reset Run'.", title = "Run Panel"),
       tabsetPanel(
         tabPanel("Progress", plotOutput("progressPlot", height = 1000)), 
         tabPanel("Pareto Front", plotOutput("paretoPlot", height = 768)), 
@@ -124,7 +131,7 @@ runPanel <- tabPanel("Run", value = "runPanel",
 resultsPanel <- tabPanel("Results", value = "resultsPanel",
   tags$head(tags$style(type = "text/css", "tfoot { display: none; }")), # hack to disable column filtering in result table
   tags$head(tags$script(src = "scripts/jquery.sparkline.min.js")),
-  tags$head(tags$script(type = "text/javascript", HTML("$(function() { $.extend($.fn.dataTable.defaults, { 'aoColumns': [{ 'bSortable': false }, null, null, { 'bSortable': false }], 'fnDrawCallback': function(oSettings) { $('.solutionSparkline').sparkline('html', { type: 'line', disableHiddenCheck: true, height: '40px', width: '200px', lineColor: '#056D8F', fillColor: false, disableInteraction: true, spotColor: false, minSpotColor: false, maxSpotColor: false }); } }); });"))),
+  tags$head(tags$script(type = "text/javascript", HTML("$(function() { $.extend($.fn.dataTable.defaults, { 'aoColumns': [{ 'bSortable': false }, null, null, null, { 'bSortable': false }], 'fnDrawCallback': function(oSettings) { $('.solutionSparkline').sparkline('html', { type: 'line', disableHiddenCheck: true, height: '40px', width: '200px', lineColor: '#056D8F', fillColor: false, disableInteraction: true, spotColor: false, minSpotColor: false, maxSpotColor: false }); } }); });"))),
   div(class = "row-fluid",
     infoPanel("The 'Results' panel shows a table of the results of a model search run in paused state. To show results, start a run in the 'Run' panel, then press 'Pause Run'.", title = "Results Panel"),
     tabsetPanel(
@@ -209,6 +216,16 @@ rescaleIndividual <- function(ind, srDataFrame, dependentVariable) {
   return (rescaledInd)
 }
 
+errorMeasureFromName <- function(errorMeasureName) {
+  switch(errorMeasureName,
+         "SMSE" = smse,
+         "SSSE" = ssse,
+         "RMSE" = rmse,
+         "SSE" = sse,
+         "MAE" = mae,
+         stop("webUi: unkown error measure name: ", errorMeasureName))
+}
+
 workerProcessRun <- function(serverConnection, population, runStatistics, params) {
   # check params for problems...
   if (is.null(params$dataFrame)) stop("No valid input data.")
@@ -219,7 +236,7 @@ workerProcessRun <- function(serverConnection, population, runStatistics, params
   set.seed(params$randomSeed) # TODO do not set seed when continuing a paused run, instead load it from the run state
 
   srFormula <- as.formula(params$formulaText)
-  srDataFrame <- params$dataFrame
+  srDataFrame <- params$dataFrame$trainingData
 
   tryCatch({
     funSet <- do.call(functionSet, as.list(eval(parse(text = params$buildingBlocks))))
@@ -270,13 +287,7 @@ workerProcessRun <- function(serverConnection, population, runStatistics, params
                                 as.list(inVarSet$nameStrings)), 1:mu)
   }
 
-  errorMeasure  <- switch(params$errorMeasure,
-                          "SMSE" = smse,
-                          "SSSE" = ssse,
-                          "RMSE" = rmse,
-                          "SSE" = sse,
-                          "MAE" = mae,
-                          stop("webUi: unkown error measure name: ", params$errorMeasure))
+  errorMeasure  <- errorMeasureFromName(params$errorMeasure)
 
   ndsSelectionFunction <- switch(params$selectionFunction,
                                  "Crowding Distance" = nds_cd_selection,
@@ -421,6 +432,7 @@ workerProcessRun <- function(serverConnection, population, runStatistics, params
                  params = list(result = sr,
                                serverState = serverState,
                                data = srDataFrame,
+                               validationData = params$dataFrame$validationData,
                                dependentVariable = params$dependentVariable,
                                errorMeasure = params$errorMeasure)),
             serverConnection)
@@ -449,11 +461,25 @@ server <- function(input, output, session) {
     updateSelectInput(session, "dependentVariablePlotAbscissa",
                       choices = c("(Row Number)", colnames(dataFrame)), selected = "(Row Number)") 
 
-    return (dataFrame)
+    trainingDataIndices <- if ("Random" == input$trainingDataPosition) {
+      set.seed(input$dataPositionRandomSeed)
+      sample(1:nrow(dataFrame), size = floor(input$trainingDataShare * nrow(dataFrame)), replace = FALSE)
+    } else if ("First Rows" == input$trainingDataPosition) {
+      1:floor(input$trainingDataShare * nrow(dataFrame))      
+    } else if ("Last Rows" == input$trainingDataPosition) {
+      floor(input$trainingDataShare * nrow(dataFrame)):nrow(dataFrame)
+    } else {
+      stop("server: Unknown training data position type: '", input$trainingDataPosition, "'.")
+    }
+
+    return (list(data = dataFrame,
+                 trainingData = dataFrame[trainingDataIndices,],
+                 validationData = dataFrame[-trainingDataIndices,],
+                 trainingDataIndices = trainingDataIndices))
   })
 
   observe({
-    allVariables <- colnames(dataFrame())
+    allVariables <- colnames(dataFrame()$data)
     dependentVariable <- input$dependentVariable 
     independentVariables <<- allVariables[allVariables != dependentVariable]
     formulaText <- paste(dependentVariable, "~", paste(independentVariables, collapse = " + "))
@@ -479,30 +505,52 @@ server <- function(input, output, session) {
     if (is.null(dataFrame())) {
       NULL
     } else {
-      plot(dataFrame(), col = RGP_COLORS$RED)
+      trainingDataMarkerColumn <- numeric(nrow(dataFrame()$data))
+      trainingDataMarkerColumn <- rep(1, nrow(dataFrame()$data))
+      trainingDataMarkerColumn[dataFrame()$trainingDataIndices] <- 16 
+      plot(dataFrame()$data, col = RGP_COLORS$RED, pch = trainingDataMarkerColumn)
+      legend("bottomright", c("Training", "Validation"),
+             bty = "n",
+             pch = c(16, 1),
+             col = c(RGP_COLORS$RED, RGP_COLORS$RED))
     }
   })
 
-  output$dataTable <- renderTable({ dataFrame() })
+  output$dataTable <- renderTable({
+    if (is.null(dataFrame())) {
+      NULL
+    } else {
+      trainingDataMarkerColumn <- rep("Validation", nrow(dataFrame()$data))
+      trainingDataMarkerColumn[dataFrame()$trainingDataIndices] <- "Training"
+      cbind(dataFrame()$data, list("Role" = trainingDataMarkerColumn))
+    }
+  })
   
   output$dependentVariablePlot <- renderPlot({
     if (is.null(dataFrame())) {
       NULL
     } else {
+      trainingDataMarkerColumn <- numeric(nrow(dataFrame()$data))
+      trainingDataMarkerColumn <- rep(1, nrow(dataFrame()$data))
+      trainingDataMarkerColumn[dataFrame()$trainingDataIndices] <- 16 
       if ("(Row Number)" == input$dependentVariablePlotAbscissa) {
-        plot(dataFrame()[, input$dependentVariable], col = RGP_COLORS$RED, pch = 16,
+        plot(dataFrame()$data[, input$dependentVariable], col = RGP_COLORS$RED, pch = trainingDataMarkerColumn,
              xlab = "Row Number", ylab = input$dependentVariable,
              main = "Dependent Variable Plot")
-        lines(dataFrame()[, input$dependentVariable], col = RGP_COLORS$GRAY)
+        lines(dataFrame()$data[, input$dependentVariable], col = RGP_COLORS$GRAY)
       } else {
-        plot(x = dataFrame()[, input$dependentVariablePlotAbscissa],
-             y = dataFrame()[, input$dependentVariable],
-             col = RGP_COLORS$RED, pch = 16,
+        plot(x = dataFrame()$data[, input$dependentVariablePlotAbscissa],
+             y = dataFrame()$data[, input$dependentVariable],
+             col = RGP_COLORS$RED, pch = trainingDataMarkerColumn,
              xlab = input$dependentVariablePlotAbscissa, ylab = input$dependentVariable,
              main = "Dependent Variable Plot")
-        lines(x = dataFrame()[, input$dependentVariablePlotAbscissa],
-              y = dataFrame()[, input$dependentVariable],
+        lines(x = dataFrame()$data[, input$dependentVariablePlotAbscissa],
+              y = dataFrame()$data[, input$dependentVariable],
               col = RGP_COLORS$GRAY)
+        legend("bottomright", c("Training", "Validation"),
+               bty = "n",
+               pch = c(16, 1),
+               col = c(RGP_COLORS$RED, RGP_COLORS$RED))
       }
     }
   })
@@ -585,7 +633,6 @@ server <- function(input, output, session) {
   output$alertUi <- renderUI({
     if (!is.null(lastWorkerProcessMessages$alert)) {
       alertList <- lastWorkerProcessMessages$alert$params$alertList
-      print(alertList) # TODO
       do.call(tagList, Map(function(alert) {
         div(class = "alert alert-error alert-block",
           tags$button(class = "close", "data-dismiss" = "alert", HTML("&times;")),
@@ -624,19 +671,22 @@ server <- function(input, output, session) {
 
   output$bestSolutionPlot <- renderPlot({
     if (!is.null(lastWorkerProcessMessages$newBest)) {
+      trainingDataMarkerColumn <- numeric(nrow(dataFrame()$data))
+      trainingDataMarkerColumn <- rep(1, nrow(dataFrame()$data))
+      trainingDataMarkerColumn[dataFrame()$trainingDataIndices] <- 16
       params <- lastWorkerProcessMessages$newBest$params 
       ind <- params$rescaledBestIndividual
-      indX <- dataFrame()[, colnames(dataFrame()) != input$dependentVariable]
+      indX <- dataFrame()$data[, colnames(dataFrame()$data) != input$dependentVariable]
       indY <- if (is.data.frame(indX)) apply(indX, 1, function(x) do.call(ind, as.list(x))) else ind(indX)
-      plot(dataFrame()[, input$dependentVariable], col = RGP_COLORS$RED, pch = 16,
+      plot(dataFrame()$data[, input$dependentVariable], col = RGP_COLORS$RED, pch = trainingDataMarkerColumn,
            xlab = "Row Number", ylab = input$dependentVariable,
            main = "Best Solution Plot")
-      lines(dataFrame()[, input$dependentVariable], col = RGP_COLORS$GRAY)
-      points(indY, col = RGP_COLORS$BLUE, pch = 1)
+      lines(dataFrame()$data[, input$dependentVariable], col = RGP_COLORS$GRAY)
+      points(indY, col = RGP_COLORS$BLUE, pch = trainingDataMarkerColumn - 1)
       lines(indY, col = RGP_COLORS$DARK_GRAY)
       legend("bottomright", c("Data", "Best Solution"),
              bty = "n",
-             pch = c(16, 1),
+             pch = c(16, 15),
              col = c(RGP_COLORS$RED, RGP_COLORS$BLUE))
     }
   })
@@ -668,7 +718,7 @@ server <- function(input, output, session) {
     if (!is.null(lastWorkerProcessMessages$result)) {
       params <- lastWorkerProcessMessages$result$params
       srResult <- params$result
-      population <- srResult$population # TODO remove duplicates
+      population <- srResult$population
       fitnessValues <- srResult$searchHeuristicResults$fitnessValues
       complexityValues <- srResult$searchHeuristicResults$complexityValues
       objectiveValues <- rbind(fitnessValues, complexityValues)
@@ -679,26 +729,40 @@ server <- function(input, output, session) {
       deparseInd <- function(ind) do.call(paste, c(as.list(deparse(ind)), sep = ""))
       indToYstring <- function(ind) {
         rescaledInd <- if (params$errorMeasure == "SMSE" || params$errorMeasure == "SSSE") {
-          rescaleIndividual(ind, params$data, params$dependentVariable)
+          rescaleIndividual(ind, dataFrame()$data, params$dependentVariable)
         } else {
           ind 
         }
-        indX <- params$data[, colnames(params$data) != params$dependentVariable]
+        indX <- sort(dataFrame()$data[, colnames(dataFrame()$data) != params$dependentVariable])
         indY <- if (is.data.frame(indX)) apply(indX, 1, function(x) do.call(rescaledInd, as.list(x))) else rescaledInd(indX)
         indYString <- do.call(paste, c(as.list(indY), sep = ","))
         HTML(paste("<span class='solutionSparkline'>", indYString, "</span>", sep = ""))
       }
       paretoFrontFormulas <- as.character(Map(deparseInd, population[mask]))
       paretoFrontFitnessValues <- fitnessValues[mask]
+      errorMeasure <- errorMeasureFromName(params$errorMeasure)
+      paretoFrontValidationFitnessValues <- as.numeric(Map(function(ind) {
+        rescaledInd <- if (params$errorMeasure == "SMSE" || params$errorMeasure == "SSSE") {
+          rescaleIndividual(ind, params$validationData, params$dependentVariable)
+        } else {
+          ind 
+        }
+        indX <- params$validationData[, colnames(params$validationData) != params$dependentVariable]
+        indY <- if (is.data.frame(indX)) apply(indX, 1, function(x) do.call(rescaledInd, as.list(x))) else rescaledInd(indX)
+        trueY <- params$validationData[, params$dependentVariable]
+        indY <- if (length(indY) == 1) rep(indY, length(trueY)) else indY
+        return (errorMeasure(trueY, indY))
+      }, population[mask]))
       paretoFrontComplexityValues <- complexityValues[mask]
       paretoFrontPlots <- as.character(Map(indToYstring, population[mask]))
 
       data.frame(list(Formula = paretoFrontFormulas,
-                      Error = paretoFrontFitnessValues,
+                      "Training Error" = paretoFrontFitnessValues,
+                      "Validation Error" = paretoFrontValidationFitnessValues,
                       Complexity = paretoFrontComplexityValues,
                       Plot = paretoFrontPlots)) 
     }
-  }, options = list(iDisplayLength = 25, bFilter = 0, bInfo = 0)) # TODO
+  }, options = list(iDisplayLength = 25, bFilter = 0, bInfo = 0)) # TODO optimize data table options
 }
 
 webUi <- function(port = 1447) {
