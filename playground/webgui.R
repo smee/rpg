@@ -497,7 +497,8 @@ server <- function(input, output, session) {
                   tags$li("Start the Symbolic Regression run in the 'Run' tab."),
                   tags$li("Monitor the run's progress in the 'Progress' tab."),
                   tags$li("When solutions of sufficient quality emerge, pause the run in the 'Run' tab."),
-                  tags$li("Inspect the solutions in the 'Results' tab."))))
+                  tags$li("Inspect the solutions in the 'Results' tab.")),
+          "Visit ", tags$a(href = "http://rsymbolic.org", "rsymbolic.org"), " for detailed information about the RGP system."))
     } else { "" }
   })
   
