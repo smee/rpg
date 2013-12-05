@@ -64,6 +64,18 @@ r_ssse <- function(x, y) {
 	sum((x - (a + b * y)) ^ 2)
 }
 
+##' Coefficient of determination (R^2)
+##'
+##' @param x A numeric vector or list.
+##' @param y A numeric vector or list.
+##' @return The coefficient of determination (R^2) between \code{x} and \code{y}.
+##' @export
+rsquared <- function(x, y) {
+  ssTot <- sum((x - mean(x)) ^ 2)
+  ssRes <- sum((x - y) ^ 2)
+  1 - ssRes / ssTot
+}
+
 ##' Normalize a vector into the interval [0, 1]
 ##'
 ##' @param x The vector to normalize, so that each element lies in the
