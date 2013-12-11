@@ -109,6 +109,7 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
                               stepNumber, evaluationNumber, bestFitness, timeElapsed, indicesToRemove) {
     if (bestFitness != lastBestFitness) {
       message("XXXXX Strange: best fitness changed in evaluation ", evaluationNumber)
+      print(pop)
       lastBestFitness <<- bestFitness
     }
 
@@ -184,7 +185,7 @@ result1 <- startRgpGMOGPExperiment(problemParameters = list(data = list(training
                                                              parentSelectionProbability = 0.0, # 1.0, TODO
                                                              selectionFunction = "Crowding Distance",
                                                              subtreeMutationProbability = 1.0),
-                                  experimentParameters = list(evaluations = 100000L,
+                                  experimentParameters = list(evaluations = 10e6L,
                                                               populationSnapshots = 10L,
                                                               randomSeed = 1,
                                                               rdsOutputFileName = "salustowicz1dGMOGPresult_1.RDS"))
