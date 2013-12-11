@@ -37,7 +37,7 @@ r_sse <- function(x ,y) sum((x -y) ^ 2)
 ##' @param y A numeric vector or list.
 ##' @return The MSE between \code{x} and \code{y}.
 ##' @export
-mse <- function(x, y) .Call(sse, x, y) / length(x)
+mse <- function(x, y) .Call(do_sse, x, y) / length(x)
 
 ##' Root mean squared error (RMSE)
 ##'

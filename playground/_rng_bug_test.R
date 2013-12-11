@@ -104,6 +104,12 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
     }
   }
 
+  mutationFunction <- function(ind) { # TODO
+    #mutateSubtree(ind, funSet, inVarSet, numericConstantSet) # TODO
+    #mutateFunc(ind, funSet)
+    ind
+  } # TODO
+
   populationFactory <- function(mu, funSet, inVarSet, maxfuncdepth, constMin, constMax) { 
     Map(function(i) makeClosure(.Call("initialize_expression_grow_R",
                                       as.list(funSet$nameStrings),
@@ -134,6 +140,9 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
 
   progressMonitor <- function(pop, objectiveVectors, fitnessFunction,
                               stepNumber, evaluationNumber, bestFitness, timeElapsed, indicesToRemove) {
+    if (evaluationNumber %% 100 == 0) {
+      print(bestFitness) # TODO
+    }
     if (evaluationNumber %% (experimentParameters$evaluations / experimentParameters$populationSnapshots) == 0) {
       # save a snapshop of the current population
       populationHistory <<- c(list(list(stepNumber = stepNumber, population = pop, objectiveVectors = objectiveVectors)), populationHistory)
@@ -159,6 +168,7 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
                                             individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
                                             searchHeuristic = searchHeuristic,
                                             mutationFunction = mutationFunction,
+                                            #crossoverFunction = crossover, # TODO
                                             envir = environment(),
                                             verbose = TRUE,
                                             progressMonitor = progressMonitor))
@@ -190,18 +200,18 @@ ripple2d <- function(x1,x2) (x1-3)*(x2-3) + 2*sin((x1-4)*(x2-4))
 ratPol2d <- function(x1,x2) ((x1-3)*(x1-3)*(x1-3)*(x1-3) + (x2-3)*(x2-3)*(x2-3) -x2 + 3) / ((x2-2)*(x2-2)*(x2-2)*(x2-2)+ 10)
 
 result1 <- startRgpGMOGPExperiment(problemParameters = list(data = list(training = tabulateFunction(salustowicz1d, x = seq(1, 10, length.out = 100))),
-                                                            enableComplexityCriterion = TRUE,
+                                                            enableComplexityCriterion = FALSE, # TRUE, TODO
                                                             symbolicRegressionFormula = y ~ x1),
                                   algorithmParameters = list(buildingBlockSetNumber = 1L,
                                                              constantMutationProbability = 0.0,
-                                                             crossoverProbability = 0.5,
-                                                             enableAgeCriterion = TRUE,
-                                                             errorMeasure = "SMSE",
+                                                             crossoverProbability = 0.0, # 0.5, TODO
+                                                             enableAgeCriterion = FALSE, # TRUE, TODO
+                                                             errorMeasure = "RMSE", # "SMSE", TODO
                                                              functionMutationProbability = 0.0,
                                                              lambdaRel = 1.0,
                                                              mu = 100L,
-                                                             nuRel = 0.5,
-                                                             parentSelectionProbability = 1.0,
+                                                             nuRel = 0.0, # 0.5 TODO
+                                                             parentSelectionProbability = 0.0, # 1.0, TODO
                                                              selectionFunction = "Crowding Distance",
                                                              subtreeMutationProbability = 1.0),
                                   experimentParameters = list(evaluations = 100000L,
