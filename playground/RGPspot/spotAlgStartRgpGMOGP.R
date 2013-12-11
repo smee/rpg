@@ -1,0 +1,202 @@
+## spotAlgStartRgpGMOGP.R
+## 2013 Oliver Flasch
+##
+
+require("rgp")
+
+
+rescaleIndividual <- function(ind, srDataFrame, independentVariables, dependentVariable) {
+  indX <- srDataFrame[, independentVariables]
+  indY <- if (is.data.frame(indX)) apply(indX, 1, function(x) do.call(ind, as.list(x))) else ind(indX)
+  trueY <- srDataFrame[, dependentVariable]
+  indY <- if (length(indY) == 1) rep(indY, length(trueY)) else indY
+  b = cov(trueY, indY) / var(indY)
+  a = mean(trueY) - b * mean(indY)
+  rescaledInd <- function(...) a + b * ind(...)
+  return (rescaledInd)
+}
+
+errorMeasureFromName <- function(errorMeasureName) {
+  switch(errorMeasureName,
+         "SMSE" = smse,
+         "SSSE" = ssse,
+         "RMSE" = rmse,
+         "SSE" = sse,
+         "MAE" = mae,
+         stop("errorMeasureName: unkown error measure name: ", errorMeasureName))
+}
+
+startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
+                                                             enableComplexityCriterion = TRUE,
+                                                             symbolicRegressionFormula = NULL),
+                                    algorithmParameters = list(buildingBlocks = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")',
+                                                               constantMutationProbability = 0.0,
+                                                               crossoverProbability = 0.5,
+                                                               enableAgeCriterion = TRUE,
+                                                               errorMeasure = "SMSE",
+                                                               functionMutationProbability = 0.0,
+                                                               lambda = 50,
+                                                               mu = 100,
+                                                               nu = 50,
+                                                               parentSelectionProbability = 1.0,
+                                                               selectionFunction = "Crowding Distance",
+                                                               subtreeMutationProbability = 1.0),
+                                    experimentParameters = list(generations = 100000L,
+                                                                populationSnapshotInterval = experimentParameters$generations / 10L,
+                                                                randomSeed = 1,
+                                                                rdsOutputFileName = paste("rgpGMOGPresult", experimentParameters$randomSeed, sep = ""))) {
+  # check parameters for problems...
+  if (is.null(problemParameters$data)) stop("startRgpGMOGPExperiment: No valid input data.")
+  if (is.null(problemParameters$symbolicRegressionFormula)) stop("startRgpGMOGPExperiment: No valid symbolic regression formula.")
+
+  # set random seed
+  set.seed(experimentParameters$randomSeed) 
+
+  # extract symbolic regression formula and training data...
+  srFormula <- as.formula(problemParameters$symbolicRegressionFormula)
+  srDataFrame <- problemParameters$data$training
+
+  # build building block sets...
+  tryCatch({
+    funSet <- do.call(functionSet, as.list(eval(parse(text = algorithmParameters$buildingBlocks))))
+  }, error = function(e) { stop("startRgpGMOGPExperiment: Invalid building block set: '" , algorithmParameters$buildingBlocks, "'.") })
+  independentVariables <-  attr(terms(srFormula), "term.labels")
+  inVarSet <- do.call(inputVariableSet, as.list(independentVariables))
+  constSet <- numericConstantSet
+
+  mutationFunction <- if (algorithmParameters$subtreeMutationProbability == 1 && algorithmParameters$functionMutationProbability == 0 && algorithmParameters$constantMutationProbability == 0) {
+    function(ind) {
+      subtreeMutantBody <- mutateSubtreeFast(body(ind), funSet, inVarSet, -10.0, 10.0, insertprob = 0.5, deleteprob = 0.5, subtreeprob = 1.0, constprob = 0.5, maxsubtreedepth = 8)
+      makeClosure(subtreeMutantBody, inVarSet$all, envir = funSet$envir)
+    }
+  } else if (algorithmParameters$subtreeMutationProbability == 0 && algorithmParameters$functionMutationProbability == 1 && algorithmParameters$constantMutationProbability == 0) {
+    function(ind) {
+      functionMutantBody <- mutateFuncFast(body(ind), funSet, mutatefuncprob = 0.1)
+      makeClosure(functionMutantBody, inVarSet$all, envir = funSet$envir)
+    }
+  } else if (algorithmParameters$subtreeMutationProbability == 0 && algorithmParameters$functionMutationProbability == 0 && algorithmParameters$constantMutationProbability == 1) {
+    function(ind) {
+      constantMutantBody <- mutateNumericConstFast(body(ind), mutateconstprob = 0.1, mu = 0.0, sigma = 1.0)
+      makeClosure(constantMutantBody, inVarSet$all, envir = funSet$envir)
+    }
+  } else {
+    function(ind) {
+      mutantBody <- body(ind)
+      weightSum <- algorithmParameters$subtreeMutationProbability + algorithmParameters$functionMutationProbability + algorithmParameters$constantMutationProbability
+      rouletteWheelPosition <- runif(1, min = 0, max = weightSum)
+      if (0 == weightSum) {
+        return (ind)
+      } else if (rouletteWheelPosition < algorithmParameters$subtreeMutationProbability) {
+        mutantBody <- mutateSubtreeFast(mutantBody, funSet, inVarSet, -10.0, 10.0, insertprob = 0.5, deleteprob = 0.5, subtreeprob = 1.0, constprob = 0.5, maxsubtreedepth = 8)
+      } else if (rouletteWheelPosition < algorithmParameters$subtreeMutationProbability + algorithmParameters$functionMutationProbability) {
+        mutantBody <- mutateFuncFast(mutantBody, funSet, mutatefuncprob = 0.1)
+      } else if (rouletteWheelPosition <= weightSum) {
+        mutantBody <- mutateNumericConstFast(mutantBody, mutateconstprob = 0.1, mu = 0.0, sigma = 1.0)
+      }
+      makeClosure(mutantBody, inVarSet$all, envir = funSet$envir)
+    }
+  }
+
+  populationFactory <- function(mu, funSet, inVarSet, maxfuncdepth, constMin, constMax) { 
+    Map(function(i) makeClosure(.Call("initialize_expression_grow_R",
+                                      as.list(funSet$nameStrings),
+                                      as.integer(funSet$arities),
+                                      as.list(inVarSet$nameStrings),
+                                      constMin, constMax,
+                                      0.8, 0.2,
+                                      as.integer(maxfuncdepth)),
+                                as.list(inVarSet$nameStrings)), 1:mu)
+  }
+
+  errorMeasure  <- errorMeasureFromName(algorithmParameters$errorMeasure)
+
+  ndsSelectionFunction <- switch(algorithmParameters$selectionFunction,
+                                 "Crowding Distance" = nds_cd_selection,
+                                 "Hypervolume" = nds_hv_selection,
+                                 stop("startRgpGMOGPExperiment: unkown NDS selection function name: ", algorithmParameters$selectionFunction))
+
+  searchHeuristic <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = algorithmParameters$lambda,
+                                                                     crossoverProbability = algorithmParameters$crossoverProbability,
+                                                                     newIndividualsPerGeneration = algorithmParameters$nu,
+                                                                     enableComplexityCriterion = problemParameters$enableComplexityCriterion,
+                                                                     enableAgeCriterion = algorithmParameters$enableAgeCriterion,
+                                                                     ndsParentSelectionProbability = algorithmParameters$parentSelectionProbability,
+                                                                     ndsSelectionFunction = ndsSelectionFunction)
+
+  populationHistory <- list() 
+
+  progressMonitor <- function(pop, objectiveVectors, fitnessFunction,
+                              stepNumber, evaluationNumber, bestFitness, timeElapsed, indicesToRemove) {
+    if (stepNumber %% experimentParameters$populationSnapshotInterval == 0) { # save a snapshop of the current population...
+      populationHistory <<- c(list(list(stepNumber = stepNumber, population = pop, objectiveVectors = objectiveVectors)), populationHistory)
+    }
+  }
+
+  # initialize population...
+  message("startRgpGMOGPExperiment: INITIALIZING population")
+  population <- populationFactory(algorithmParameters$mu, funSet, inVarSet, 8, -10.0, 10.0)
+
+  # do genetic programming run...
+  message("startRgpGMOGPExperiment: STARTING GP run")
+  sr <- suppressWarnings(symbolicRegression(srFormula,
+                                            data = srDataFrame,
+                                            functionSet = funSet,
+                                            errorMeasure = errorMeasure,
+                                            stopCondition = makeStepsStopCondition(experimentParameters$generations),
+                                            population = population,
+                                            populationSize = algorithmParameters$mu,
+                                            individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
+                                            searchHeuristic = searchHeuristic,
+                                            mutationFunction = mutationFunction,
+                                            envir = environment(),
+                                            verbose = TRUE,
+                                            progressMonitor = progressMonitor))
+  message("startRgpGMOGPExperiment: GP run done")
+
+  # build result object...
+  result <- list(symbolicRegressionResult = sr,
+                 populationHistory = populationHistory,
+                 problemParameters = problemParameters,
+                 algorithmParameters = algorithmParameters,
+                 experimentParameters = experimentParameters)
+
+  # save result to file...
+  message("startRgpGMOGPExperiment: saved result to file '", experimentParameters$rdsOutputFileName, "'")
+  saveRDS(result, file = experimentParameters$rdsOutputFileName)
+  
+  # return result 
+  return (result)
+}
+
+# test code...
+kotanchek <- function(x1, x2 ,A = -1, B = -2.5, C = 3.2) (exp (-1*(x1 + A)*(x1 + A))) / ((x2 + B)*(x2 + B) + 3.2) 
+salustowicz1d <- function(x) exp(-1*x)*x*x*x*sin(x)*cos(x)*(sin(x)*sin(x)*cos(x)-1)
+salustowicz2d <- function(x1,x2) exp(-1*x1)*x1*x1*x1*(x2-5)*sin(x1)*cos(x1)*(sin(x1)*sin(x1)*cos(x1)-1)
+unwrappedBall1d <- function(x) 10/((x - 3)*(x - 3) + 5)
+rationalPolynom3d <- function(x1,x2,x3= 2) (30*(x1 - 1)*(x3 -1)) / ((x1 -10)*x2*x2)
+sineCosine2d<- function(x1,x2) 6*sin(x1)*cos(x2)
+ripple2d <- function(x1,x2) (x1-3)*(x2-3) + 2*sin((x1-4)*(x2-4))
+ratPol2d <- function(x1,x2) ((x1-3)*(x1-3)*(x1-3)*(x1-3) + (x2-3)*(x2-3)*(x2-3) -x2 + 3) / ((x2-2)*(x2-2)*(x2-2)*(x2-2)+ 10)
+
+startRgpGMOGPExperiment(problemParameters = list(data = list(training = tabulateFunction(salustowicz1d, x = seq(1, 10, length.out = 100))),
+                                                 enableComplexityCriterion = TRUE,
+                                                 symbolicRegressionFormula = y ~ x1),
+                        algorithmParameters = list(buildingBlocks = 'c("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt")',
+                                                   constantMutationProbability = 0.0,
+                                                   crossoverProbability = 0.5,
+                                                   enableAgeCriterion = TRUE,
+                                                   errorMeasure = "SMSE",
+                                                   functionMutationProbability = 0.0,
+                                                   lambda = 50,
+                                                   mu = 100,
+                                                   nu = 50,
+                                                   parentSelectionProbability = 1.0,
+                                                   selectionFunction = "Crowding Distance",
+                                                   subtreeMutationProbability = 1.0),
+                        experimentParameters = list(generations = 1000L,
+                                                    populationSnapshotInterval = 100L,
+                                                    randomSeed = 1,
+                                                    rdsOutputFileName = "salustowicz1dGMOGPresult_1.RDS"))
+
+# eof
+
