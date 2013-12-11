@@ -139,7 +139,7 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
                                             individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
                                             searchHeuristic = searchHeuristic,
                                             mutationFunction = mutationFunction,
-                                            crossoverFunction = function(a, b, ...) { cat("."); a }, # TODO 
+                                            crossoverFunction = function(a, b, ...) a, # TODO 
                                             envir = environment(),
                                             verbose = FALSE,
                                             progressMonitor = progressMonitor))
