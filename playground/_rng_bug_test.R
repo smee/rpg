@@ -71,39 +71,6 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
   inVarSet <- do.call(inputVariableSet, as.list(independentVariables))
   constSet <- numericConstantSet
 
-  mutationFunction <- if (algorithmParameters$subtreeMutationProbability == 1 && algorithmParameters$functionMutationProbability == 0 && algorithmParameters$constantMutationProbability == 0) {
-    function(ind) {
-      subtreeMutantBody <- mutateSubtreeFast(body(ind), funSet, inVarSet, -10.0, 10.0, insertprob = 0.5, deleteprob = 0.5, subtreeprob = 1.0, constprob = 0.5, maxsubtreedepth = 8)
-      makeClosure(subtreeMutantBody, inVarSet$all, envir = funSet$envir)
-    }
-  } else if (algorithmParameters$subtreeMutationProbability == 0 && algorithmParameters$functionMutationProbability == 1 && algorithmParameters$constantMutationProbability == 0) {
-    function(ind) {
-      functionMutantBody <- mutateFuncFast(body(ind), funSet, mutatefuncprob = 0.1)
-      makeClosure(functionMutantBody, inVarSet$all, envir = funSet$envir)
-    }
-  } else if (algorithmParameters$subtreeMutationProbability == 0 && algorithmParameters$functionMutationProbability == 0 && algorithmParameters$constantMutationProbability == 1) {
-    function(ind) {
-      constantMutantBody <- mutateNumericConstFast(body(ind), mutateconstprob = 0.1, mu = 0.0, sigma = 1.0)
-      makeClosure(constantMutantBody, inVarSet$all, envir = funSet$envir)
-    }
-  } else {
-    function(ind) {
-      mutantBody <- body(ind)
-      weightSum <- algorithmParameters$subtreeMutationProbability + algorithmParameters$functionMutationProbability + algorithmParameters$constantMutationProbability
-      rouletteWheelPosition <- runif(1, min = 0, max = weightSum)
-      if (0 == weightSum) {
-        return (ind)
-      } else if (rouletteWheelPosition < algorithmParameters$subtreeMutationProbability) {
-        mutantBody <- mutateSubtreeFast(mutantBody, funSet, inVarSet, -10.0, 10.0, insertprob = 0.5, deleteprob = 0.5, subtreeprob = 1.0, constprob = 0.5, maxsubtreedepth = 8)
-      } else if (rouletteWheelPosition < algorithmParameters$subtreeMutationProbability + algorithmParameters$functionMutationProbability) {
-        mutantBody <- mutateFuncFast(mutantBody, funSet, mutatefuncprob = 0.1)
-      } else if (rouletteWheelPosition <= weightSum) {
-        mutantBody <- mutateNumericConstFast(mutantBody, mutateconstprob = 0.1, mu = 0.0, sigma = 1.0)
-      }
-      makeClosure(mutantBody, inVarSet$all, envir = funSet$envir)
-    }
-  }
-
   mutationFunction <- function(ind) { # TODO
     #mutateSubtree(ind, funSet, inVarSet, numericConstantSet) # TODO
     #mutateFunc(ind, funSet)
@@ -136,21 +103,25 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
                                                                      ndsParentSelectionProbability = algorithmParameters$parentSelectionProbability,
                                                                      ndsSelectionFunction = ndsSelectionFunction)
 
-  populationHistory <- list() 
+  lastBestFitness <- Inf
 
   progressMonitor <- function(pop, objectiveVectors, fitnessFunction,
                               stepNumber, evaluationNumber, bestFitness, timeElapsed, indicesToRemove) {
-    if (evaluationNumber %% 100 == 0) {
-      print(bestFitness) # TODO
+    if (bestFitness != lastBestFitness) {
+      message("XXXXX Strange: best fitness changed in evaluation ", evaluationNumber)
+      lastBestFitness <<- bestFitness
     }
-    if (evaluationNumber %% (experimentParameters$evaluations / experimentParameters$populationSnapshots) == 0) {
-      # save a snapshop of the current population
-      populationHistory <<- c(list(list(stepNumber = stepNumber, population = pop, objectiveVectors = objectiveVectors)), populationHistory)
+
+    if (evaluationNumber %% 10 == 0) {
+      #print(bestFitness) # TODO
+      #print(indicesToRemove) # TODO
+      #print(pop) # TODO
     }
   }
 
   # set random seed
-  #set.seed(experimentParameters$randomSeed)
+  message("startRgpGMOGPExperiment: SETTING random seed ", experimentParameters$randomSeed)
+  set.seed(experimentParameters$randomSeed)
   
   # initialize population...
   message("startRgpGMOGPExperiment: INITIALIZING population")
@@ -168,15 +139,14 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
                                             individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
                                             searchHeuristic = searchHeuristic,
                                             mutationFunction = mutationFunction,
-                                            #crossoverFunction = crossover, # TODO
+                                            crossoverFunction = function(a, b, ...) { cat("."); a }, # TODO 
                                             envir = environment(),
-                                            verbose = TRUE,
+                                            verbose = FALSE,
                                             progressMonitor = progressMonitor))
   message("startRgpGMOGPExperiment: GP run done")
 
   # build result object...
   result <- list(symbolicRegressionResult = sr,
-                 populationHistory = populationHistory,
                  problemParameters = problemParameters,
                  algorithmParameters = algorithmParameters,
                  experimentParameters = experimentParameters)
@@ -206,10 +176,10 @@ result1 <- startRgpGMOGPExperiment(problemParameters = list(data = list(training
                                                              constantMutationProbability = 0.0,
                                                              crossoverProbability = 0.0, # 0.5, TODO
                                                              enableAgeCriterion = FALSE, # TRUE, TODO
-                                                             errorMeasure = "RMSE", # "SMSE", TODO
+                                                             errorMeasure = "MAE", # "SMSE", TODO
                                                              functionMutationProbability = 0.0,
                                                              lambdaRel = 1.0,
-                                                             mu = 100L,
+                                                             mu = 8L, # 100L, TODO
                                                              nuRel = 0.0, # 0.5 TODO
                                                              parentSelectionProbability = 0.0, # 1.0, TODO
                                                              selectionFunction = "Crowding Distance",
