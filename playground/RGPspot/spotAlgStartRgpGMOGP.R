@@ -134,6 +134,7 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
 
   progressMonitor <- function(pop, objectiveVectors, fitnessFunction,
                               stepNumber, evaluationNumber, bestFitness, timeElapsed, indicesToRemove) {
+    #if (evaluationNumber %% 1000 == 0) message(bestFitness) # TODO debug output
     if (evaluationNumber %% (experimentParameters$evaluations / experimentParameters$populationSnapshots) == 0) {
       # save a snapshop of the current population
       populationHistory <<- c(list(list(stepNumber = stepNumber, population = pop, objectiveVectors = objectiveVectors)), populationHistory)
@@ -141,7 +142,7 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
   }
 
   # set random seed
-  #set.seed(experimentParameters$randomSeed)
+  set.seed(experimentParameters$randomSeed)
   
   # initialize population...
   message("startRgpGMOGPExperiment: INITIALIZING population")
