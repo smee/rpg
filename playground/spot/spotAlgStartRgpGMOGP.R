@@ -18,8 +18,10 @@ rescaleIndividual <- function(ind, srDataFrame, independentVariables, dependentV
 
 buildingBlocksFromNumber <- function(buildingBlockSetNumber = 1L) {
   switch(buildingBlockSetNumber,
-         list("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt"),
-         # TODO
+         list("+", "-", "*", "/"),
+         list("+", "-", "*", "sin", "exp"),
+         list("+", "-", "*", "/", "sin", "exp", "log", "sqrt"),
+         list("+", "-", "*", "/", "sin", "cos", "tan", "exp", "log", "sqrt"),
          stop("buildingBlocksFromNumber: unkown building block set number: ", buildingBlockSetNumber))
 }
 
