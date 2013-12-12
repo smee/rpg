@@ -18,19 +18,11 @@ rescaleIndividual <- function(ind, srDataFrame, independentVariables, dependentV
 
 buildingBlocksFromNumber <- function(buildingBlockSetNumber = 1L) {
   switch(buildingBlockSetNumber,
+         #list("+", "-", "*", "/", "sin", "cos", "exp", "sqrt"), # TODO DEBUG removing sqrt from the function set makes the bug go away
+         #list("+", "-", "*", "/", "sin", "cos", "exp", "log"),
          list("+", "-", "*", "/", "sin", "cos", "exp", "log", "sqrt"),
          # TODO
          stop("buildingBlocksFromNumber: unkown building block set number: ", buildingBlockSetNumber))
-}
-
-errorMeasureFromName <- function(errorMeasureName) {
-  switch(errorMeasureName,
-         "SMSE" = smse,
-         "SSSE" = ssse,
-         "RMSE" = rmse,
-         "SSE" = sse,
-         "MAE" = mae,
-         stop("errorMeasureFromName: unkown error measure name: ", errorMeasureName))
 }
 
 startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
@@ -40,7 +32,6 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
                                                                constantMutationProbability = 0.0,
                                                                crossoverProbability = 0.5,
                                                                enableAgeCriterion = TRUE,
-                                                               errorMeasure = "SMSE",
                                                                functionMutationProbability = 0.0,
                                                                lambdaRel = 1.0,
                                                                mu = 100L,
@@ -88,7 +79,11 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
                                 as.list(inVarSet$nameStrings)), 1:mu)
   }
 
-  errorMeasure  <- errorMeasureFromName(algorithmParameters$errorMeasure)
+  errorMeasure  <- mae 
+  lastA <- numeric() 
+  lastB <- numeric()
+  errorMeasure  <- function(a, b) { lastA <<- a; lastB <<- b; mae(a, b) } 
+  #errorMeasure  <- r_mae # TODO DEBUG using r_mae instead of the c-based mae makes the bug disappear! 
 
   ndsSelectionFunction <- switch(algorithmParameters$selectionFunction,
                                  "Crowding Distance" = nds_cd_selection,
@@ -108,8 +103,13 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
   progressMonitor <- function(pop, objectiveVectors, fitnessFunction,
                               stepNumber, evaluationNumber, bestFitness, timeElapsed, indicesToRemove) {
     if (bestFitness != lastBestFitness) {
-      message("XXXXX Strange: best fitness changed in evaluation ", evaluationNumber)
-      print(pop)
+      if (lastBestFitness != Inf) {
+        message("XXXXX Strange: best fitness changed in evaluation ", evaluationNumber, " to ", bestFitness)
+        #print(lastA) # TODO
+        #print(lastB) # TODO
+        #print(min(objectiveVectors$fitnessValues)) # TODO
+        #print(pop) # TODO
+      }
       lastBestFitness <<- bestFitness
     }
 
@@ -117,6 +117,11 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
       #print(bestFitness) # TODO
       #print(indicesToRemove) # TODO
       #print(pop) # TODO
+      #print(mean(objectiveVectors$fitnessValues)) # TODO
+    }
+
+    if (evaluationNumber %% 1000 == 0) {
+      cat(".")
     }
   }
 
@@ -130,20 +135,20 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
 
   # do genetic programming run...
   message("startRgpGMOGPExperiment: STARTING GP run")
-  sr <- suppressWarnings(symbolicRegression(srFormula,
-                                            data = srDataFrame,
-                                            functionSet = funSet,
-                                            errorMeasure = errorMeasure,
-                                            stopCondition = makeEvaluationsStopCondition(experimentParameters$evaluations),
-                                            population = population,
-                                            populationSize = algorithmParameters$mu,
-                                            individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
-                                            searchHeuristic = searchHeuristic,
-                                            mutationFunction = mutationFunction,
-                                            crossoverFunction = function(a, b, ...) a, # TODO 
-                                            envir = environment(),
-                                            verbose = FALSE,
-                                            progressMonitor = progressMonitor))
+  sr <- symbolicRegression(srFormula,
+                           data = srDataFrame,
+                           functionSet = funSet,
+                           errorMeasure = errorMeasure,
+                           stopCondition = makeEvaluationsStopCondition(experimentParameters$evaluations),
+                           population = population,
+                           populationSize = algorithmParameters$mu,
+                           individualSizeLimit = 128, # individuals with more than 128 nodes (inner and leafs) get fitness Inf
+                           searchHeuristic = searchHeuristic,
+                           mutationFunction = mutationFunction,
+                           crossoverFunction = function(a, b, ...) a, # TODO 
+                           envir = environment(),
+                           verbose = FALSE,
+                           progressMonitor = progressMonitor)
   message("startRgpGMOGPExperiment: GP run done")
 
   # build result object...
@@ -152,10 +157,6 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
                  algorithmParameters = algorithmParameters,
                  experimentParameters = experimentParameters)
 
-  # save result to file...
-  message("startRgpGMOGPExperiment: saved result to file '", experimentParameters$rdsOutputFileName, "'")
-  saveRDS(result, file = experimentParameters$rdsOutputFileName)
-  
   # return result 
   return (result)
 }
@@ -170,17 +171,16 @@ sineCosine2d<- function(x1,x2) 6*sin(x1)*cos(x2)
 ripple2d <- function(x1,x2) (x1-3)*(x2-3) + 2*sin((x1-4)*(x2-4))
 ratPol2d <- function(x1,x2) ((x1-3)*(x1-3)*(x1-3)*(x1-3) + (x2-3)*(x2-3)*(x2-3) -x2 + 3) / ((x2-2)*(x2-2)*(x2-2)*(x2-2)+ 10)
 
-result1 <- startRgpGMOGPExperiment(problemParameters = list(data = list(training = tabulateFunction(salustowicz1d, x = seq(1, 10, length.out = 100))),
+result1 <- startRgpGMOGPExperiment(problemParameters = list(data = list(training = tabulateFunction(salustowicz1d, x = seq(1, 10, length.out = 2))),
                                                             enableComplexityCriterion = FALSE, # TRUE, TODO
                                                             symbolicRegressionFormula = y ~ x1),
                                   algorithmParameters = list(buildingBlockSetNumber = 1L,
                                                              constantMutationProbability = 0.0,
                                                              crossoverProbability = 0.0, # 0.5, TODO
                                                              enableAgeCriterion = FALSE, # TRUE, TODO
-                                                             errorMeasure = "MAE", # "SMSE", TODO
                                                              functionMutationProbability = 0.0,
                                                              lambdaRel = 1.0,
-                                                             mu = 8L, # 100L, TODO
+                                                             mu = 6L, # 100L, TODO
                                                              nuRel = 0.0, # 0.5 TODO
                                                              parentSelectionProbability = 0.0, # 1.0, TODO
                                                              selectionFunction = "Crowding Distance",

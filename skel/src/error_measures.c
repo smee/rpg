@@ -67,7 +67,8 @@ static double ssse(const double *x, const double *y, R_len_t n) {
     SEXP N(SEXP s_x, SEXP s_y) {        \
     UNPACK_REAL_VECTOR(s_x, x, n_x);    \
     UNPACK_REAL_VECTOR(s_y, y, n_y);    \
-    double result = F(x, y, n_x);       \
+    int n = (n_x < n_y) ? n_x : n_y;    \
+    double result = F(x, y, n);         \
     return ScalarReal(result);          \
 }
 
