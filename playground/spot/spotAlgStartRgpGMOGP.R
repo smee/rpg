@@ -25,31 +25,39 @@ buildingBlocksFromNumber <- function(buildingBlockSetNumber = 1L) {
          stop("buildingBlocksFromNumber: unkown building block set number: ", buildingBlockSetNumber))
 }
 
-errorMeasureFromName <- function(errorMeasureName) {
-  switch(errorMeasureName,
-         "SMSE" = smse,
-         "SSSE" = ssse,
-         "RMSE" = rmse,
-         "SSE" = sse,
-         "MAE" = mae,
-         stop("errorMeasureFromName: unkown error measure name: ", errorMeasureName))
+errorMeasureFromNumber <- function(errorMeasureNumber) {
+  switch(errorMeasureNumber,
+         smse,
+         ssse,
+         rmse,
+         sse,
+         mae,
+         stop("errorMeasureFromNumber: unkown error measure number: ", errorMeasureFromNumber))
 }
+
+selectionFunctionFromNumber <- function(selectionFunctionNumber) {
+  switch(selectionFunctionNumber,
+         nds_cd_selection,
+         nds_hv_selection,
+         stop("selectionFunctionFromNumber: unkown selection function number: ", selectionFunctionNumber))
+}
+
 
 startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
                                                              enableComplexityCriterion = TRUE,
                                                              symbolicRegressionFormula = NULL),
-                                    algorithmParameters = list(buildingBlockSetNumber = 1L,
-                                                               constantMutationProbability = 0.0,
-                                                               crossoverProbability = 0.5,
-                                                               enableAgeCriterion = TRUE,
-                                                               errorMeasure = "SMSE",
-                                                               functionMutationProbability = 0.0,
-                                                               lambdaRel = 1.0,
-                                                               mu = 100L,
-                                                               nuRel = 0.5,
-                                                               parentSelectionProbability = 1.0,
-                                                               selectionFunction = "Crowding Distance",
-                                                               subtreeMutationProbability = 1.0),
+                                    algorithmParameters = list(buildingBlockSetNumber = 4L,        # Factor A RoI: {1L, ..., 4L}
+                                                               constantMutationProbability = 0.0,  # Factor B RoI: [0, 1]
+                                                               crossoverProbability = 0.5,         # Factor C RoI: [0, 1]
+                                                               enableAgeCriterion = TRUE,          # Factor D RoI: |B
+                                                               errorMeasureNumber = 1L,            # Factor E RoI: {1L, ..., 5L}
+                                                               functionMutationProbability = 0.0,  # Factor F RoI: [0, 1]
+                                                               lambdaRel = 1.0,                    # Factor G RoI: [0, 1]
+                                                               mu = 100L,                          # Factor H RoI: {8L, ..., 256L}
+                                                               nuRel = 0.5,                        # Factor J RoI: [0, 1]
+                                                               parentSelectionProbability = 1.0,   # Factor K RoI: [0, 1]
+                                                               selectionFunctionNumber = 1L,       # Factor L RoI: {1L, 2L}
+                                                               subtreeMutationProbability = 1.0),  # Factor M RoI: [0, 1]
                                     experimentParameters = list(evaluations = 10e6L, # ten million fitness evaluations
                                                                 populationSnapshots = 10L,
                                                                 randomSeed = 1,
@@ -117,12 +125,9 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
                                 as.list(inVarSet$nameStrings)), 1:mu)
   }
 
-  errorMeasure  <- errorMeasureFromName(algorithmParameters$errorMeasure)
+  errorMeasure  <- errorMeasureFromNumber(algorithmParameters$errorMeasureNumber)
 
-  ndsSelectionFunction <- switch(algorithmParameters$selectionFunction,
-                                 "Crowding Distance" = nds_cd_selection,
-                                 "Hypervolume" = nds_hv_selection,
-                                 stop("startRgpGMOGPExperiment: unkown NDS selection function name: ", algorithmParameters$selectionFunction))
+  ndsSelectionFunction <- selectionFunctionFromNumber(algorithmParameters$selectionFunctionNumber)
 
   searchHeuristic <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = algorithmParameters$lambda,
                                                                      crossoverProbability = algorithmParameters$crossoverProbability,
@@ -195,17 +200,17 @@ ratPol2d <- function(x1,x2) ((x1-3)*(x1-3)*(x1-3)*(x1-3) + (x2-3)*(x2-3)*(x2-3) 
 result1 <- startRgpGMOGPExperiment(problemParameters = list(data = list(training = tabulateFunction(salustowicz1d, x = seq(1, 10, length.out = 100))),
                                                             enableComplexityCriterion = TRUE,
                                                             symbolicRegressionFormula = y ~ x1),
-                                  algorithmParameters = list(buildingBlockSetNumber = 1L,
+                                  algorithmParameters = list(buildingBlockSetNumber = 4L,
                                                              constantMutationProbability = 0.0,
                                                              crossoverProbability = 0.5,
                                                              enableAgeCriterion = TRUE,
-                                                             errorMeasure = "SMSE",
+                                                             errorMeasureNumber = 1L,
                                                              functionMutationProbability = 0.0,
                                                              lambdaRel = 1.0,
                                                              mu = 100L,
                                                              nuRel = 0.5,
                                                              parentSelectionProbability = 1.0,
-                                                             selectionFunction = "Crowding Distance",
+                                                             selectionFunctionNumber = 1L,
                                                              subtreeMutationProbability = 1.0),
                                   experimentParameters = list(evaluations = 100000L,
                                                               populationSnapshots = 10L,
