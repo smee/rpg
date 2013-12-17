@@ -28,7 +28,6 @@ buildingBlocksFromNumber <- function(buildingBlockSetNumber = 1L) {
 errorMeasureFromNumber <- function(errorMeasureNumber) {
   switch(errorMeasureNumber,
          smse,
-         ssse,
          rmse,
          sse,
          mae,
@@ -50,7 +49,7 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
                                                                constantMutationProbability = 0.0,  # Factor B RoI: [0, 1]
                                                                crossoverProbability = 0.5,         # Factor C RoI: [0, 1]
                                                                enableAgeCriterion = TRUE,          # Factor D RoI: |B
-                                                               errorMeasureNumber = 1L,            # Factor E RoI: {1L, ..., 5L}
+                                                               errorMeasureNumber = 1L,            # Factor E RoI: {1L, ..., 4L}
                                                                functionMutationProbability = 0.0,  # Factor F RoI: [0, 1]
                                                                lambdaRel = 1.0,                    # Factor G RoI: [0, 1]
                                                                mu = 100L,                          # Factor H RoI: {8L, ..., 256L}
@@ -67,7 +66,7 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
   if (is.null(problemParameters$symbolicRegressionFormula)) stop("startRgpGMOGPExperiment: No valid symbolic regression formula.")
 
   # transform relative to absolute parameters...
-  algorithmParameters$buildingBlocks <- buildingBlocksFromNumber(algorithmParameters$buildingBlockSetNumber)
+  algorithmParameters$buildingBlocks <- buildingBlocksFromNumber(round(algorithmParameters$buildingBlockSetNumber))
   algorithmParameters$lambda <- max(2, ceiling(algorithmParameters$lambdaRel * algorithmParameters$mu / 2))
   algorithmParameters$nu <- ceiling(algorithmParameters$nuRel * algorithmParameters$mu)
 
@@ -125,9 +124,9 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
                                 as.list(inVarSet$nameStrings)), 1:mu)
   }
 
-  errorMeasure  <- errorMeasureFromNumber(algorithmParameters$errorMeasureNumber)
+  errorMeasure  <- errorMeasureFromNumber(round(algorithmParameters$errorMeasureNumber))
 
-  ndsSelectionFunction <- selectionFunctionFromNumber(algorithmParameters$selectionFunctionNumber)
+  ndsSelectionFunction <- selectionFunctionFromNumber(round(algorithmParameters$selectionFunctionNumber))
 
   searchHeuristic <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = algorithmParameters$lambda,
                                                                      crossoverProbability = algorithmParameters$crossoverProbability,
