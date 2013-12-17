@@ -7,6 +7,14 @@ require("parallel")
 require("rgp")
 
 
+getPBSArrayJobID <- function()
+  if ("" == Sys.getenv("PBS_ARRAYID")) {
+    warning("getPBSArrayJobID: environment variable PBS_ARRAYID not set, returning ID 1")
+    1
+  } else {
+    as.numeric(Sys.getenv("PBS_ARRAYID"))
+  }
+
 rescaleIndividual <- function(ind, srDataFrame, independentVariables, dependentVariable) {
   indX <- srDataFrame[, independentVariables]
   indY <- if (is.data.frame(indX)) apply(indX, 1, function(x) do.call(ind, as.list(x))) else ind(indX)
@@ -44,7 +52,7 @@ selectionFunctionFromNumber <- function(selectionFunctionNumber) {
 }
 
 
-startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
+startRgpGmogpExperiment <- function(problemParameters = list(data = NULL,
                                                              enableComplexityCriterion = TRUE,
                                                              symbolicRegressionFormula = NULL),
                                     algorithmParameters = list(buildingBlockSetNumber = 4L,        # Factor A RoI: {1L, ..., 4L}
@@ -64,8 +72,8 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
                                                                 randomSeed = 1,
                                                                 rdsOutputFileName = paste("rgpGMOGPresult", experimentParameters$randomSeed, sep = ""))) {
   # check parameters for problems...
-  if (is.null(problemParameters$data)) stop("startRgpGMOGPExperiment: No valid input data.")
-  if (is.null(problemParameters$symbolicRegressionFormula)) stop("startRgpGMOGPExperiment: No valid symbolic regression formula.")
+  if (is.null(problemParameters$data)) stop("startRgpGmogpExperiment: No valid input data.")
+  if (is.null(problemParameters$symbolicRegressionFormula)) stop("startRgpGmogpExperiment: No valid symbolic regression formula.")
 
   # transform relative to absolute parameters...
   algorithmParameters$buildingBlocks <- buildingBlocksFromNumber(round(algorithmParameters$buildingBlockSetNumber))
@@ -142,7 +150,8 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
 
   progressMonitor <- function(pop, objectiveVectors, fitnessFunction,
                               stepNumber, evaluationNumber, bestFitness, timeElapsed, indicesToRemove) {
-    #if (evaluationNumber %% 1000 == 0) message(bestFitness) # TODO debug output
+    print(length(pop)) # TODO debug
+    if (evaluationNumber %% 1000 == 0) message(bestFitness) # TODO debug output
     if (evaluationNumber %% (experimentParameters$evaluations / experimentParameters$populationSnapshots) == 0) {
       # save a snapshop of the current population
       populationHistory <<- c(list(list(stepNumber = stepNumber, population = pop, objectiveVectors = objectiveVectors)), populationHistory)
@@ -153,11 +162,11 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
   set.seed(experimentParameters$randomSeed)
   
   # initialize population...
-  message("startRgpGMOGPExperiment: INITIALIZING population")
+  message("startRgpGmogpExperiment: INITIALIZING population")
   population <- populationFactory(algorithmParameters$mu, funSet, inVarSet, 8, -10.0, 10.0)
 
   # do genetic programming run...
-  message("startRgpGMOGPExperiment: STARTING GP run")
+  message("startRgpGmogpExperiment: STARTING GP run")
   sr <- suppressWarnings(symbolicRegression(srFormula,
                                             data = srDataFrame,
                                             functionSet = funSet,
@@ -171,7 +180,7 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
                                             envir = environment(),
                                             verbose = TRUE,
                                             progressMonitor = progressMonitor))
-  message("startRgpGMOGPExperiment: GP run done")
+  message("startRgpGmogpExperiment: GP run done")
 
   # build result object...
   result <- list(symbolicRegressionResult = sr,
@@ -181,7 +190,7 @@ startRgpGMOGPExperiment <- function(problemParameters = list(data = NULL,
                  experimentParameters = experimentParameters)
 
   # save result to file...
-  message("startRgpGMOGPExperiment: saved result to file '", experimentParameters$rdsOutputFileName, "'")
+  message("startRgpGmogpExperiment: saved result to file '", experimentParameters$rdsOutputFileName, "'")
   saveRDS(result, file = experimentParameters$rdsOutputFileName)
   
   # return result 
@@ -204,7 +213,12 @@ salustowicz1dTrainingDataIndices <- sample(1:nrow(salustowicz1dData), size = 0.5
 salustowicz1dTrainingData <- salustowicz1dData[salustowicz1dTrainingDataIndices, ]
 salustowicz1dValidationData <- salustowicz1dData[-salustowicz1dTrainingDataIndices, ]
 
-rgpGmogpScreening <- function(seed = 1, trainingData = salustowicz1dTrainingData, repeats = 10) {
+rgpGmogpScreening <- function(seed = 1,
+                              trainingData = salustowicz1dTrainingData,
+                              repeats = 10,
+                              evaluations = 1e6L,
+                              experimentIndex = getPBSArrayJobID(),
+                              experimentName = "unnamed") {
   rgpGmogpScreeningDesign <- pb(
     nruns = 16,
     n12.taguchi = FALSE,
@@ -228,41 +242,44 @@ rgpGmogpScreening <- function(seed = 1, trainingData = salustowicz1dTrainingData
       selectionFunctionNumber = c(1, 2),
       subtreeMutationProbability = c(0, 1)))
 
-  message("\n*** rgpGmogpScreeningDesign run started.")
+  message("\n*** rgpGmogpScreening run started.")
   message("Using DoE with ", nrow(rgpGmogpScreeningDesign), " experiments:")
   print(rgpGmogpScreeningDesign)
 
-  # TODO replace by parallel Map 
-  Map(function(experimentIndex) {
-    experiment <- rgpGmogpScreeningDesign[experimentIndex, ]
-    print(experimentIndex)
-    print(experiment)
-    }, 1:nrow(rgpGmogpScreeningDesign))
-  # TODO
+  # get experiment according to PBS array job ID...
+  experiment <- rgpGmogpScreeningDesign[experimentIndex, ]
+  experimentRdsFileName <- paste(experimentName, "_", experimentIndex, ".RDS", sep = "")
+
+  # run experiment and save results
+  message("running rgpGmogpScreening experiment #", experimentIndex, ":")
+  print(experiment)
+  experimentResult <- startRgpGmogpExperiment(
+    problemParameters = list(data = list(training = trainingData),
+                             enableComplexityCriterion = TRUE,
+                             symbolicRegressionFormula = y ~ x1),
+    algorithmParameters = list(buildingBlockSetNumber = experiment$buildingBlockSetNumber,
+                               constantMutationProbability = experiment$constantMutationProbability,
+                               crossoverProbability = experiment$crossoverProbability,
+                               enableAgeCriterion = experiment$enableAgeCriterion,
+                               errorMeasureNumber = experiment$errorMeasureNumber,
+                               functionMutationProbability = experiment$functionMutationProbability,
+                               lambdaRel = experiment$lambdaRel,
+                               mu = experiment$mu,
+                               nuRel = experiment$nuRel,
+                               parentSelectionProbability = experiment$parentSelectionProbability,
+                               selectionFunctionNumber = experiment$selectionFunctionNumber,
+                               subtreeMutationProbability = experiment$subtreeMutationProbability),
+    experimentParameters = list(evaluations = evaluations,
+                                populationSnapshots = 10L,
+                                randomSeed = seed + experimentIndex,
+                                rdsOutputFileName = experimentRdsFileName))
+
+  message("rgpGmogpScreening run DONE.")
+  return (experimentResult)
 }
 
 
-# test code...
-result1 <- rgpGmogpScreening(seed = 1, trainingData = salustowicz1dTrainingData, repeats = 10)
-
-#result2 <- startRgpGMOGPExperiment(problemParameters = list(data = list(training = tabulateFunction(salustowicz1d, x = seq(1, 10, length.out = 100))),
-#                                                            enableComplexityCriterion = TRUE,
-#                                                            symbolicRegressionFormula = y ~ x1),
-#                                  algorithmParameters = list(buildingBlockSetNumber = 4L,
-#                                                             constantMutationProbability = 0.0,
-#                                                             crossoverProbability = 0.5,
-#                                                             enableAgeCriterion = TRUE,
-#                                                             errorMeasureNumber = 1L,
-#                                                             functionMutationProbability = 0.0,
-#                                                             lambdaRel = 1.0,
-#                                                             mu = 100L,
-#                                                             nuRel = 0.5,
-#                                                             parentSelectionProbability = 1.0,
-#                                                             selectionFunctionNumber = 1L,
-#                                                             subtreeMutationProbability = 1.0),
-#                                  experimentParameters = list(evaluations = 100000L,
-#                                                              populationSnapshots = 10L,
-#                                                              randomSeed = 1,
-#                                                              rdsOutputFileName = "salustowicz1dGMOGPresult_1.RDS"))
-
+# run experiment...
+# TODO debug: nds_hv_selection seems to be buggy...
+rgpGmogpScreening(seed = 1, trainingData = salustowicz1dTrainingData, repeats = 10, evaluations = 10000L, experimentName = "salustowicz1d")
 
