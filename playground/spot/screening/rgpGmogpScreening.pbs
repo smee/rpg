@@ -1,5 +1,5 @@
 #!/bin/sh
-#PBS -t 1-240
+#PBS -t 1-180
 #PBS -l walltime=24:00:00
 
 Rscript $PBS_O_WORKDIR/rgpGmogpScreening.R

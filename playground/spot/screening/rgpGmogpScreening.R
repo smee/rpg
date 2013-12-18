@@ -44,12 +44,27 @@ errorMeasureFromNumber <- function(errorMeasureNumber) {
          stop("errorMeasureFromNumber: unkown error measure number: ", errorMeasureFromNumber))
 }
 
-selectionFunctionFromNumber <- function(selectionFunctionNumber) {
-  switch(selectionFunctionNumber,
-         nds_cd_selection,
-         nds_hv_selection,
-         stop("selectionFunctionFromNumber: unkown selection function number: ", selectionFunctionNumber))
-}
+#nds_hv_selection_fixed <- function(points, n, ...) {
+#  selected <- integer() 
+#  currentPoints <- points
+#  for (i in 1:n) {
+#    currentSelection <- nds_hv_selection(currentPoints, n = 1)
+#    print("***") # TODO
+#    print(ncol(currentPoints)) # TODO
+#    print(currentSelection) # TODO
+#    print("---") # TODO
+#    selected <- c(selected, currentSelection)
+#    currentPoints <- currentPoints[, -currentSelection] 
+#  }
+#  return (selected)
+#}
+
+#selectionFunctionFromNumber <- function(selectionFunctionNumber) {
+#  switch(selectionFunctionNumber,
+#         nds_cd_selection,
+#         nds_hv_selection_fixed,
+#         stop("selectionFunctionFromNumber: unkown selection function number: ", selectionFunctionNumber))
+#}
 
 
 startRgpGmogpExperiment <- function(problemParameters = list(data = NULL,
@@ -65,7 +80,7 @@ startRgpGmogpExperiment <- function(problemParameters = list(data = NULL,
                                                                mu = 100L,                          # Factor H RoI: {8L, ..., 256L}
                                                                nuRel = 0.5,                        # Factor J RoI: [0, 1]
                                                                parentSelectionProbability = 1.0,   # Factor K RoI: [0, 1]
-                                                               selectionFunctionNumber = 1L,       # Factor L RoI: {1L, 2L}
+                                                               #selectionFunctionNumber = 1L,       # Factor L RoI: {1L, 2L}
                                                                subtreeMutationProbability = 1.0),  # Factor M RoI: [0, 1]
                                     experimentParameters = list(evaluations = 10e6L, # ten million fitness evaluations
                                                                 populationSnapshots = 10L,
@@ -136,7 +151,8 @@ startRgpGmogpExperiment <- function(problemParameters = list(data = NULL,
 
   errorMeasure  <- errorMeasureFromNumber(round(algorithmParameters$errorMeasureNumber))
 
-  ndsSelectionFunction <- selectionFunctionFromNumber(round(algorithmParameters$selectionFunctionNumber))
+  #ndsSelectionFunction <- selectionFunctionFromNumber(round(algorithmParameters$selectionFunctionNumber))
+  ndsSelectionFunction <- nds_cd_selection
 
   searchHeuristic <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = algorithmParameters$lambda,
                                                                      crossoverProbability = algorithmParameters$crossoverProbability,
@@ -146,15 +162,18 @@ startRgpGmogpExperiment <- function(problemParameters = list(data = NULL,
                                                                      ndsParentSelectionProbability = algorithmParameters$parentSelectionProbability,
                                                                      ndsSelectionFunction = ndsSelectionFunction)
 
+  snapshotInterval <- experimentParameters$evaluations / experimentParameters$populationSnapshots
+  nextSnapshotAt <- snapshotInterval
   populationHistory <- list() 
 
   progressMonitor <- function(pop, objectiveVectors, fitnessFunction,
                               stepNumber, evaluationNumber, bestFitness, timeElapsed, indicesToRemove) {
-    print(length(pop)) # TODO debug
-    if (evaluationNumber %% 1000 == 0) message(bestFitness) # TODO debug output
-    if (evaluationNumber %% (experimentParameters$evaluations / experimentParameters$populationSnapshots) == 0) {
+    cat(".") # TODO debug output
+    if (evaluationNumber >= nextSnapshotAt) {
       # save a snapshop of the current population
-      populationHistory <<- c(list(list(stepNumber = stepNumber, population = pop, objectiveVectors = objectiveVectors)), populationHistory)
+      populationHistory <<- c(list(list(stepNumber = stepNumber, timeElapsed = timeElapsed, population = pop, objectiveVectors = objectiveVectors)),
+                              populationHistory)
+      nextSnapshotAt <<- nextSnapshotAt + snapshotInterval
     }
   }
 
@@ -220,10 +239,10 @@ rgpGmogpScreening <- function(seed = 1,
                               experimentIndex = getPBSArrayJobID(),
                               experimentName = "unnamed") {
   rgpGmogpScreeningDesign <- pb(
-    nruns = 16,
+    nruns = 12,
     n12.taguchi = FALSE,
-    nfactors = 15, # nruns - 1
-    ncenter = 8, 
+    nfactors = 11, # nruns - 1
+    ncenter = 6, 
     replications = repeats, 
     repeat.only = TRUE,
     randomize = TRUE ,
@@ -239,7 +258,7 @@ rgpGmogpScreening <- function(seed = 1,
       mu = c(8, 256),
       nuRel = c(0, 1),
       parentSelectionProbability = c(0, 1),
-      selectionFunctionNumber = c(1, 2),
+      #selectionFunctionNumber = c(1, 2),
       subtreeMutationProbability = c(0, 1)))
 
   message("\n*** rgpGmogpScreening run started.")
@@ -267,7 +286,7 @@ rgpGmogpScreening <- function(seed = 1,
                                mu = experiment$mu,
                                nuRel = experiment$nuRel,
                                parentSelectionProbability = experiment$parentSelectionProbability,
-                               selectionFunctionNumber = experiment$selectionFunctionNumber,
+                               #selectionFunctionNumber = experiment$selectionFunctionNumber,
                                subtreeMutationProbability = experiment$subtreeMutationProbability),
     experimentParameters = list(evaluations = evaluations,
                                 populationSnapshots = 10L,
