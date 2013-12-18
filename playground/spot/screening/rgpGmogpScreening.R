@@ -236,7 +236,7 @@ rgpGmogpScreening <- function(seed = 1,
                               trainingData = salustowicz1dTrainingData,
                               repeats = 10,
                               evaluations = 1e6L,
-                              experimentIndex = getPBSArrayJobID(),
+                              experimentIndex = 1,
                               experimentName = "unnamed") {
   rgpGmogpScreeningDesign <- pb(
     nruns = 12,
@@ -299,6 +299,11 @@ rgpGmogpScreening <- function(seed = 1,
 
 
 # run experiment...
-# TODO debug: nds_hv_selection seems to be buggy...
-rgpGmogpScreening(seed = 1, trainingData = salustowicz1dTrainingData, repeats = 10, evaluations = 10000L, experimentName = "salustowicz1d")
+arrayJobID <- getPBSArrayJobID()
+rgpGmogpScreening(seed = arrayJobID,
+                  experimentName = "salustowicz1d",
+                  experimentIndex = arrayJobID,
+                  trainingData = salustowicz1dTrainingData,
+                  repeats = 10,
+                  evaluations = 10000L)
 
