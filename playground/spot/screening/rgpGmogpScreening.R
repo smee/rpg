@@ -91,7 +91,7 @@ startRgpGmogpExperiment <- function(problemParameters = list(data = NULL,
   if (is.null(problemParameters$symbolicRegressionFormula)) stop("startRgpGmogpExperiment: No valid symbolic regression formula.")
 
   # transform relative to absolute parameters...
-  algorithmParameters$buildingBlocks <- buildingBlocksFromNumber(round(algorithmParameters$buildingBlockSetNumber))
+  algorithmParameters$buildingBlocks <- buildingBlocksFromNumber(floor(algorithmParameters$buildingBlockSetNumber))
   algorithmParameters$lambda <- max(2, ceiling(algorithmParameters$lambdaRel * algorithmParameters$mu / 2))
   algorithmParameters$nu <- ceiling(algorithmParameters$nuRel * algorithmParameters$mu)
 
@@ -149,9 +149,9 @@ startRgpGmogpExperiment <- function(problemParameters = list(data = NULL,
                                 as.list(inVarSet$nameStrings)), 1:mu)
   }
 
-  errorMeasure  <- errorMeasureFromNumber(round(algorithmParameters$errorMeasureNumber))
+  errorMeasure  <- errorMeasureFromNumber(floor(algorithmParameters$errorMeasureNumber))
 
-  #ndsSelectionFunction <- selectionFunctionFromNumber(round(algorithmParameters$selectionFunctionNumber))
+  #ndsSelectionFunction <- selectionFunctionFromNumber(floor(algorithmParameters$selectionFunctionNumber))
   ndsSelectionFunction <- nds_cd_selection
 
   searchHeuristic <- makeAgeFitnessComplexityParetoGpSearchHeuristic(lambda = algorithmParameters$lambda,
@@ -227,6 +227,7 @@ sineCosine2d<- function(x1,x2) 6*sin(x1)*cos(x2)
 ripple2d <- function(x1,x2) (x1-3)*(x2-3) + 2*sin((x1-4)*(x2-4))
 ratPol2d <- function(x1,x2) ((x1-3)*(x1-3)*(x1-3)*(x1-3) + (x2-3)*(x2-3)*(x2-3) -x2 + 3) / ((x2-2)*(x2-2)*(x2-2)*(x2-2)+ 10)
 
+set.seed(1) # use fixed random seed to sample training data
 salustowicz1dData <- tabulateFunction(salustowicz1d, x = seq(1, 10, length.out = 100))
 salustowicz1dTrainingDataIndices <- sample(1:nrow(salustowicz1dData), size = 0.5 * nrow(salustowicz1dData), replace = FALSE)
 salustowicz1dTrainingData <- salustowicz1dData[salustowicz1dTrainingDataIndices, ]
