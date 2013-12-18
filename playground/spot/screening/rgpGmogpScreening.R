@@ -158,7 +158,7 @@ startRgpGmogpExperiment <- function(problemParameters = list(data = NULL,
                                                                      crossoverProbability = algorithmParameters$crossoverProbability,
                                                                      newIndividualsPerGeneration = algorithmParameters$nu,
                                                                      enableComplexityCriterion = problemParameters$enableComplexityCriterion,
-                                                                     enableAgeCriterion = algorithmParameters$enableAgeCriterion,
+                                                                     enableAgeCriterion = algorithmParameters$enableAgeCriterion != 0,
                                                                      ndsParentSelectionProbability = algorithmParameters$parentSelectionProbability,
                                                                      ndsSelectionFunction = ndsSelectionFunction)
 
