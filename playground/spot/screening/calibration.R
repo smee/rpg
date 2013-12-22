@@ -236,6 +236,7 @@ rgpGmogpCalibration <- function(seed = 1,
   message("running rgpGmogpCalibration experiments.")
   snapshotInterval <- evaluations / snapshots
   fitnessHistories <- matrix(1:snapshots * snapshotInterval) 
+  experimentResults <- list()
   for (i in 1:runs) {
     message("\n** rgpGmogpCalibration: starting run ", i, " of ", runs)
     experimentResult <- startRgpGmogpCalibrationExperiment(
@@ -257,14 +258,16 @@ rgpGmogpCalibration <- function(seed = 1,
       experimentParameters = list(evaluations = evaluations,
                                   snapshots = snapshots,
                                   randomSeed = seed + i))
+    #experimentResults <- c(experimentResults, list(experimentResult))
     fitnessHistories <- cbind(fitnessHistories, experimentResult$fitnessHistory)
   }
   message("rgpGmogpCalibration: all runs DONE.")
 
-  saveRDS(fitnessHistories, file = rdsOutputFileName)
-  message("rgpGmogpCalibration: saved fitnessHistories to file '", rdsOutputFileName, "'")
+  results <- list(experimentResults = experimentResults, fitnessHistories = fitnessHistories)
+  saveRDS(results, file = rdsOutputFileName)
+  message("rgpGmogpCalibration: saved results to file '", rdsOutputFileName, "'")
 
-  return (fitnessHistories)
+  return (results)
 }
 
 
@@ -272,9 +275,9 @@ rgpGmogpCalibration <- function(seed = 1,
 rgpGmogpCalibration(seed = 1,
                     experimentName = "salustowicz1d",
                     trainingData = salustowicz1dTrainingData,
-                    snapshots = 100L,
-                    runs = 10L,
-                    evaluations = 1e4L) #1e8L)
+                    snapshots = 1000L,
+                    runs = 12L,
+                    evaluations = 1e7L)
 
 #matplot(r1[,1], r1[,-1], type = "l", col = 1, ylab = "best fitness (SMSE)", xlab = "# fitness evaluations", main = "fitness histories")
 
