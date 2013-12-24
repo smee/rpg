@@ -237,6 +237,7 @@ rgpGmogpCalibration <- function(seed = 1,
   snapshotInterval <- evaluations / snapshots
   fitnessHistories <- matrix(1:snapshots * snapshotInterval) 
   experimentResults <- list()
+  bestIndividuals <- list()
   for (i in 1:runs) {
     message("\n** rgpGmogpCalibration: starting run ", i, " of ", runs)
     experimentResult <- startRgpGmogpCalibrationExperiment(
@@ -259,11 +260,14 @@ rgpGmogpCalibration <- function(seed = 1,
                                   snapshots = snapshots,
                                   randomSeed = seed + i))
     #experimentResults <- c(experimentResults, list(experimentResult))
+    bestIndividuals <- c(bestIndividuals, list(experimentResult$symbolicRegressionResult$elite[[1]]))
     fitnessHistories <- cbind(fitnessHistories, experimentResult$fitnessHistory)
   }
   message("rgpGmogpCalibration: all runs DONE.")
 
-  results <- list(experimentResults = experimentResults, fitnessHistories = fitnessHistories)
+  results <- list(experimentResults = experimentResults,
+                  bestIndividuals = bestIndividuals,
+                  fitnessHistories = fitnessHistories)
   saveRDS(results, file = rdsOutputFileName)
   message("rgpGmogpCalibration: saved results to file '", rdsOutputFileName, "'")
 
