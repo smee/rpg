@@ -1,4 +1,3 @@
-[1] "\n"
 function (x1) 
 sin(tan(sin(sqrt(-0.798493255861104 * sin(x1 + ((x1 + (-0.798493255861104 * 
     sin(-0.798493255861104 + x1 + -0.798493255861104) + x1) * 
@@ -13,13 +12,11 @@ sin(tan(sin(sqrt(-0.798493255861104 * sin(x1 + ((x1 + (-0.798493255861104 *
         -0.798493255861104))) + x1 + sin(x1 + sin(sqrt(x1)) + 
     x1) * sin(x1)))))
 <environment: 0x100e30040>
-[1] "\n"
 function (x1) 
 log(x1 + x1, exp(x1))/(cos(cos(x1/sqrt(log(exp(x1), x1)) - 5.52283782977611)) * 
     sqrt(log(exp(x1), x1))) * (cos(x1) * (sqrt(log(x1, exp(x1))) * 
     log(x1, exp(x1))/log(exp(x1), x1 + x1))) * sin(x1)
 <environment: 0x108ee8df8>
-[1] "\n"
 function (x1) 
 sqrt(x1 + x1) * (cos(cos(sqrt(x1))) * (sin(cos(cos(sqrt(x1))) * 
     (cos(sin(cos(sqrt(x1)))) * sin(sin(cos(cos(sin(cos(sqrt(sin(x1) + 
@@ -30,12 +27,10 @@ sqrt(x1 + x1) * (cos(cos(sqrt(x1))) * (sin(cos(cos(sqrt(x1))) *
     sin(x1)))) * sin(sin(sin(sin(x1 + x1))) + x1) * cos(sin(x1 + 
     sin(x1))))))))
 <environment: 0x105f932d0>
-[1] "\n"
 function (x1) 
 sin(x1 - tan(sin(x1))) * sin(sin(sin(sin(sqrt(x1 - sin(tan(sin(x1)) - 
     x1))))))
 <environment: 0x11471a790>
-[1] "\n"
 function (x1) 
 sin(x1 + x1)/exp(sqrt(x1))/sqrt(log(exp(exp(sin(x1 + cos(sin(x1 + 
     7.48094470240176))))), x1))/exp(sqrt(x1))/sqrt(log(cos(tan(sin(tan(x1)))) + 
@@ -45,40 +40,33 @@ sin(x1 + x1)/exp(sqrt(x1))/sqrt(log(exp(exp(sin(x1 + cos(sin(x1 +
             x1) + sqrt(x1) + cos(7.48094470240176) + cos(tan(x1))) + 
             sin(tan(sqrt(x1)))))), sqrt(x1)))
 <environment: 0x1166cfb20>
-[1] "\n"
 function (x1) 
 sin(sqrt(x1)) * (sin(cos(x1)) * tan(sin(x1 - sin(sin(x1))) * 
     exp(tan(sin(3.50671358872205))/exp(tan(-6.65867792442441)/exp(cos(x1))))))
 <environment: 0x119b10070>
-[1] "\n"
 function (x1) 
 sin(x1 - tan(sin(x1))) * (9.90246677771211 - x1 + sin(x1 - 9.75800972431898))
 <environment: 0x124e32520>
-[1] "\n"
 function (x1) 
 sin(sin(sin(x1) * (sin(sqrt(x1 - sin(sin(x1)))) * (sqrt(x1) * 
     cos(x1) * sin(sqrt(x1)) * sin(sqrt(cos(cos(sin(sin(x1) - 
     x1))))) * cos(cos(sqrt(x1)))) * cos(cos(sin(sin(x1) - x1))))))
 <environment: 0x1280592a8>
-[1] "\n"
 function (x1) 
 cos(cos(sin(sin(tan(tan(sin(tan(tan(sin(sin(sin(tan(sin(sin(tan(sin(sin(tan(sin(sin(tan(sin(sin(tan(sin(sin(tan(sin(sin(tan(sin(tan(sin(tan(sin(sin(tan(sin(sin(tan(sin(sin(tan(sin(sin(sin(tan(sin(sin(tan(sin(sin(tan(sin(sin(tan(sin(tan(sin(sin(tan(sin(sin(tan(sin(sin(tan(tan(sin(sin(tan(sin(sin(tan(sin(sin(tan(sin(sin(tan(sin(sin(tan(sin(tan(sin(tan(tan(sin(sin(tan(sin(tan(tan(tan(tan(tan(tan(tan(tan(tan(tan(x1 * 
     tan(tan(sin(sin(tan(sin(x1) * (0.507646896876395 * x1) * 
         (cos(x1)/exp(x1)) * x1)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) - 
     -7.07915898878127))
 <environment: 0x122393d48>
-[1] "\n"
 function (x1) 
 sin(tan(sin(tan(sin(tan(tan(tan(sin(x1) * (x1/exp(x1)) * x1 * 
     x1 * cos(x1)))))))))
 <environment: 0x117615518>
-[1] "\n"
 function (x1) 
 sin(sin(sin(tan(sin(tan(sin(sin(sin(tan(sin(cos(tan(sin(tan(sin(sin(tan(sin(sin(sin(tan(sin(sin(tan(sin(tan(sin(tan(sin(tan(tan(tan(tan(tan(tan(tan(tan(tan(tan(tan(tan(tan(tan(x1 * 
     sin(sin(x1)/(log(exp(exp(x1)), x1)/cos(x1)) * x1))))))))))))))))))))))))))))))))) - 
     1.67545672040433))))))))))))
 <environment: 0x108729638>
-[1] "\n"
 function (x1) 
 tan(sin(tan(x1 * (sin(x1 + x1) * (x1/exp(x1)/log(1.94704111665487, 
     sqrt(exp(x1))))))))
