@@ -16,6 +16,8 @@
 ##'
 ##' @param m A matrix of two rows and n columns, representing the solutions of a
 ##'   two-dimensional optimization problem.
+##' @param normalize Whether to normalize both objectives to the interval of
+##'   [0, 1], defaults to \code{TRUE}.
 ##' @return The knee point index, i.e. the column index in m of the point of minimum
 ##'   euclidean distance to the utopia point.
 ##' @examples
@@ -26,7 +28,8 @@
 ##' points(t(pKnee), col = "green4", pch = 16)
 ##'
 ##' @export
-paretoFrontKneeIndex <- function(m) {
-  pUtopia <- c(min(m[1, ]), min(m[2, ]))
-  which.min(as.matrix(dist(t(cbind(pUtopia, m)), method = "euclidean"))[-1, 1])
+paretoFrontKneeIndex <- function(m, normalize = TRUE) {
+  mNorm <- if (normalize) t(apply(m, 1, function(row) (row - min(row)) / (max(row) - min(row)))) else m
+  pUtopia <- c(min(mNorm[1, ]), min(mNorm[2, ]))
+  which.min(as.matrix(dist(t(cbind(pUtopia, mNorm)), method = "euclidean"))[-1, 1])
 }
