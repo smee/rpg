@@ -12,7 +12,8 @@
 ##' Given a matrix \code{m} of two rows and n columns, representing solutions of a
 ##' two-dimensional optimization problem, returns the column index of the point with
 ##' minimum euclidean distance to the utopia point. The utopia point is the point
-##' consisting of the row minima of \code{m}.
+##' consisting of the row minima of \code{m}. \code{NA} or \code{NaN} values of
+##' \code{m} are ommited.
 ##'
 ##' @param m A matrix of two rows and n columns, representing the solutions of a
 ##'   two-dimensional optimization problem.
@@ -29,7 +30,8 @@
 ##'
 ##' @export
 paretoFrontKneeIndex <- function(m, normalize = TRUE) {
-  mNorm <- if (normalize) t(apply(m, 1, function(row) (row - min(row)) / (max(row) - min(row)))) else m
+  mNaOmit <- t(na.omit(t(m)))
+  mNorm <- if (normalize) t(apply(mNaOmit, 1, function(row) (row - min(row)) / (max(row) - min(row)))) else mNaOmit
   pUtopia <- c(min(mNorm[1, ]), min(mNorm[2, ]))
   which.min(as.matrix(dist(t(cbind(pUtopia, mNorm)), method = "euclidean"))[-1, 1])
 }
