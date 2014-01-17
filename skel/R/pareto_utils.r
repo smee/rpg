@@ -31,7 +31,13 @@
 ##' @export
 paretoFrontKneeIndex <- function(m, normalize = TRUE) {
   mNaOmit <- t(na.omit(t(m)))
+
+  if (ncol(mNaOmit) <= 1) {
+    warning("paretoFrontKneeIndex: not enough non-NA columns in m, returning index 1")
+    return (1)
+  }
   mNorm <- if (normalize) t(apply(mNaOmit, 1, function(row) (row - min(row)) / (max(row) - min(row)))) else mNaOmit
   pUtopia <- c(min(mNorm[1, ]), min(mNorm[2, ]))
-  which.min(as.matrix(dist(t(cbind(pUtopia, mNorm)), method = "euclidean"))[-1, 1])
+
+  return (which.min(as.matrix(dist(t(cbind(pUtopia, mNorm)), method = "euclidean"))[-1, 1]))
 }
