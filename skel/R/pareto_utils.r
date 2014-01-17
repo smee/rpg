@@ -34,12 +34,15 @@ paretoFrontKneeIndex <- function(m, normalize = TRUE) {
 
   if (ncol(mNaOmit) == 0) {
     warning("paretoFrontKneeIndex: not enough non-NA columns in m, returning NA")
+    browser() # TODO
     return (NA)
   } else if (ncol(mNaOmit) == 1) {
     return (1)
   } else {
     mNorm <- if (normalize) t(apply(mNaOmit, 1, function(row) (row - min(row)) / (max(row) - min(row)))) else mNaOmit
     pUtopia <- c(min(mNorm[1, ]), min(mNorm[2, ]))
-    return (which.min(as.matrix(dist(t(cbind(pUtopia, mNorm)), method = "euclidean"))[-1, 1]))
+    mDist <- as.matrix(dist(t(cbind(pUtopia, mNorm)), method = "euclidean"))[-1, 1]
+    mDistMinIndex <- which.min(mDist)
+    return (if (length(mDistMinIndex) == 0) 1 else mDistMinIndex) # which.min can return an empty vector
   }
 }
