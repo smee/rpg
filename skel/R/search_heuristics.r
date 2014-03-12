@@ -230,6 +230,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##' @return An RGP search heuristic.
 ##'
 ##' @export
+##' @import emoa
 makeAgeFitnessComplexityParetoGpSearchHeuristic <- function(lambda = 50,
                                                             crossoverProbability = 0.5,
                                                             enableComplexityCriterion = TRUE,
@@ -410,6 +411,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##' @return An RGP search heuristic.
 ##'
 ##' @export
+##' @import emoa
 makeArchiveBasedParetoTournamentSearchHeuristic <- function(archiveSize = 50,
                                                             popTournamentSize = 5,
                                                             archiveTournamentSize = 3,

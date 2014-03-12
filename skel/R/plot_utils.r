@@ -214,6 +214,7 @@ exprToGraph <- function(expr) {
 ##'   For example, use the \code{main} parameter to set a title.
 ##'
 ##' @seealso \code{\link{funcToIgraph}}
+##' @import emoa
 ##' @export
 plotParetoFront <- function(x, y, z, indicesToMark = integer(), maxZ = 50,
                             main = sprintf("Population Pareto Front Plot (% Individuals)", length(x)), ...) {

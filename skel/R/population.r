@@ -127,6 +127,7 @@ summary.population <- function(object, ...) {
 ##'   a "N * IQR" criterion.
 ##' @param ... Additional parameters for the underlying call to \code{\link{plot}}.
 ##'
+##' @import emoa
 ##' @export
 plotPopulationFitnessComplexity <- function(pop, fitnessFunction,
                                             complexityFunction = fastFuncVisitationLength,

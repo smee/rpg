@@ -24,7 +24,7 @@
 ##' @examples
 ##' m1 <- matrix(runif(200), ncol = 100)
 ##' plot(t(m1))
-##' points(t(m1[,nds_rank(m1) == 1]), col = "red", pch = 16)
+##' points(t(m1[,emoa::nds_rank(m1) == 1]), col = "red", pch = 16)
 ##' pKnee <- m1[, paretoFrontKneeIndex(m1)]
 ##' points(t(pKnee), col = "green4", pch = 16)
 ##'
