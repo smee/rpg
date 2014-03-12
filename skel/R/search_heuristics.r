@@ -108,7 +108,7 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##' Comma Evolution Strategy Search Heuristic for RGP
 ##'
 ##' The search-heuristic, i.e. the concrete GP search algorithm, is a modular component of RGP.
-##' \code{makeCommaEvolutionStrategySearchHeuristic} creates a RGP search-heuristic that implements a
+##' \code{makeCommaEvolutionStrategySearchHeuristic} creates a RGP search-heuristic that implements a
 ##' (mu, lambda) Evolution Strategy. The lambda parameter is fixed to the population size.
 ##' TODO description based on Luke09a
 ##'
@@ -221,9 +221,9 @@ function(logFunction, stopCondition, pop, fitnessFunction,
 ##' @param ageMergeFunction The function used for merging ages of crossover children, defaults
 ##'   to \code{max}.
 ##' @param newIndividualsPerGeneration The number of new individuals per generation to
-##'   insert into the population. Defaults to \code{50} if \code{enableAgeCriterion == TRUE}
+##'   insert into the population. Defaults to \code{50} if \code{enableAgeCriterion == TRUE}
 ##'   else to \code{0}.
-##' @param newIndividualsMaxDepth The maximum depth of new individuals inserted into the
+##' @param newIndividualsMaxDepth The maximum depth of new individuals inserted into the
 ##'   population.
 ##' @param newIndividualFactory The factory function for creating new individuals. Defaults
 ##'   to \code{makePopulation}.

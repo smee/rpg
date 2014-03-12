@@ -19,7 +19,7 @@
 ##' @keywords package
 ##' @useDynLib rgp
 
-NA
+NULL
 
 ## Package startup functions used to initialize static objects...
 .onLoad <- function(libname, pkgname) {

@@ -33,7 +33,7 @@ r_mae <- function(x, y) mean(abs(x - y))
 ##' @useDynLib rgp do_sse
 sse <- function(x ,y) .Call(do_sse, x, y)
 
-##' R version Sum squared error (SSE)
+##' R version of Sum squared error (SSE)
 ##'
 ##' @param x A numeric vector or list.
 ##' @param y A numeric vector or list.
@@ -66,6 +66,11 @@ rmse <- function(x, y) sqrt(mse(x, y))
 ##' @useDynLib rgp do_ssse
 ssse <- function(x, y) .Call(do_ssse, x, y)
 
+##' R version of Scaled sum squared error (sSSE)
+##'
+##' @param x A numeric vector or list.
+##' @param y A numeric vector or list.
+##' @return The sSSE between \code{x} and \code{y}.
 ##' @export
 r_ssse <- function(x, y) {
 	if (length(y) == 1) y <- rep(y, length(x))
@@ -140,7 +145,7 @@ seSymbolicFunction <- function(f, g) {
 ##'
 ##' Given to functions \code{f} and \code{g}, returns the area the squared
 ##' differences between \code{f} and \code{g} in the integration limits
-##' \code{lower} and \code{upper}.
+##' \code{lower} and \code{upper}.
 ##'
 ##' @param f An R function.
 ##' @param g An R function with the same formal arguments as \code{f}.

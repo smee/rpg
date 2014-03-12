@@ -52,6 +52,7 @@ shlibs: m4macros
 
 roxygen: m4macros
 	echo "Roxygenizing package..."
+	cp -r skel pkg
 	./roxygenize > roxygen.log 2>&1 || cat roxygen.log
 	echo "DONE."
 

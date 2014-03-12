@@ -26,6 +26,8 @@ rgpSTypeEnvironment <- new.env(parent = emptyenv())
 ##' \code{sObject} is the root of the sType hierarchy, i.e. the most general type.
 ##'
 ##' @param baseTypeName The name of the base sType to create.
+##' @param domainTypes The \code{domain} sType of a function sType.
+##' @param rangeType The \code{range} sType of a function sType.
 ##' @return The created sType.
 ##'
 ##' @examples

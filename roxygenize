@@ -2,7 +2,6 @@
 
 require("roxygen2")
 
-#roxygenize("skel", "pkg", use.Rd2=TRUE, unlink.target=TRUE)
-roxygenize(package.dir = "skel", roxygen.dir = "pkg", unlink.target = TRUE, overwrite = TRUE)
+roxygenize(package.dir = "pkg")
 
 # EOF
