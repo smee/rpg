@@ -11,6 +11,8 @@
 ##'
 ##' \code{makePopulation} creates a population of untyped individuals, whereas
 ##' \code{makeTypedPopulation} creates a population of typed individuals.
+##' \code{fastMakePopulation} is a faster variant of \code{makePopulation} with
+##'   fewer options.
 ##' \code{print.population} prints the population.
 ##' \code{summary.population} returns a summary view of a population.
 ##'
@@ -19,6 +21,8 @@
 ##' @param funcset The function set.
 ##' @param inset The set of input variables.
 ##' @param conset The set of constant factories.
+##' @param constMin For \code{fastMakePopulation}, the minimum constant to create.
+##' @param constMax For \code{fastMakePopulation}, the maximum constant to create.
 ##' @param maxfuncdepth The maximum depth of the functions of the new population.
 ##' @param constprob The probability of generating a constant in a step of growth, if no subtree
 ##'   is generated. If neither a subtree nor a constant is generated, a randomly chosen input variable
@@ -70,6 +74,19 @@ makePopulation <- function(size, funcset, inset, conset,
   }
   class(pop) <- c("untypedPopulation", "population", "list")
   pop
+}
+
+##' @rdname populationCreation
+##' @export
+fastMakePopulation <- function(size, funcset, inset, maxfuncdepth, constMin, constMax) {
+  Map(function(i) makeClosure(.Call("initialize_expression_grow_R",
+                                    as.list(funcset$nameStrings),
+                                    as.integer(funcset$arities),
+                                    as.list(inset$nameStrings),
+                                    constMin, constMax,
+                                    0.8, 0.2,
+                                    as.integer(maxfuncdepth)),
+                              as.list(inset$nameStrings)), 1:size)
 }
 
 ##' @rdname populationCreation
