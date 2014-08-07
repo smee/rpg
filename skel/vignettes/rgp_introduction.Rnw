@@ -1,7 +1,7 @@
 % rgp_introduction.Rnw
 %\VignetteIndexEntry{A Friendly Introduction to RGP}
 %
-% 2013 Oliver Flasch
+% 2013-2014 Oliver Flasch
 % SPOTSeven group / rsymbolic project
 % Cologne University of Applied Sciences
 %
@@ -56,7 +56,7 @@
   citecolor = citecol,
   urlcolor = linkcol}
 \title[RGP Introduction]{A Friendly Introduction to RGP}
-\date{4 March 2013 (RGP release 0.3-1)}
+\date{7. August 2014 (RGP release 0.4-1)}
 \author[Oliver Flasch]{Oliver Flasch}
 
 
