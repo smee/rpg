@@ -141,20 +141,32 @@ randexprTypedGrow <- function(type, funcset, inset, conset,
   constprob <- if (is.empty(conset$all)) 0.0 else constprob
   typeString <- type$string
   insetTypes <- Map(sType, inset$all)
-  if (curdepth < maxdepth && runif(1) <= subtreeprob) { # maybe create subtree of correct type if maximum depth is not reached
+  if (!(isSupportedType(typeString, inset) || isSupportedType(typeString, conset))
+      || (curdepth < maxdepth && runif(1) <= subtreeprob) { # maybe create subtree of correct type if maximum depth is not reached or we do not know how to construct a terminal for this type
     funcname <- toName(randelt(funcset$byRange[[typeString]], prob = attr(funcset$byRange[[typeString]], "probabilityWeight")))
-    if (!is.null(funcname)) { # a function of correct range type has been found...
-      functype <- sType(funcname)
-      funcdomaintypes <- functype$domain
-      newSubtree <-
-        as.call(append(funcname,
-                       Map(function(domaintype) randexprTypedGrow(domaintype, funcset, inset, conset, maxdepth,
-                                                                  constprob, subtreeprob, curdepth + 1),
-                           funcdomaintypes)))
-    ## the type of the generated subtree is a function type with the input variable types as domain types...
-    newSubtreeType <- insetTypes %->% type
-    return(newSubtree)
-    }
+	# if the type is not supported by constants nor inputs, we NEED to generate a subtree
+	# using functions, that return this type.
+	# Problem: The tree might become to deep for R to handle, or at least deeper than maxdepth
+	# Solution: We need explicit backtracking when randexprTypedGrow returns for example NULL		
+	funcname <- toName(randelt(funcset$byRange[[typeString]], 
+	prob = attr(funcset$byRange[[typeString]], "probabilityWeight")))			
+	if (!is.null(funcname)) { 
+	  functype <- sType(funcname)
+	  funcdomaintypes <- functype$domain
+	  parameters <- Map(function(domaintype) randexprTypedGrow(domaintype, 
+					    funcset, inset, conset, maxdepth, constprob, 
+					    subtreeprob, curdepth + 1), funcdomaintypes)				
+	  if(length(parameters[is.na(parameters)])>0){ # can we construct all parameters?
+	    # there is at least one parameter we could not construct, so try another function
+	    return (randexprTypedGrow(type,functionSet(list = Filter( function(s) s!=funcname,funcset$all)), inset, conset, maxdepth = maxdepth, constprob = constprob, subtreeprob = subtreeprob, curdepth = curdepth))
+	  }else{
+        newSubtree <- as.call(append(funcname, parameters))
+        newSubtreeType <- insetTypes %->% type
+        return(newSubtree)
+      }
+    }else {
+      return(NA)
+    } 
   }
   # else, create a terminal node of correct type
   return(randterminalTyped(typeString, inset, conset, constprob))
