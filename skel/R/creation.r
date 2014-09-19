@@ -219,7 +219,7 @@ randfuncTypedRampedHalfAndHalf <- function(type, funcset, inset, conset, maxdept
 ##' @param constprob The probability of creating a constant versus an input variable.
 ##' @return A random terminal node, i.e. an input variable or a constant.
 randterminalTyped <- function(typeString, inset, conset, constprob) {
-  if (runif(1) <= constprob) { # create constant of correct type
+  if (runif(1) <= constprob && isSupportedType(typeString, conset)) { # create constant of correct type
     constfactoryName <- randelt(conset$byRange[[typeString]], prob = attr(conset$byRange[[typeString]], "probabilityWeight"))
     if (is.null(constfactoryName)) stop("randterminalTyped: Could not find a constant factory for type ", typeString, ".")
     constfactory <- get(as.character(constfactoryName))
@@ -235,4 +235,14 @@ randterminalTyped <- function(typeString, inset, conset, constprob) {
       invar
     }
   }
+}
+
+##' Test the availability of a generator for a given type.
+##'
+##' @param typeString The string label of the type of the random terminal node to create.
+##' @param conFunInset The set of input variables or constant factories.
+##' @return A boolean designating whether there is a constructor for the given type.
+isSupportedType <-function(typeString, conFunInset){
+  constfactoryName <- randelt(conFunInset$byRange[[typeString]], prob = attr(conFunInset$byRange[[typeString]], "probabilityWeight"))
+  return(!is.null(constfactoryName))
 }
