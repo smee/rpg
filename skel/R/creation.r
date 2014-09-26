@@ -142,7 +142,7 @@ randexprTypedGrow <- function(type, funcset, inset, conset,
   typeString <- type$string
   insetTypes <- Map(sType, inset$all)
   if (!(isSupportedType(typeString, inset) || isSupportedType(typeString, conset))
-      || (curdepth < maxdepth && runif(1) <= subtreeprob) { # maybe create subtree of correct type if maximum depth is not reached or we do not know how to construct a terminal for this type
+      || (curdepth < maxdepth && runif(1) <= subtreeprob)) { # maybe create subtree of correct type if maximum depth is not reached or we do not know how to construct a terminal for this type
     funcname <- toName(randelt(funcset$byRange[[typeString]], prob = attr(funcset$byRange[[typeString]], "probabilityWeight")))
 	# if the type is not supported by constants nor inputs, we NEED to generate a subtree
 	# using functions, that return this type.
